@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing & Coverage
+coverage/
+*.lcov
+
+# Production Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Database local runtime
+pgsql/
+postgres-data/
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+dev.db
+
+# Uploaded patient documents (blood requests)
+backend/uploads/
+
+# Local-only files
+launch/delete-users.txt
+backend/prisma/.seeded
