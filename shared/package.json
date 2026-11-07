@@ -1,0 +1,6 @@
+{
+  "name": "bloodbridge-shared",
+  "private": true,
+  "type": "module",
+  "description": "Country settings shared by backend and frontend"
+}

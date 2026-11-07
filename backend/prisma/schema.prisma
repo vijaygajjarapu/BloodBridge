@@ -1,0 +1,432 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  username        String?   @unique
+  fullName        String?
+  dateOfBirth     DateTime?
+  email           String    @unique
+  phone           String?   @unique
+  country         String    @default("IN") // ISO 3166-1 alpha-2 code, see shared/countries.ts
+  passwordHash    String?
+  role            String    @default("donor") // "donor", "admin", "coordinator"
+  status          String    @default("active") // "active", "suspended", "pending"
+  isEmailVerified Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  donorProfile       DonorProfile?
+  oauthAccounts      OAuthAccount[]
+  refreshTokens      RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  createdReferrals   Referral[]         @relation("ReferrerUsers")
+  receivedReferral   Referral?          @relation("ReferredUser")
+  consentRecords     ConsentRecord[]
+  notifications      Notification[]     @relation("UserNotifications")
+  supportTickets     SupportTicket[]
+  auditLogs          AuditLog[]         @relation("UserAuditLogs")
+  familyMembers      FamilyMember[]     @relation("FamilyOwner")
+  familyInvites      FamilyInvite[]     @relation("FamilyInviteOwner")
+  pledgesReceived    BloodPledge[]      @relation("PledgeFamilyOwner")
+  pledgesGiven       BloodPledge[]      @relation("PledgeDonor")
+  subscriptions      Subscription[]
+  bloodRequests      BloodRequest[]     @relation("RequestRequester")
+  requestResponses   RequestResponse[]  @relation("RequestDonorResponses")
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@index([country])
+}
+
+model DonorProfile {
+  id                  String    @id @default(uuid())
+  userId              String    @unique
+  bloodGroup          String    // A+, A-, B+, B-, AB+, AB-, O+, O-
+  country             String    @default("IN") // ISO 3166-1 alpha-2 code
+  state               String    // state / province / union territory
+  district            String    // district / county
+  city                String    // city / town / village
+  postalCode          String?   // PIN code in India
+  isAvailable         Boolean   @default(true)
+  donationWillingness String    @default("regular") // "regular", "emergency_only", "occasional"
+  totalDonations      Int       @default(0)
+  lastDonationDate    DateTime?
+  isProfileCompleted  Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([bloodGroup])
+  @@index([city])
+  @@index([country, state, district])
+  @@index([country, bloodGroup])
+  @@index([isAvailable])
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String
+  provider          String   // "google"
+  providerSubjectId String   // Google sub ID
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubjectId])
+  @@index([userId])
+}
+
+model EmailOtpChallenge {
+  id           String    @id @default(uuid())
+  email        String
+  userId       String?
+  hashedOtp    String
+  purpose      String    // "registration", "login", "password_reset", "contact_verification"
+  expiresAt    DateTime
+  attemptCount Int       @default(0)
+  verifiedAt   DateTime?
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([email, purpose])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  userAgent String?
+  ipAddress String?
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model Referral {
+  id             String    @id @default(uuid())
+  referrerUserId String
+  referralCode   String    @unique
+  referredUserId String?   @unique
+  status         String    @default("active") // "active", "completed", "expired", "revoked"
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  referrer User  @relation("ReferrerUsers", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referred User? @relation("ReferredUser", fields: [referredUserId], references: [id], onDelete: SetNull)
+
+  @@index([referrerUserId])
+  @@index([referralCode])
+  @@index([status])
+}
+
+model ConsentRecord {
+  id            String    @id @default(uuid())
+  userId        String
+  purpose       String    // "contact_sharing", "emergency_broadcast", "sms_alerts", "terms_and_privacy"
+  policyVersion String    @default("v2.4-2026")
+  isGranted     Boolean
+  grantedAt     DateTime  @default(now())
+  revokedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([policyVersion])
+}
+
+model Notification {
+  id               String   @id @default(uuid())
+  recipientId      String
+  notificationType String   // "referral_success", "system", "emergency_request", "security_alert"
+  title            String?
+  message          String
+  payload          String?
+  isRead           Boolean  @default(false)
+  relatedEntity    String?
+  createdAt        DateTime @default(now())
+
+  recipient User @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid())
+  userId    String?
+  name      String
+  email     String
+  subject   String
+  message   String
+  category  String   @default("general") // "general", "medical", "technical", "feedback"
+  status    String   @default("open") // "open", "in_progress", "resolved", "closed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("UserAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model OrganizationSettings {
+  id                   String   @id @default("default")
+  name                 String   @default("BloodBridge")
+  supportHelpline      String   @default("")
+  supportEmail         String   @default("support@bloodbridge.org")
+  emergencyUrgentLine  String   @default("")
+  currentPolicyVersion String   @default("v2.4-2026")
+  referralRewardPoints Int      @default(50)
+  maintenanceMode      Boolean  @default(false)
+  updatedAt            DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Family Safety Circle: a person lists their family members' blood groups,
+// invites others, and donors pledge to give a blood group if the family needs it.
+// ---------------------------------------------------------------------------
+
+model FamilyMember {
+  id          String    @id @default(uuid())
+  ownerUserId String
+  name        String
+  relation    String    // "self", "spouse", "son", "daughter", "father", "mother", "brother", "sister", "other"
+  bloodGroup  String    // A+, A-, B+, B-, AB+, AB-, O+, O-
+  dateOfBirth DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner User @relation("FamilyOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId])
+}
+
+/// A shareable link. Opening it shows only the blood groups needed and the inviter's first name.
+model FamilyInvite {
+  id          String   @id @default(uuid())
+  ownerUserId String
+  code        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  owner   User          @relation("FamilyInviteOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  pledges BloodPledge[]
+
+  @@index([ownerUserId])
+}
+
+/// A donor's promise to give one blood group to a family in an emergency
+model BloodPledge {
+  id           String   @id @default(uuid())
+  ownerUserId  String   // the family that asked
+  donorUserId  String   // the person who pledged
+  bloodGroup   String
+  inviteId     String?
+  shareContact Boolean  @default(true) // permission: the family owner (inviter only) may see my mobile number and call me
+  allowRequestAlerts Boolean @default(true) // permission: this family's emergency requests reach me wherever I live
+  shareAvailability  Boolean @default(false) // permission: the family owner may see whether I can donate right now
+  status       String   @default("active") // "active", "withdrawn" (by donor), "ended" (by family owner), "blocked" (ended + cannot pledge again)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner  User          @relation("PledgeFamilyOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  donor  User          @relation("PledgeDonor", fields: [donorUserId], references: [id], onDelete: Cascade)
+  invite FamilyInvite? @relation(fields: [inviteId], references: [id], onDelete: SetNull)
+
+  @@unique([ownerUserId, donorUserId, bloodGroup])
+  @@index([ownerUserId, status])
+  @@index([donorUserId])
+}
+
+/// Paid plan that unlocks the saved donor list. Bought on the website only (no in-app purchase).
+model Subscription {
+  id                String    @id @default(uuid())
+  userId            String
+  plan              String    @default("family_yearly")
+  amountPaise       Int       // 200 rupees = 20000 paise
+  currency          String    @default("INR")
+  status            String    @default("created") // "created", "active", "failed"
+  provider          String    @default("razorpay") // "razorpay" or "dev_simulated" (local testing only)
+  providerOrderId   String?   @unique
+  providerPaymentId String?
+  providerSubscriptionId String? // Razorpay Subscriptions id when automatic renewal is charged by Razorpay
+  autoRenew         Boolean   @default(true) // renews every year until the person turns it off
+  cancelledAt       DateTime? // when automatic renewal was turned off
+  renewalReminderAt DateTime? // when the "renews soon" reminder was sent
+  startsAt          DateTime?
+  endsAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+// Emergency blood requests (Blood Nation core)
+model BloodRequest {
+  id                 String    @id @default(uuid())
+  publicCode         String    @unique // short code for the public, information-only share page (/r/CODE)
+  requesterUserId    String
+  patientName        String    // never shown on the public page or to donors who haven't accepted
+  bloodGroup         String
+  component          String    @default("whole_blood") // whole_blood, red_cells, platelets, plasma
+  unitsNeeded        Int       @default(1)
+  unitsFulfilled     Int       @default(0)
+  hospitalName       String
+  hospitalArea       String?
+  hospitalPinCode    String?   // PIN code of the hospital: donors living in it are alerted too
+  country            String    @default("IN")
+  state              String
+  district           String
+  city               String
+  urgency            String    @default("urgent") // critical, urgent, planned
+  neededBy           DateTime?
+  notes              String?
+  contactPhone       String    // requester's verified mobile: shown to a donor only after they accept
+  status             String    @default("submitted") // see BLOOD_REQUEST_STATUSES in requests.service.ts
+  verificationStatus String    @default("unverified") // unverified, pending_review, verified, rejected
+  verificationNote   String?
+  onHold             Boolean   @default(false) // admin hold: paused, no new alerts or responses
+  holdReason         String?
+  donorsNotified     Int       @default(0)
+  riskScore          Int       @default(0) // automatic fraud checks (0 = no warning signs)
+  riskFlags          String?   // JSON list of the warning signs found
+  documentStatus     String    @default("none") // none, checking, passed, warnings, failed
+  reportCount        Int       @default(0) // donors who reported this request
+  closedAt           DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  requester User              @relation("RequestRequester", fields: [requesterUserId], references: [id], onDelete: Cascade)
+  responses RequestResponse[]
+  documents RequestDocument[]
+  reports   RequestReport[]
+
+  @@index([status])
+  @@index([requesterUserId])
+  @@index([country, state, district, bloodGroup])
+}
+
+model RequestResponse {
+  id                String   @id @default(uuid())
+  requestId         String
+  donorUserId       String
+  status            String   @default("accepted") // accepted, declined, withdrawn, donated
+  shareDirectNumber Boolean  @default(false) // donor chose to show their own number for THIS request (off by default)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  request BloodRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  donor   User         @relation("RequestDonorResponses", fields: [donorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, donorUserId])
+  @@index([donorUserId])
+}
+
+// Hospital directory used to suggest hospital names when posting a request.
+// Starts with a small sample list and grows from the hospitals people enter.
+model Hospital {
+  id        String   @id @default(uuid())
+  nameKey   String   // lower-case name used to avoid duplicates
+  name      String
+  area      String?
+  city      String?
+  district  String
+  state     String
+  country   String   @default("IN")
+  pinCode   String?
+  source    String   @default("user") // "sample" (pre-filled list) or "user" (added from a request)
+  useCount  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([country, state, district, nameKey])
+  @@index([country, state, district])
+  @@index([pinCode])
+}
+
+// Patient document for a blood request (requisition form / doctor's note), with automatic checks
+model RequestDocument {
+  id             String   @id @default(uuid())
+  requestId      String
+  uploaderUserId String
+  fileName       String
+  mimeType       String
+  sizeBytes      Int
+  sha256         String   // same file used in another request = flagged
+  storagePath    String   // relative to backend/uploads
+  ocrText        String?
+  checks         String?  // JSON: what was checked and the outcome
+  result         String   @default("checking") // checking, passed, warnings, failed
+  createdAt      DateTime @default(now())
+
+  request BloodRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([sha256])
+}
+
+// A donor reporting a request (money demanded, fake, wrong number...)
+model RequestReport {
+  id             String   @id @default(uuid())
+  requestId      String
+  reporterUserId String
+  reason         String   // money_demanded, fake_request, wrong_number, other
+  details        String?
+  createdAt      DateTime @default(now())
+
+  request BloodRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, reporterUserId])
+}
