@@ -238,8 +238,17 @@ Only the person who sent the invite sees these, never other family members.
 
 ```bash
 npm test --workspace=backend
-npm test --workspace=frontend
 ```
+
+- Runs against a **separate test database** (`backend\prisma\test.db`) that is rebuilt and seeded on every run. Your real local data (`dev.db`) is never touched, and no emails or SMS are sent.
+- `tests/eligibility.test.ts`: donor eligibility rules (age, weight, 90/120-day gap, reasons to wait).
+- `tests/core.test.ts`: sign-in, free Find Donors and requests, alerts to matching donors, phone privacy before/after accepting, ineligible donors not alerted and unable to accept, Family Circle paywall, referral counting.
+- **"7 - Push Changes" runs these tests and refuses to push if any fail.**
+- `tests/api.test.ts` is an older suite that is out of date and not run.
+
+## 🩺 Donor eligibility
+
+Rules are in `backend\src\modules\eligibility\eligibility.rules.ts` (based on India's NBTC donor selection guidelines, 2017): age 18–65 (first-time donors up to 60), at least 45 kg, 90 days between donations for men and 120 for women (120 when not given), and self-declared reasons to wait (tattoo 12 months, pregnancy 12 months, surgery, typhoid, malaria, dengue, antibiotics, etc.). Alerts, "available now" counts and accepting a request all use these rules. Donors manage this on the Profile page ("Can I donate now?"). The blood bank always does the final medical check.
 
 ---
 

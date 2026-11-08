@@ -26,6 +26,15 @@ foreach ($c in $checks) {
   if ($code -ne 0) { Log 'STOP: code check failed. Nothing pushed.'; exit 1 }
 }
 
+# 1b. Automated tests (fresh test database, your real data is not touched)
+Push-Location (Join-Path $root 'backend')
+$out = cmd /c "npx vitest run 2>&1"
+$code = $LASTEXITCODE
+Pop-Location
+$out | ForEach-Object { Log $_ }
+Log "TESTS EXIT CODE: $code"
+if ($code -ne 0) { Log 'STOP: a test failed. Nothing pushed.'; exit 1 }
+
 # 2. New branch with the current changes
 git checkout -B $branch 2>&1 | ForEach-Object { Log $_ }
 git add -A 2>&1 | ForEach-Object { Log $_ }
