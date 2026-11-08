@@ -165,6 +165,13 @@ How sign-in works:
 Without these, the "Continue with Google" button shows a "not set up yet" message.
 
 ### Family Safety Circle subscription (web-first payments)
+
+**What is free and what is paid**
+- **Free for everyone, always:** sign up, find donors (counts), post blood requests, matching donors near the hospital get alerted, receive alerts, respond, donate, public request pages, fraud reports.
+- **Paid (Family Circle subscription):** sharing the savior (referral) link, sharing the family invite, seeing your family's donor list (names and numbers), and alerting those family donors on your requests wherever they live.
+- Pledging to someone else's family through their invite is free.
+- The server enforces this: only `POST /referrals/share` and `POST /family/invite` refuse without a subscription (HTTP 402 `SUBSCRIPTION_REQUIRED`); the family circle sends counts only, and family donors are left out of request alerts. Request and donor-search endpoints never check the subscription.
+
 | Setting | Default | What it controls |
 | :--- | :--- | :--- |
 | `SUBSCRIPTION_AMOUNT_INR` | `200` | Price in rupees. |

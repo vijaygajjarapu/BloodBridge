@@ -56,7 +56,7 @@ export const RequestsPage: React.FC = () => {
             <Siren className="w-7 h-7 text-brand-600" /> Blood Requests
           </h1>
           <p className="text-xs sm:text-sm text-ink-secondary mt-0.5">
-            Post a request when a patient needs blood. Matching donors nearby are alerted right away.
+            Post a request when a patient needs blood. It’s free, and matching donors nearby are alerted right away.
           </p>
         </div>
         <div className="flex gap-2">

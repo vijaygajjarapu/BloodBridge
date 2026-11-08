@@ -53,7 +53,14 @@ export const TermsPage: React.FC = () => {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-ink-main">5. Limitation of Liability</h2>
+            <h2 className="text-base font-bold text-ink-main">5. What Is Free and What Is Paid</h2>
+            <p>
+              Searching for donors, posting blood requests, receiving alerts, responding and donating are free for everyone, always. BloodBridge never charges for blood or for access to donors in an emergency. The optional Family Circle subscription covers only extra features: sharing a savior (referral) link or family invite, keeping your family’s own donor list, and alerting those donors on your requests. Not subscribing never stops a request from reaching matching donors.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-base font-bold text-ink-main">6. Limitation of Liability</h2>
             <p>
               BloodBridge makes every reasonable effort to verify emergency coordinator identities. However, clinical arrangements between donors and licensed healthcare centers remain the clinical responsibility of the certified medical facility.
             </p>

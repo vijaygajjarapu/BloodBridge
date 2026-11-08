@@ -133,10 +133,10 @@ export const LandingPage: React.FC = () => {
             The Savior Protocol
           </h2>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-ink-main tracking-tight">
-            How Referral-Based Blood Donation Saves Lives
+            How BloodBridge Saves Lives
           </h3>
           <p className="text-sm sm:text-base text-ink-secondary mt-3">
-            Traditional public directories suffer from fake entries and unresponsive contacts. BloodBridge utilizes a chain-of-trust referral system to ensure reliable, compassionate donors.
+            Traditional public directories suffer from fake entries and unresponsive contacts. BloodBridge is free for finding donors and posting requests. An optional Family Circle adds a trusted donor list for your own family.
           </p>
         </div>
 
@@ -146,9 +146,9 @@ export const LandingPage: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-black text-lg mb-4">
               01
             </div>
-            <h4 className="text-lg font-bold text-ink-main mb-2">Register via Referral</h4>
+            <h4 className="text-lg font-bold text-ink-main mb-2">Join Free</h4>
             <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-              Join exclusively through an invitation from a registered savior or certified emergency healthcare coordinator. Define your blood type and locality.
+              Sign up free, or through a savior’s invitation. Add your blood type and locality. Finding donors and posting requests never cost anything.
             </p>
           </Card>
 
@@ -157,9 +157,9 @@ export const LandingPage: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-black text-lg mb-4">
               02
             </div>
-            <h4 className="text-lg font-bold text-ink-main mb-2">Build Your Savior Circle</h4>
+            <h4 className="text-lg font-bold text-ink-main mb-2">Build Your Family Circle (optional)</h4>
             <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-              Generate your unique savior referral code. Invite friends, family, and colleagues to become ready donors. Track how many saviors have joined through your link.
+              With the Family Circle subscription, share your savior link and invite friends, family and colleagues to become your family’s own ready donors. Track who has joined through your link.
             </p>
           </Card>
 

@@ -121,7 +121,7 @@ export const NewRequestPage: React.FC = () => {
           <Siren className="w-6 h-6 text-brand-600" /> Request blood
         </h1>
         <p className="text-xs sm:text-sm text-ink-secondary">
-          Matching donors in the same district (and donors who pledged to your family) are alerted as soon as you post.
+          Free for everyone. Matching donors near the hospital are alerted as soon as you post. With the Family Circle, your family’s own donors are alerted too.
         </p>
       </div>
 

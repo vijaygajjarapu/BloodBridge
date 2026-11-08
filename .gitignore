@@ -51,3 +51,5 @@ backend/uploads/
 # Local-only files
 launch/delete-users.txt
 backend/prisma/.seeded
+launch/push-branch.txt
+launch/commit-message.txt

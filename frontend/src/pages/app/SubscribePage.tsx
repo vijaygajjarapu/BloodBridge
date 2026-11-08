@@ -123,7 +123,7 @@ export const SubscribePage: React.FC = () => {
   // Automatic yearly renewal (on by default; turning it off keeps access until the end date)
   const [renewBusy, setRenewBusy] = useState(false);
   const toggleAutoRenew = async (enabled: boolean) => {
-    if (!enabled && !window.confirm('Turn off automatic renewal? Your plan stays active until the end date, then your family’s donor list will be locked.')) return;
+    if (!enabled && !window.confirm('Turn off automatic renewal? Your plan stays active until the end date, then your family’s donor list will be locked. Finding donors and posting requests stay free.')) return;
     setRenewBusy(true);
     setError(null);
     try {
@@ -170,7 +170,23 @@ export const SubscribePage: React.FC = () => {
           )}
           {appConfig.isDemo && <p className="text-sm text-ink-secondary">Subscriptions work with the live backend, not in demo mode.</p>}
 
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-900" id="always-free">
+            <p className="font-bold mb-1.5">Always free for everyone</p>
+            <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm">
+              <li>Find donors and post blood requests</li>
+              <li>Matching donors near the hospital are alerted</li>
+              <li>Get request alerts, respond and donate</li>
+            </ul>
+          </div>
+
+          <p className="text-sm font-bold text-ink-main">What the Family Circle adds</p>
           <ul className="space-y-2.5 text-sm text-ink-main">
+            <li className="flex gap-2">
+              <Users className="w-5 h-5 text-brand-500 flex-shrink-0" /> Share your savior link and family invite to build your own donor list
+            </li>
+            <li className="flex gap-2">
+              <Bell className="w-5 h-5 text-brand-500 flex-shrink-0" /> Your family’s donors are alerted on your requests, wherever they live
+            </li>
             <li className="flex gap-2">
               <Users className="w-5 h-5 text-brand-500 flex-shrink-0" /> See who is ready to donate for each family member
             </li>
@@ -181,7 +197,7 @@ export const SubscribePage: React.FC = () => {
               <Bell className="w-5 h-5 text-brand-500 flex-shrink-0" /> Get notified when someone joins your circle
             </li>
           </ul>
-          <p className="text-xs text-ink-secondary">Donating blood is always free. Only saving and viewing your family’s donor list needs a subscription.</p>
+          <p className="text-xs text-ink-secondary">Donating blood is always free. You only pay for referrals and your family’s own donor list.</p>
 
           {error && <ErrorBanner title={error.title} message={error.message} />}
 
