@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { BloodGroupBadge, StatusBadge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { EligibilityCard } from '../../components/donor/EligibilityCard';
 
 export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -157,9 +158,11 @@ export const ProfilePage: React.FC = () => {
             <div className="p-4 bg-gray-50 rounded-xl border border-line-border flex items-start space-x-3">
               <Award className="w-5 h-5 text-brand-500 mt-0.5" />
               <div>
-                <span className="text-xs font-semibold text-ink-secondary block">Estimated Impact</span>
-                <span className="font-bold text-ink-main block">6 Completed Transfusions</span>
-                <span className="text-[11px] text-brand-600 font-semibold">18+ Potential Lives Touched</span>
+                <span className="text-xs font-semibold text-ink-secondary block">Donations Recorded</span>
+                <span className="font-bold text-ink-main block">
+                  {myProfile?.totalDonations ?? 0} donation{(myProfile?.totalDonations ?? 0) === 1 ? '' : 's'}
+                </span>
+                <span className="text-[11px] text-brand-600 font-semibold">One donation can help up to 3 patients</span>
               </div>
             </div>
           </div>
@@ -180,6 +183,9 @@ export const ProfilePage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Donor self-check: age, weight, gap between donations, reasons to wait */}
+      <EligibilityCard />
     </div>
   );
 };

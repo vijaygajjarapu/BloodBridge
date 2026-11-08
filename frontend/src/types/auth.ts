@@ -20,6 +20,8 @@ export interface User {
   postalCode?: string;
   donationWillingness?: string;
   isAvailable?: boolean;
+  totalDonations?: number;
+  lastDonationDate?: string | null;
 }
 
 export interface AuthSession {
