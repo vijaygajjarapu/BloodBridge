@@ -242,9 +242,15 @@ npm test --workspace=backend
 
 - Runs against a **separate test database** (`backend\prisma\test.db`) that is rebuilt and seeded on every run. Your real local data (`dev.db`) is never touched, and no emails or SMS are sent.
 - `tests/eligibility.test.ts`: donor eligibility rules (age, weight, 90/120-day gap, reasons to wait).
-- `tests/core.test.ts`: sign-in, free Find Donors and requests, alerts to matching donors, phone privacy before/after accepting, ineligible donors not alerted and unable to accept, Family Circle paywall, referral counting.
+- `tests/core.test.ts`: sign-in, free Find Donors and requests, alerts to matching donors, phone privacy before/after accepting, ineligible donors not alerted and unable to accept, Family Circle paywall, referral counting, data download without secrets, and account deletion freeing the email/mobile.
 - **"7 - Push Changes" runs these tests and refuses to push if any fail.**
 - `tests/api.test.ts` is an older suite that is out of date and not run.
+
+## 🔐 Privacy: download and delete
+
+- **Download Data** (Privacy Settings) saves a JSON file of the person's own data: account, donor profile, consents, family, pledges, requests, responses, payments, notifications. It never includes password hashes or tokens.
+- **Delete Account** (type DELETE to confirm): cancels open requests and tells donors who accepted not to go, turns off automatic renewal, removes uploaded documents, then deletes the account and everything linked to it. The email and mobile number can be used again. Only an audit note without personal details (and payment references for tax/refunds) is kept. Admin accounts can't be deleted this way.
+- **Privacy Policy** (`/privacy`): a draft written for India's DPDP Act 2023. Fill in the [bracketed] company and Grievance Officer details and have a lawyer review it before launch.
 
 ## 🩺 Donor eligibility
 

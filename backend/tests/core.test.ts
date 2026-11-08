@@ -172,3 +172,38 @@ describe('Referral links', () => {
     expect(res.body.user?.referralCode ?? res.body.referralCode).not.toBe('SAVIOR-MV2026');
   });
 });
+
+describe('Privacy: download and delete my data', () => {
+  it('the download has my data but never password hashes or tokens', async () => {
+    const res = await request(app).post(`${api}/profile/export`).set(auth(priya));
+    expect(res.status).toBe(200);
+    expect(res.body.data.account.email).toBe(PRIYA.identifier);
+    const text = JSON.stringify(res.body);
+    expect(text).not.toMatch(/passwordHash|refreshToken|tokenHash/i);
+  });
+
+  it('deleting needs the word DELETE', async () => {
+    const res = await request(app).post(`${api}/profile/delete`).set(auth(priya)).send({ reason: 'test' });
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('CONFIRMATION_REQUIRED');
+  });
+
+  it('deleting removes the account and frees the email and mobile number', async () => {
+    const res = await request(app).post(`${api}/profile/delete`).set(auth(priya)).send({ reason: 'test', confirm: 'DELETE' });
+    expect(res.status).toBe(200);
+    expect(await prisma.user.findUnique({ where: { email: PRIYA.identifier } })).toBeNull();
+    expect(await prisma.donorProfile.findUnique({ where: { userId: priyaId } })).toBeNull();
+
+    const again = await request(app).post(`${api}/auth/signup`).send({
+      username: 'priya_again',
+      dateOfBirth: '1994-04-04',
+      email: PRIYA.identifier,
+      password: 'Password123',
+      confirmPassword: 'Password123',
+      phone: '9000000201',
+      country: 'IN',
+      termsAccepted: true,
+    });
+    expect(again.status).toBeLessThan(300);
+  });
+});

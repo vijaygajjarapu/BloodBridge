@@ -31,7 +31,7 @@ export class UsersController {
 
   async deleteAccount(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await usersService.requestAccountDeletion(req.user!.userId, req.body.reason || '');
+      const result = await usersService.requestAccountDeletion(req.user!.userId, String(req.body?.reason || ''), req.body?.confirm);
       res.json(result);
     } catch (error) {
       next(error);

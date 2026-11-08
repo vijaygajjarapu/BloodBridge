@@ -13,12 +13,12 @@ export class HttpProfileService implements ProfileService {
     return apiClient.put<User>(ENDPOINTS.PROFILE, input);
   }
 
-  async requestDataExport(): Promise<{ downloadUrl: string; generatedAt: string }> {
-    return apiClient.post<{ downloadUrl: string; generatedAt: string }>(ENDPOINTS.DATA_EXPORT);
+  async requestDataExport(): Promise<{ downloadUrl: string; generatedAt: string; data?: unknown }> {
+    return apiClient.post<{ downloadUrl: string; generatedAt: string; data?: unknown }>(ENDPOINTS.DATA_EXPORT);
   }
 
-  async requestAccountDeletion(reason: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.post<{ success: boolean; message: string }>(ENDPOINTS.DELETE_ACCOUNT, { reason });
+  async requestAccountDeletion(reason: string, confirm?: string): Promise<{ success: boolean; message: string; deleted?: boolean }> {
+    return apiClient.post<{ success: boolean; message: string; deleted?: boolean }>(ENDPOINTS.DELETE_ACCOUNT, { reason, confirm });
   }
 }
 
