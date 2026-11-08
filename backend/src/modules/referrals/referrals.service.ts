@@ -90,23 +90,43 @@ export class ReferralService {
       (r) => r.referred?.donorProfile?.isAvailable
     ).length;
 
+    const pendingRegistrations = completedReferrals.filter((r) => r.referred && r.referred.status !== 'active').length;
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const joinedThisMonth = completedReferrals.filter((r) => (r.completedAt || r.createdAt) >= monthStart).length;
+
     const recentRegistrations = completedReferrals.slice(0, 5).map((r) => ({
       id: r.id,
       name: r.referred?.fullName || 'Anonymous Donor',
-      bloodGroup: r.referred?.donorProfile?.bloodGroup || 'O+',
+      bloodGroup: r.referred?.donorProfile?.bloodGroup || '',
       enrolledAt: r.completedAt ? r.completedAt.toISOString() : r.createdAt.toISOString(),
       status: r.referred?.status || 'active',
     }));
 
     const shareUrl = `${config.frontendUrl}/join/${myReferral.referralCode}`;
 
+    // Real numbers only (no padding). Field names match the website's ReferralStats type.
     return {
+      code: myReferral.referralCode,
+      referralUrl: shareUrl,
+      successfulRegistrations: totalEnrolled,
+      pendingRegistrations,
+      activeDonorsCount: activeDonors,
+      joinedThisMonth,
+      totalInvitesSent: totalEnrolled, // invites are not tracked separately yet
+      recentActivity: recentRegistrations.map((r) => ({
+        id: r.id,
+        donorName: r.name,
+        bloodGroup: r.bloodGroup,
+        registeredAt: r.enrolledAt,
+        status: r.status === 'active' ? 'verified' : r.status === 'pending' ? 'pending' : 'registered',
+      })),
+      // older names, kept for anything still reading them
       referralCode: myReferral.referralCode,
       shareUrl,
-      totalInvited: totalEnrolled + 3, // Includes pending / clicked
       totalEnrolled,
       activeDonors,
-      rewardPoints: totalEnrolled * 50,
       recentRegistrations,
     };
   }

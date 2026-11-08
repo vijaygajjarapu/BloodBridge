@@ -22,6 +22,8 @@ export interface ReferralStats {
   successfulRegistrations: number;
   pendingRegistrations: number;
   activeDonorsCount: number;
+  /** Donors who joined through your link this calendar month */
+  joinedThisMonth?: number;
   recentActivity: ReferralActivity[];
 }
 

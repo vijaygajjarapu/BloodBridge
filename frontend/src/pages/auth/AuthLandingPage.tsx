@@ -125,7 +125,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
 
   // Referral states - Basic details without OTP
-  const [referralInput, setReferralInput] = useState<string>(codeFromQuery || 'SAVIOR-MV2026');
+  const [referralInput, setReferralInput] = useState<string>(codeFromQuery || '');
   const [referralFullName, setReferralFullName] = useState<string>('');
   const [referralPhone, setReferralPhone] = useState<string>('');
   const [referralBloodGroup, setReferralBloodGroup] = useState<string>('O+');
@@ -137,7 +137,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
   const [isJoiningWithReferral, setIsJoiningWithReferral] = useState<boolean>(false);
   const [isValidatingReferral, setIsValidatingReferral] = useState<boolean>(false);
   const [validatedReferral, setValidatedReferral] = useState<ReferralCodeValidation | null>(null);
-  const [appliedReferralCode, setAppliedReferralCode] = useState<string>(extractReferralCode(codeFromQuery || 'SAVIOR-MV2026'));
+  const [appliedReferralCode, setAppliedReferralCode] = useState<string>(extractReferralCode(codeFromQuery || ''));
 
   // Where to go after signing in: the page they came from (also after an idle sign-out)
   const fromQuery = queryParams.get('from') || '';
@@ -1068,7 +1068,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
                 {!appliedReferralCode && (
                   <Input
                     label="Invitation / Referral Code (Optional)"
-                    placeholder="e.g. SAVIOR-MV2026 or paste invite link"
+                    placeholder="e.g. SAVIOR-AB12 or paste invite link"
                     leftIcon={<Share2 className="w-4 h-4" />}
                     helperText="Paste code or link if you were referred by an existing savior."
                     error={signUpErrors.referralCode?.message}
@@ -1144,7 +1144,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
                           setReferralInput(e.target.value);
                           setValidatedReferral(null);
                         }}
-                        placeholder="e.g. SAVIOR-MV2026 or paste invite link"
+                        placeholder="e.g. SAVIOR-AB12 or paste invite link"
                         className="block w-full rounded-lg border border-line-border bg-white px-3.5 py-2.5 pr-20 text-xs sm:text-sm text-ink-main placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
                         required
                       />
@@ -1260,7 +1260,8 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
                   </Button>
                 </form>
 
-                {/* Demo Quick Test Pill */}
+                {/* Demo Quick Test Pill (demo mode only, never on the live site) */}
+                {appConfig.isDemo && (
                 <div className="pt-3 border-t border-line-border text-center space-y-1.5">
                   <span className="text-[11px] text-ink-secondary block">
                     Need a test code? Join Marcus Vance&apos;s active circle:
@@ -1280,6 +1281,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
                     Auto-Fill Test Referral (SAVIOR-MV2026)
                   </button>
                 </div>
+                )}
               </div>
             )}
           </>

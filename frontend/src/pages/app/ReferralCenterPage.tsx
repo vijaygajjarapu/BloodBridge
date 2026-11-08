@@ -55,7 +55,7 @@ export const ReferralCenterPage: React.FC = () => {
     };
   }, []);
 
-  const referralCode = stats?.code || user?.referralCode || 'SAVIOR-MV2026';
+  const referralCode = stats?.code || user?.referralCode || '';
   const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
   const referralUrl = `${origin}/join/${referralCode}`;
 
@@ -204,30 +204,29 @@ export const ReferralCenterPage: React.FC = () => {
           <>
             <StatCard
               label="Successful Registrations"
-              value={stats?.successfulRegistrations || 6}
+              value={stats?.successfulRegistrations ?? 0}
               subtext="Donors joined your circle"
-              trend={{ value: '+2 this month', isPositive: true }}
               icon={<Users className="w-5 h-5" />}
             />
 
             <StatCard
               label="Active Ready Saviors"
-              value={stats?.activeDonorsCount || 4}
+              value={stats?.activeDonorsCount ?? 0}
               subtext="Ready for emergency alerts"
               icon={<Award className="w-5 h-5 text-status-success" />}
             />
 
             <StatCard
-              label="Pending Screenings"
-              value={stats?.pendingRegistrations || 1}
-              subtext="Awaiting verification"
+              label="Awaiting Approval"
+              value={stats?.pendingRegistrations ?? 0}
+              subtext="Signed up, not yet active"
               icon={<Sparkles className="w-5 h-5 text-amber-500" />}
             />
 
             <StatCard
-              label="Total Invites Created"
-              value={stats?.totalInvitesSent || 14}
-              subtext="Links shared across channels"
+              label="Joined This Month"
+              value={stats?.joinedThisMonth ?? 0}
+              subtext="New donors in your circle"
               icon={<Share2 className="w-5 h-5" />}
             />
           </>
