@@ -523,15 +523,19 @@ export class AuthService {
         },
       });
 
+      // Record who invited this person as its own row. The inviter's code row stays unchanged,
+      // so one savior link can count every person who joins with it (not just the latest one).
       if (input.referralCode) {
         const parentReferral = await tx.referral.findUnique({
           where: { referralCode: input.referralCode.toUpperCase() },
         });
-        if (parentReferral && parentReferral.referrerUserId !== user.id) {
-          await tx.referral.update({
-            where: { id: parentReferral.id },
+        if (parentReferral && parentReferral.status === 'active' && parentReferral.referrerUserId !== user.id) {
+          await tx.referral.create({
             data: {
+              referrerUserId: parentReferral.referrerUserId,
+              referralCode: `${parentReferral.referralCode}-${generateRandomToken(4).toUpperCase()}`,
               referredUserId: user.id,
+              status: 'completed',
               completedAt: new Date(),
             },
           });
@@ -694,7 +698,7 @@ export class AuthService {
         phone: user.phone,
         country: user.country,
         role: user.role,
-        referralCode: userReferral?.referralCode || (user.role === 'donor' ? 'SAVIOR-MV2026' : undefined),
+        referralCode: userReferral?.referralCode || undefined,
         isVerified: true,
         createdAt: user.createdAt.toISOString(),
       },
@@ -1111,7 +1115,7 @@ export class AuthService {
         phone: user.phone,
         country: user.country,
         role: user.role,
-        referralCode: userReferral?.referralCode || (user.role === 'donor' ? 'SAVIOR-MV2026' : undefined),
+        referralCode: userReferral?.referralCode || undefined,
         isVerified: user.isEmailVerified,
         verified: user.isEmailVerified,
         createdAt: user.createdAt.toISOString(),
