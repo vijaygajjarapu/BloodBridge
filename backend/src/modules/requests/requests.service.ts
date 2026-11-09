@@ -12,6 +12,7 @@ import { assessNewRequest, applyRisk, parseFlags, riskLevel } from './fraud.serv
 import { canBeAlerted, checkEligibility } from '../eligibility/eligibility.rules.js';
 import { scoreDonor, waveSize, waveIntervalMinutes, MANUAL_WAVE_COOLDOWN_MINUTES } from './matching.js';
 import { communityService } from '../communities/communities.service.js';
+import { outreachService } from '../outreach/outreach.service.js';
 
 export const BLOOD_GROUPS = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'] as const;
 export const COMPONENTS = ['whole_blood', 'red_cells', 'platelets', 'plasma'] as const;
@@ -146,6 +147,7 @@ export interface CreateRequestInput {
   neededBy?: string | null;
   notes?: string;
   alertCommunityIds?: string[];
+  shareNumberInAlerts?: boolean;
 }
 
 export class RequestService {
@@ -298,6 +300,7 @@ export class RequestService {
         contactPhone: user.phone,
         status: 'submitted',
         alertCommunityIds: alertCommunityIds.length ? JSON.stringify(alertCommunityIds) : null,
+        shareNumberInAlerts: Boolean(input.shareNumberInAlerts),
       },
     });
 
@@ -484,6 +487,10 @@ export class RequestService {
     const skip = new Set(alreadyNotified.map((n) => n.recipientId));
 
     const urgencyWord = r.urgency === 'critical' ? 'URGENT: ' : '';
+    // The family chose to show their number in alerts, so a donor who misses the alert can still call back
+    const familyNumber = r.shareNumberInAlerts
+      ? ` Family's number: ${formatPhone(r.contactPhone, r.country)}.`
+      : '';
     const place = [r.hospitalName, r.hospitalArea, r.city].filter(Boolean).join(', ') + (r.hospitalPinCode ? ` (PIN ${r.hospitalPinCode})` : '');
     let sent = 0;
     for (const c of batch) {
@@ -497,15 +504,18 @@ export class RequestService {
           recipientId,
           notificationType: 'emergency_request',
           title: `${urgencyWord}${r.bloodGroup} blood needed in ${r.city}`,
-          message: isAlly
+          message: (isAlly
             ? `A family you pledged to help needs ${r.unitsNeeded} unit(s) of ${r.bloodGroup} at ${place}. Can you donate?`
             : c.source === 'community'
             ? `${r.unitsNeeded} unit(s) of ${r.bloodGroup} needed at ${place}. You get this because of a community you joined (you can mute it in Communities). Can you donate? Donating is always free: never pay anyone.`
-            : `${r.unitsNeeded} unit(s) of ${r.bloodGroup} needed at ${place}. You are a matching donor nearby. Can you donate? Donating is always free: never pay anyone.`,
+            : `${r.unitsNeeded} unit(s) of ${r.bloodGroup} needed at ${place}. You are a matching donor nearby. Can you donate? Donating is always free: never pay anyone.`
+          ) + familyNumber,
           relatedEntity: `/app/requests/${r.id}`,
         },
       });
       emitToUser(recipientId, 'notification:new', { type: 'emergency_request', requestId: r.id });
+      // SMS with a one-tap link / automatic call for critical requests (only when switched on, and never in quiet hours)
+      outreachService.alertOutsideApp(c.id).catch((err) => logger.error(`Outside-app alert failed: ${err?.message}`));
     }
 
     const remaining = await prisma.requestCandidate.count({ where: { requestId, status: 'queued' } });
@@ -696,6 +706,9 @@ export class RequestService {
       patientName: r.patientName,
       isRequester: true,
       matching,
+      shareNumberInAlerts: r.shareNumberInAlerts,
+      // Call a donor through BloodBridge (their number stays hidden)
+      maskedCallAvailable: outreachService.status().maskedCalls,
       responses: r.responses.map((x) => ({
         id: x.id,
         donorFirstName: firstName(x.donor.fullName || x.donor.username),
@@ -750,8 +763,9 @@ export class RequestService {
       myResponse: mine ? { status: mine.status, shareDirectNumber: mine.shareDirectNumber } : null,
       canRespond: eligibility.canRespond,
       cannotRespondReason: eligibility.reason,
-      // Revealed only after accepting
-      requesterPhone: accepted ? formatPhone(r.contactPhone, r.requester.country) : null,
+      // Revealed after accepting, or straight away if the family chose to share it in alerts
+      requesterPhone: accepted || r.shareNumberInAlerts ? formatPhone(r.contactPhone, r.requester.country) : null,
+      maskedCallAvailable: Boolean(accepted) && outreachService.status().maskedCalls,
     });
   }
 

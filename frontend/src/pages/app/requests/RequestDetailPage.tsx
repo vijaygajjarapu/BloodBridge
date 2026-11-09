@@ -7,6 +7,7 @@ import {
   Clock,
   Phone,
   PhoneOff,
+  PhoneCall,
   ShieldCheck,
   Copy,
   Check,
@@ -29,6 +30,8 @@ import { MaskedPhone, RevealNumbersButton } from '../../../components/ui/PhoneRe
 import { NeverPayNotice, RequestDocumentsPanel, ReportRequestButton, DocumentResultBadge } from '../../../components/requests/SafetyBits';
 import { formatDate } from '../../../constants/countries';
 import { useT } from '../../../i18n/I18nProvider';
+import { outreachApi } from '../../../services/outreachApi';
+import { errorMessage as callErrorMessage } from '../../../utils/formErrors';
 import { MatchingProgress } from '../../../components/requests/MatchingProgress';
 import { errorMessage, errorTitle } from '../../../utils/formErrors';
 
@@ -50,6 +53,21 @@ export const RequestDetailPage: React.FC = () => {
   const [r, setR] = useState<BloodRequest | null>(null);
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Calls through BloodBridge (numbers stay hidden): which call is starting, and what to tell the person
+  const [calling, setCalling] = useState<string | null>(null);
+  const [callNote, setCallNote] = useState<{ key: string; text: string; ok: boolean } | null>(null);
+  const maskedCall = async (key: string, fn: () => Promise<{ message: string }>) => {
+    setCalling(key);
+    setCallNote(null);
+    try {
+      const res = await fn();
+      setCallNote({ key, text: res.message, ok: true });
+    } catch (err) {
+      setCallNote({ key, text: callErrorMessage(err, t('call.error')), ok: false });
+    } finally {
+      setCalling(null);
+    }
+  };
   const [shareNumber, setShareNumber] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -196,6 +214,10 @@ export const RequestDetailPage: React.FC = () => {
               </p>
             </CardHeader>
             <CardContent className="p-5 space-y-3">
+              {callNote && callNote.key !== 'family' && (
+                <p className={`text-xs ${callNote.ok ? 'text-status-success' : 'text-status-error'}`} role="status">{callNote.text}</p>
+              )}
+              {r.shareNumberInAlerts && <p className="text-xs text-ink-secondary">{t('req.numberInAlertsOn')}</p>}
               {(r.responses || []).length === 0 ? (
                 <p className="text-sm text-ink-secondary">No donor has accepted yet. Share the link below to reach more people.</p>
               ) : (
@@ -217,9 +239,23 @@ export const RequestDetailPage: React.FC = () => {
                       {x.phone ? (
                         <MaskedPhone phone={x.phone} asButton />
                       ) : (
-                        <Button size="sm" variant="outline" disabled leftIcon={<PhoneOff className="w-4 h-4" />} title="The donor's number is private. They have yours and will call you.">
-                          Number private · Protected call coming soon
-                        </Button>
+                        r.maskedCallAvailable ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            isLoading={calling === x.id}
+                            disabled={calling !== null}
+                            title={t('call.viaAppHint')}
+                            leftIcon={<PhoneCall className="w-4 h-4" />}
+                            onClick={() => maskedCall(x.id, () => outreachApi.callDonor(r.id, x.id))}
+                          >
+                            {t('call.viaApp')}
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" disabled leftIcon={<PhoneOff className="w-4 h-4" />} title="The donor's number is private. They have yours and will call you.">
+                            {t('call.private')}
+                          </Button>
+                        )
                       )}
                       {x.status === 'accepted' && (
                         <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => requestApi.markDonated(r.id, x.id))}>
@@ -292,6 +328,21 @@ export const RequestDetailPage: React.FC = () => {
                     <p className="text-xs text-ink-secondary">{t('donor.tellWhen', { hospital: r.hospitalName })}</p>
                   </div>
                 </div>
+                {r.maskedCallAvailable && (
+                  <div>
+                    <Button
+                      variant="outline"
+                      isLoading={calling === 'family'}
+                      leftIcon={<PhoneCall className="w-4 h-4" />}
+                      onClick={() => maskedCall('family', () => outreachApi.callFamily(r.id))}
+                    >
+                      {t('call.viaApp')}
+                    </Button>
+                    <p className={`mt-1 text-[11px] ${callNote?.key === 'family' && !callNote.ok ? 'text-status-error' : 'text-ink-muted'}`}>
+                      {callNote?.key === 'family' ? callNote.text : t('call.viaAppHint')}
+                    </p>
+                  </div>
+                )}
                 {r.requesterPhone && (
                   <a href={`tel:${r.requesterPhone.replace(/\s/g, '')}`} className="inline-block">
                     <Button variant="primary" size="lg" leftIcon={<Phone className="w-5 h-5" />}>{t('donor.call', { name: r.requesterFirstName || '', phone: r.requesterPhone })}</Button>
@@ -316,6 +367,13 @@ export const RequestDetailPage: React.FC = () => {
             ) : r.canRespond ? (
               <>
                 <h2 className="text-base font-bold text-ink-main">{t('donor.canYouDonate')}</h2>
+                {r.requesterPhone && (
+                  <p className="text-sm text-ink-main">
+                    <a className="font-semibold text-brand-600 underline" href={`tel:${r.requesterPhone.replace(/\s/g, '')}`}>
+                      {t('quick.familyNumber', { phone: r.requesterPhone })}
+                    </a>
+                  </p>
+                )}
                 <p className="text-xs text-ink-secondary flex items-start gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-status-success shrink-0" />
                   {t('donor.acceptHint')}

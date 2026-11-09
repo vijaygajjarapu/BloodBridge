@@ -49,7 +49,24 @@ export const config = {
     provider: (process.env.SMS_PROVIDER || '').toLowerCase(),
     msg91AuthKey: process.env.MSG91_AUTH_KEY || '',
     msg91TemplateId: process.env.MSG91_TEMPLATE_ID || '',
+    // DLT-approved template for emergency alerts with variables ##group##, ##place## and ##link## (empty = no alert SMS)
+    msg91AlertTemplateId: process.env.MSG91_ALERT_TEMPLATE_ID || '',
   },
+
+  // Voice calls (masked calling + automatic alert calls). Off until a provider is set up.
+  voice: {
+    provider: (process.env.VOICE_PROVIDER || '').toLowerCase(), // 'exotel' or empty
+    exotelSid: process.env.EXOTEL_SID || '',
+    exotelApiKey: process.env.EXOTEL_API_KEY || '',
+    exotelApiToken: process.env.EXOTEL_API_TOKEN || '',
+    exotelSubdomain: process.env.EXOTEL_SUBDOMAIN || 'api.in.exotel.com', // Mumbai region; api.exotel.com = Singapore
+    exotelCallerId: process.env.EXOTEL_CALLER_ID || '', // your ExoPhone (virtual number people see)
+    exotelAlertFlowUrl: process.env.EXOTEL_ALERT_FLOW_URL || '', // call flow that reads the alert and asks "press 1 / press 2"
+    webhookSecret: process.env.VOICE_WEBHOOK_SECRET || '',
+  },
+
+  // Public address of the backend API (used in links sent to call flows)
+  publicApiUrl: process.env.PUBLIC_API_URL || 'http://localhost:5000',
 
   // Family subscription (paid on the website only, never inside mobile apps)
   subscription: {

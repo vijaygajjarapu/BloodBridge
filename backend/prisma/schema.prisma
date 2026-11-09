@@ -77,6 +77,12 @@ model DonorProfile {
   bloodGroupVerifiedAt DateTime?
   bloodGroupVerifiedBy String?  // admin user id
   bloodGroupVerifySource String? // e.g. "blood bank card", "lab report", "donation record"
+  // How to reach me with emergency alerts (in-app alerts always arrive)
+  alertBySms          Boolean   @default(true)
+  alertByCall         Boolean   @default(false) // automatic voice call (only when a calling provider is set up)
+  quietHoursStart     String?   // "22:00" (India time): no SMS / calls from this time...
+  quietHoursEnd       String?   // "07:00" ...until this time
+  quietAllowCritical  Boolean   @default(true)  // critical requests may still reach me during quiet hours
   isProfileCompleted  Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -361,6 +367,7 @@ model BloodRequest {
   nextWaveAt         DateTime? // when the next group is contacted if not enough donors accepted (null = no more)
   lastManualWaveAt   DateTime? // requester pressed "Alert more donors now"
   alertCommunityIds  String?   // JSON list of communities near the hospital the requester chose to alert too
+  shareNumberInAlerts Boolean  @default(false) // requester chose to show their number in alerts (before a donor accepts)
   riskScore          Int       @default(0) // automatic fraud checks (0 = no warning signs)
   riskFlags          String?   // JSON list of the warning signs found
   documentStatus     String    @default("none") // none, checking, passed, warnings, failed
@@ -395,6 +402,7 @@ model RequestCandidate {
   alertedAt   DateTime?
   viewedAt    DateTime?
   respondedAt DateTime?
+  quickToken  String?   // secret for the one-tap "I can help" link in SMS / call alerts (random, 144 bits)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -404,6 +412,7 @@ model RequestCandidate {
   @@unique([requestId, donorUserId])
   @@index([requestId, status])
   @@index([donorUserId])
+  @@index([quickToken])
 }
 
 model RequestResponse {
@@ -526,4 +535,19 @@ model CommunityMember {
   @@unique([communityId, userId])
   @@index([userId])
   @@index([communityId, status])
+}
+
+/// Phone outreach log: SMS alerts, automatic alert calls and masked calls (numbers stay hidden). Used for limits and support.
+model CallAttempt {
+  id             String   @id @default(uuid())
+  requestId      String
+  donorUserId    String
+  kind           String   // alert_sms, alert_call, donor_calls_family, family_calls_donor
+  provider       String   // msg91, exotel, none
+  providerCallId String?
+  status         String   // sent, failed, skipped_quiet_hours, not_configured
+  createdAt      DateTime @default(now())
+
+  @@index([requestId, donorUserId, kind])
+  @@index([createdAt])
 }

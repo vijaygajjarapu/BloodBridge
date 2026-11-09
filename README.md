@@ -272,6 +272,17 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 - Up to 5 communities per person; names are de-duplicated (“Green Meadows Apartments” = “green-meadows”). Page: `/app/communities`. API: `/api/v1/communities` (`mine`, `search`, `near`, `POST /`, `/:id/join`, `/:id/membership`, `/:id/confirm`).
 - After pulling this change run **3 - Restart Backend** once (it updates the database).
 
+## 📞 Phone numbers, SMS alerts and calls
+
+- **“Include my number in alerts”** (Request blood, off by default, with a warning): donors who miss the alert can call the family straight back. Off = donors see the number only after accepting.
+- **Donor choices** (Profile → “How we reach you in an emergency”): SMS on/off, automatic call for critical requests on/off, quiet hours (India time), and whether critical requests may still come through during quiet hours. In-app alerts always arrive.
+- **One-tap link** in alert SMS: `/q/<code>` opens a page where the donor answers “Yes, I can donate” / “Not this time” without signing in. Each link belongs to one donor and one request.
+- **Calls through BloodBridge (masked):** a donor who accepted can call the family, and the family can call a donor who kept their number private. BloodBridge rings the caller first and then joins the other person; both see only the BloodBridge number. Max 3 calls per hour per donor and request.
+- **Automatic alert calls** for critical requests: the call reads the alert; press 1 = I can donate, 2 = not this time.
+- **All of this is OFF until you set it up** in `backend\.env` (see `.env.example`): `MSG91_ALERT_TEMPLATE_ID` for alert SMS (a DLT-approved template), and `VOICE_PROVIDER=exotel` with the Exotel keys for calls. Until then, buttons and options show “not switched on yet”, and nothing is sent. Check the Exotel request fields against Exotel's current documentation before going live.
+- Every SMS / call attempt is logged (without message text) for limits and support, and removed when the person deletes their account.
+- After pulling this change run **3 - Restart Backend** once (new database columns).
+
 ## 📟 On-call donors and verified blood groups
 
 - **On call:** on their Profile a donor can say “contact me first” for 12 hours, 24 hours, 3 days or 7 days. It's only possible while they can donate; adding a reason to wait or turning off availability ends it. On-call donors get a big boost in smart matching.

@@ -294,6 +294,8 @@ export class UsersService {
     // 4. Delete the account (profile, family, pledges, referrals, requests, notifications, tokens are removed with it)
     await prisma.$transaction([
       prisma.emailOtpChallenge.deleteMany({ where: { OR: [{ userId }, { email: user.email }] } }),
+      // SMS / call log entries about this person or their requests
+      prisma.callAttempt.deleteMany({ where: { OR: [{ donorUserId: userId }, { requestId: { in: myRequests.map((r) => r.id) } }] } }),
       prisma.user.delete({ where: { id: userId } }),
     ]);
 

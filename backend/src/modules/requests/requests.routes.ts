@@ -40,6 +40,8 @@ const createSchema = z.object({
   notes: z.string().trim().max(500, 'Notes can be at most 500 characters.').optional(),
   /** Communities near the hospital to alert too (from GET /communities/near) */
   alertCommunityIds: z.array(z.string().max(64)).max(10).optional(),
+  /** Show my number in the alerts (before a donor accepts). Off by default. */
+  shareNumberInAlerts: z.boolean().optional(),
 });
 
 const respondSchema = z.object({

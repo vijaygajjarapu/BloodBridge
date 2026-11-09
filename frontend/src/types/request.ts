@@ -88,6 +88,10 @@ export interface BloodRequest {
   canRespond?: boolean;
   cannotRespondReason?: string | null;
   requesterPhone?: string | null;
+  /** Calls through BloodBridge are switched on (numbers stay hidden) */
+  maskedCallAvailable?: boolean;
+  /** Requester chose to include their number in alerts */
+  shareNumberInAlerts?: boolean;
   // admin view
   requesterName?: string;
   requesterEmail?: string;
@@ -111,6 +115,8 @@ export interface CreateRequestInput {
   notes?: string;
   /** Communities near the hospital to alert too */
   alertCommunityIds?: string[];
+  /** Include the requester's number in alerts (off by default) */
+  shareNumberInAlerts?: boolean;
 }
 
 export interface DonorCounts {

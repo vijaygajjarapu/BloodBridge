@@ -52,6 +52,8 @@ export const NewRequestPage: React.FC = () => {
   const [docError, setDocError] = useState<string | undefined>(undefined);
   // Communities near the hospital to alert too (ticked by default for critical requests)
   const [alertCommunityIds, setAlertCommunityIds] = useState<string[]>([]);
+  // Off by default: the number goes to every alerted donor
+  const [shareNumberInAlerts, setShareNumberInAlerts] = useState(false);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -101,6 +103,7 @@ export const NewRequestPage: React.FC = () => {
         neededBy: form.neededBy ? new Date(form.neededBy).toISOString() : null,
         notes: form.notes.trim() || undefined,
         alertCommunityIds: alertCommunityIds.length ? alertCommunityIds : undefined,
+        shareNumberInAlerts,
       });
       let docUploadFailed = false;
       if (docFile) {
@@ -259,6 +262,20 @@ export const NewRequestPage: React.FC = () => {
               </p>
               {docError && <p className="mt-1 text-xs text-status-error font-medium" role="alert">{docError}</p>}
             </div>
+
+            <label className="flex items-start gap-3 rounded-xl border border-line-border p-3 cursor-pointer">
+              <input
+                id="req-share-number"
+                type="checkbox"
+                className="mt-0.5 w-4 h-4 accent-brand-600"
+                checked={shareNumberInAlerts}
+                onChange={(e) => setShareNumberInAlerts(e.target.checked)}
+              />
+              <span>
+                <span className="block text-sm font-semibold text-ink-main">{t('req.shareNumber')}</span>
+                <span className="block text-xs text-amber-700 mt-0.5">{t('req.shareNumberHint')}</span>
+              </span>
+            </label>
 
             <div className="rounded-xl bg-gray-50 border border-line-border p-3 text-xs text-ink-secondary space-y-1.5">
               <p className="flex items-start gap-2">
