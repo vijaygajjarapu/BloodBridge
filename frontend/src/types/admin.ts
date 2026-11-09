@@ -51,6 +51,10 @@ export interface AdminDonor {
   referredBy?: string;
   registeredAt: string;
   notes?: string;
+  bloodGroupVerified?: boolean;
+  bloodGroupVerifiedAt?: string | null;
+  bloodGroupVerifySource?: string | null;
+  onCall?: boolean;
 }
 
 export interface AdminReferralItem {

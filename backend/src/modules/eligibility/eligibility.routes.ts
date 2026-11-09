@@ -13,6 +13,12 @@ const wrap = (fn: (req: Request) => Promise<unknown>) => (req: Request, res: Res
 
 const DEFERRAL_KEYS = Object.keys(DEFERRALS) as [DeferralKey, ...DeferralKey[]];
 
+/** How long a donor can be "on call" at a time (hours) */
+export const ON_CALL_HOURS = [12, 24, 72, 168] as const;
+const onCallSchema = z.object({
+  hours: z.number().refine((h) => (ON_CALL_HOURS as readonly number[]).includes(h), 'Choose how long you are on call.'),
+});
+
 const detailsSchema = z.object({
   sex: z.enum(['male', 'female', 'other']).nullable().optional(),
   weightKg: z.number().int().min(20, 'Enter your weight in kg.').max(250, 'Enter your weight in kg.').nullable().optional(),
@@ -54,6 +60,13 @@ function view(user: Awaited<ReturnType<typeof loadMine>>) {
       deferralReason: p?.deferralReason ?? null,
       deferredUntil: p?.deferredUntil?.toISOString() ?? null,
     },
+    onCall: {
+      until: p?.onCallUntil && p.onCallUntil > new Date() ? p.onCallUntil.toISOString() : null,
+      options: ON_CALL_HOURS,
+    },
+    bloodGroupVerified: p?.bloodGroupVerifiedAt
+      ? { at: p.bloodGroupVerifiedAt.toISOString(), source: p.bloodGroupVerifySource ?? null }
+      : null,
     rules: RULES,
     deferralOptions: Object.entries(DEFERRALS).map(([key, d]) => ({ key, label: d.label })),
     note: 'This is a self-check. The blood bank always checks haemoglobin, blood pressure and health before taking blood.',
@@ -98,6 +111,7 @@ router.post(
       where: { userId: user.id },
       data: {
         ...(keepCurrent ? {} : { deferredUntil: until, deferralReason: key }),
+        onCallUntil: null,
         ...(DEFERRALS[key].permanent && { permanentlyDeferred: true }),
       },
     });
@@ -119,6 +133,35 @@ router.delete(
       where: { userId: user.id },
       data: { deferredUntil: null, deferralReason: null, permanentlyDeferred: false },
     });
+    return view(await loadMine(user.id));
+  }),
+);
+
+// On call: "contact me first" for 12 hours to 7 days. Only when available and able to donate now.
+router.post(
+  '/me/on-call',
+  requireAuth,
+  validate(onCallSchema),
+  wrap(async (req) => {
+    const user = await loadMine(req.user!.userId);
+    const p = user.donorProfile;
+    if (!p) throw new AppError('Add your blood group to your profile first.', 400, 'NO_DONOR_PROFILE');
+    const check = view(user);
+    if (!check.eligible) {
+      throw new AppError(`You can go on call once you can donate again. ${check.reasons[0] || ''}`.trim(), 400, 'NOT_ELIGIBLE');
+    }
+    const until = new Date(Date.now() + req.body.hours * 60 * 60 * 1000);
+    await prisma.donorProfile.update({ where: { userId: user.id }, data: { onCallUntil: until, isAvailable: true } });
+    return view(await loadMine(user.id));
+  }),
+);
+
+router.delete(
+  '/me/on-call',
+  requireAuth,
+  wrap(async (req) => {
+    const user = await loadMine(req.user!.userId);
+    if (user.donorProfile) await prisma.donorProfile.update({ where: { userId: user.id }, data: { onCallUntil: null } });
     return view(await loadMine(user.id));
   }),
 );

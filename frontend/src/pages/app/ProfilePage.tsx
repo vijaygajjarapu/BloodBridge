@@ -20,6 +20,7 @@ import { Button } from '../../components/ui/Button';
 import { BloodGroupBadge, StatusBadge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EligibilityCard } from '../../components/donor/EligibilityCard';
+import { OnCallCard } from '../../components/donor/OnCallCard';
 
 export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -186,6 +187,7 @@ export const ProfilePage: React.FC = () => {
 
       {/* Donor self-check: age, weight, gap between donations, reasons to wait */}
       <EligibilityCard />
+      <OnCallCard />
     </div>
   );
 };

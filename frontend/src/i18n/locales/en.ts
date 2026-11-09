@@ -136,6 +136,22 @@ export const en = {
   'donor.call': 'Call {name}: {phone}',
   'donor.cantCome': 'I can’t come any more',
   'donor.cannotRespond': 'You can’t respond to this request.',
+
+  // On call and verified blood group (profile)
+  'oncall.title': 'On call',
+  'oncall.intro': 'Going on call tells us to contact you first for emergencies near you. Use it when you are free and close to home.',
+  'oncall.activeUntil': 'You are on call until {time}.',
+  'oncall.for': 'Go on call for:',
+  'oncall.h12': '12 hours',
+  'oncall.h24': '24 hours',
+  'oncall.h72': '3 days',
+  'oncall.h168': '7 days',
+  'oncall.stop': 'Stop being on call',
+  'oncall.notEligible': 'You can go on call once you are able to donate again.',
+  'oncall.error': 'Could not save. Please try again.',
+  'verify.badge': 'Verified blood group',
+  'verify.yes': 'Your blood group is verified ({source}). Donors with a verified group are contacted earlier.',
+  'verify.no': 'Not verified yet. Send a photo of your blood bank card or lab report through Help, and our team will mark it verified.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

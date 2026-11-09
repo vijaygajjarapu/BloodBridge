@@ -71,6 +71,12 @@ model DonorProfile {
   deferredUntil       DateTime? // self-declared reason to wait (tattoo, illness, pregnancy...)
   deferralReason      String?
   permanentlyDeferred Boolean   @default(false)
+  // On call: "contact me first" for a set time (ranked higher in smart matching)
+  onCallUntil         DateTime?
+  // Blood group confirmed by a blood bank report / our team (shown as a "verified" badge, ranked higher)
+  bloodGroupVerifiedAt DateTime?
+  bloodGroupVerifiedBy String?  // admin user id
+  bloodGroupVerifySource String? // e.g. "blood bank card", "lab report", "donation record"
   isProfileCompleted  Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

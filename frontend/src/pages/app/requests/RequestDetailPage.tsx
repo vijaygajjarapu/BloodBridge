@@ -203,6 +203,11 @@ export const RequestDetailPage: React.FC = () => {
                   <div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-border p-3">
                     <div className="flex items-center gap-3">
                       {x.donorBloodGroup && <BloodGroupBadge group={x.donorBloodGroup} size="sm" />}
+                      {x.donorBloodGroupVerified && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 rounded px-1.5 py-0.5">
+                          <ShieldCheck className="w-3 h-3" /> {t('verify.badge')}
+                        </span>
+                      )}
                       <div>
                         <p className="text-sm font-bold text-ink-main">{x.donorFirstName}</p>
                         <p className="text-xs text-ink-secondary">{x.status === 'donated' ? 'Donated, thank you!' : `Accepted ${formatDate(x.respondedAt)}`}</p>

@@ -131,8 +131,16 @@ export class UsersService {
               postalCode: location.postalCode,
             }),
             ...(input.bloodGroup && { bloodGroup: input.bloodGroup }),
+            // A changed blood group needs checking again
+            ...(input.bloodGroup && current.donorProfile && input.bloodGroup !== current.donorProfile.bloodGroup && {
+              bloodGroupVerifiedAt: null,
+              bloodGroupVerifiedBy: null,
+              bloodGroupVerifySource: null,
+            }),
             ...(willingness && { donationWillingness: willingness }),
             ...(isAvailable !== undefined && { isAvailable }),
+            // Not available any more = not on call either
+            ...(isAvailable === false && { onCallUntil: null }),
           },
         });
       }

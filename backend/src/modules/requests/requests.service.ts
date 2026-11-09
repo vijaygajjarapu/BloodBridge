@@ -87,6 +87,8 @@ const ELIGIBILITY_FIELDS = {
   deferredUntil: true,
   deferralReason: true,
   permanentlyDeferred: true,
+  onCallUntil: true,
+  bloodGroupVerifiedAt: true,
   user: { select: { dateOfBirth: true } },
 } as const;
 const MAX_LIVE_REQUESTS = 3;
@@ -419,6 +421,8 @@ export class RequestService {
         isFamily,
         knowsRequester: known.has(p.userId),
         community: communitySet.has(p.userId),
+        onCall: Boolean(p.onCallUntil && p.onCallUntil > new Date()),
+        verified: Boolean(p.bloodGroupVerifiedAt),
         alertsReceived: alertsOf.get(p.userId) || 0,
         accepted: acceptsOf.get(p.userId) || 0,
         totalDonations: p.totalDonations,
@@ -678,7 +682,7 @@ export class RequestService {
           where: { status: { in: ['accepted', 'donated'] } },
           include: {
             donor: {
-              select: { fullName: true, username: true, phone: true, country: true, donorProfile: { select: { bloodGroup: true } } },
+              select: { fullName: true, username: true, phone: true, country: true, donorProfile: { select: { bloodGroup: true, bloodGroupVerifiedAt: true } } },
             },
           },
           orderBy: { createdAt: 'asc' },
@@ -696,6 +700,7 @@ export class RequestService {
         id: x.id,
         donorFirstName: firstName(x.donor.fullName || x.donor.username),
         donorBloodGroup: x.donor.donorProfile?.bloodGroup || null,
+        donorBloodGroupVerified: Boolean(x.donor.donorProfile?.bloodGroupVerifiedAt),
         status: x.status,
         // Phone privacy: hidden by default; shown only if this donor opted in for this request
         phone: x.shareDirectNumber ? formatPhone(x.donor.phone, x.donor.country) : null,

@@ -47,6 +47,8 @@ export const AdminDonorsPage: React.FC = () => {
   const [editBloodGroup, setEditBloodGroup] = useState<BloodGroup>('O+');
   const [editStatus, setEditStatus] = useState<DonorStatus>('active');
   const [editNotes, setEditNotes] = useState('');
+  const [editVerified, setEditVerified] = useState(false);
+  const [editVerifySource, setEditVerifySource] = useState('blood bank card');
   const [savingCorrection, setSavingCorrection] = useState(false);
 
   const fetchDonors = async () => {
@@ -81,6 +83,8 @@ export const AdminDonorsPage: React.FC = () => {
     setEditBloodGroup(donor.bloodGroup);
     setEditStatus(donor.status);
     setEditNotes(donor.notes || '');
+    setEditVerified(Boolean(donor.bloodGroupVerified));
+    setEditVerifySource(donor.bloodGroupVerifySource || 'blood bank card');
   };
 
   const handleSaveCorrection = async (e: React.FormEvent) => {
@@ -93,6 +97,10 @@ export const AdminDonorsPage: React.FC = () => {
         bloodGroup: editBloodGroup,
         status: editStatus,
         notes: editNotes,
+        // Only send a change, so re-saving doesn't reset the verification date
+        ...(editVerified !== Boolean(editingDonor.bloodGroupVerified) || (editVerified && editBloodGroup !== editingDonor.bloodGroup)
+          ? { bloodGroupVerified: editVerified, bloodGroupVerifySource: editVerifySource }
+          : {}),
       });
 
       setDonors((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
@@ -208,6 +216,10 @@ export const AdminDonorsPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4">
                         <BloodGroupBadge group={d.bloodGroup} />
+                        {d.bloodGroupVerified && (
+                          <div className="mt-1 text-[10px] font-semibold text-emerald-700" title={d.bloodGroupVerifySource || ''}>✓ Verified</div>
+                        )}
+                        {d.onCall && <div className="mt-0.5 text-[10px] font-semibold text-brand-600">On call</div>}
                       </td>
                       <td className="py-3.5 px-4 text-xs">
                         <div className="font-medium text-ink-main">{d.city}</div>
@@ -294,6 +306,34 @@ export const AdminDonorsPage: React.FC = () => {
                   { value: 'unavailable', label: 'Unavailable' },
                 ]}
               />
+            </div>
+
+            <div className="rounded-lg border border-line-border p-3 space-y-2">
+              <label className="flex items-start gap-2 text-xs text-ink-main cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 w-4 h-4 accent-brand-600"
+                  checked={editVerified}
+                  onChange={(e) => setEditVerified(e.target.checked)}
+                />
+                <span>
+                  <strong>Blood group verified.</strong> Tick only after seeing proof of this blood group. Donors with a verified group are contacted earlier.
+                  Changing the blood group removes the tick unless you tick it again.
+                </span>
+              </label>
+              {editVerified && (
+                <Select
+                  label="Proof seen"
+                  value={editVerifySource}
+                  onChange={(e) => setEditVerifySource(e.target.value)}
+                  options={[
+                    { value: 'blood bank card', label: 'Blood bank donor card' },
+                    { value: 'lab report', label: 'Lab report' },
+                    { value: 'donation record', label: 'Blood bank donation record' },
+                    { value: 'checked by our team', label: 'Other (checked by our team)' },
+                  ]}
+                />
+              )}
             </div>
 
             <div>

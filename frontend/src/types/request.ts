@@ -20,6 +20,8 @@ export interface RequestResponseItem {
   id: string;
   donorFirstName: string;
   donorBloodGroup: BloodGroup | null;
+  /** Blood group confirmed by our team */
+  donorBloodGroupVerified?: boolean;
   status: 'accepted' | 'donated';
   /** Hidden unless the donor chose to share their number for this request */
   phone: string | null;

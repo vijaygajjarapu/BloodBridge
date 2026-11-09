@@ -36,6 +36,10 @@ function toAdminDonor(d: any) {
     totalDonations: d.totalDonations,
     lastDonationDate: d.lastDonationDate ? d.lastDonationDate.toISOString() : null,
     registeredAt: d.createdAt.toISOString(),
+    bloodGroupVerified: Boolean(d.bloodGroupVerifiedAt),
+    bloodGroupVerifiedAt: d.bloodGroupVerifiedAt ? d.bloodGroupVerifiedAt.toISOString() : null,
+    bloodGroupVerifySource: d.bloodGroupVerifySource ?? null,
+    onCall: Boolean(d.onCallUntil && d.onCallUntil > new Date()),
   };
 }
 
@@ -295,8 +299,30 @@ export class AdminService {
         }),
         ...(updates.isAvailable !== undefined && { isAvailable: updates.isAvailable }),
         ...(updates.status !== undefined && { isAvailable: updates.status === 'active' }),
+        // Verified blood group: set by our team after seeing a blood bank card / lab report.
+        // Changing the blood group without re-verifying removes the badge.
+        ...(updates.bloodGroupVerified === true
+          ? {
+              bloodGroupVerifiedAt: new Date(),
+              bloodGroupVerifiedBy: adminId ?? null,
+              bloodGroupVerifySource: typeof updates.bloodGroupVerifySource === 'string' ? updates.bloodGroupVerifySource.slice(0, 60) : 'checked by our team',
+            }
+          : updates.bloodGroupVerified === false || (updates.bloodGroup && updates.bloodGroup !== current.bloodGroup)
+            ? { bloodGroupVerifiedAt: null, bloodGroupVerifiedBy: null, bloodGroupVerifySource: null }
+            : {}),
       },
     });
+    if (updates.bloodGroupVerified !== undefined) {
+      await prisma.auditLog.create({
+        data: {
+          actorId: adminId ?? null,
+          action: updates.bloodGroupVerified ? 'BLOOD_GROUP_VERIFIED' : 'BLOOD_GROUP_UNVERIFIED',
+          entityType: 'DonorProfile',
+          entityId: donorId,
+          details: JSON.stringify({ bloodGroup: updated.bloodGroup, source: updates.bloodGroupVerifySource ?? null }),
+        },
+      }).catch(() => undefined);
+    }
     // Name corrections live on the account
     if (typeof updates.name === 'string' && updates.name.trim().length >= 2) {
       await prisma.user.update({ where: { id: current.userId }, data: { fullName: updates.name.trim() } });

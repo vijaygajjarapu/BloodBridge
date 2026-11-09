@@ -272,6 +272,12 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 - Up to 5 communities per person; names are de-duplicated (“Green Meadows Apartments” = “green-meadows”). Page: `/app/communities`. API: `/api/v1/communities` (`mine`, `search`, `near`, `POST /`, `/:id/join`, `/:id/membership`, `/:id/confirm`).
 - After pulling this change run **3 - Restart Backend** once (it updates the database).
 
+## 📟 On-call donors and verified blood groups
+
+- **On call:** on their Profile a donor can say “contact me first” for 12 hours, 24 hours, 3 days or 7 days. It's only possible while they can donate; adding a reason to wait or turning off availability ends it. On-call donors get a big boost in smart matching.
+- **Verified blood group:** in Admin → Donors → Correct, tick “Blood group verified” after seeing a blood bank card, lab report or donation record. The donor sees a “Verified blood group” note on their profile, the family sees a badge on donors who accepted, and verified donors are contacted earlier. Changing the blood group removes the tick. Every change is written to the audit log.
+- After pulling this change run **3 - Restart Backend** once (new database columns).
+
 ## 🌐 Languages
 
 The app can be shown in **English, हिन्दी (Hindi), తెలుగు (Telugu), தமிழ் (Tamil) and മലയാളം (Malayalam)**. Pick the language from the menu at the top (public pages and the signed-in app). The first visit follows the phone's language; the choice is remembered on the device and on the account.
