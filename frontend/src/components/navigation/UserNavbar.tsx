@@ -13,7 +13,7 @@ import {
   Shield,
   HelpCircle,
   Menu,
-  X, Siren } from 'lucide-react';
+  X, Siren, Building2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { ConfirmDialog } from '../feedback/ConfirmDialog';
@@ -31,6 +31,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
     { label: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
     { label: 'Requests', href: '/app/requests', icon: Siren },
     { label: 'My Family', href: '/app/family', icon: HeartHandshake },
+    { label: 'Communities', href: '/app/communities', icon: Building2 },
     { label: 'My Donors', href: '/app/donors', icon: Users },
     { label: 'Referrals', href: '/app/referrals', icon: Share2 },
     { label: 'Notifications', href: '/app/notifications', icon: Bell, badge: effectiveUnread },

@@ -261,6 +261,17 @@ Instead of alerting every matching donor at once, BloodBridge ranks them and con
 - **Live progress** (request page, requester only): contacted, viewed, accepted, can't today, and when the next group is contacted. Counts only, never names. **Alert more donors now** sends the next group (at most every 2 minutes).
 - The wave timer runs inside the backend every minute (`server.ts`). Ranked lists are stored in the `RequestCandidate` table.
 
+## 🏘️ Communities (free)
+
+A community is just a tag a donor adds to themselves: a gated or villa community, an apartment, a college, a company, a place of worship or a club. Communities never have to sign up; an organiser can claim one later.
+
+- **Private by design.** Nobody can see who is in a community. Requesters only see counts, and any count below 3 shows as “fewer than 3”.
+- **Requesters don't need to be members.** New request and Find Donors show *Communities near this hospital* with how many members could donate now. Tick them to alert them too (ticked by default for critical requests).
+- **Fellow members.** Donors can choose “alert me when a fellow member needs blood, at any hospital” (off by default).
+- **People who move.** “Still at X?” is asked every 6 months; with no answer for 30 days the membership is paused. “I've moved / alumni” keeps the membership without nearby alerts; alerts always follow the donor's current address.
+- Up to 5 communities per person; names are de-duplicated (“Green Meadows Apartments” = “green-meadows”). Page: `/app/communities`. API: `/api/v1/communities` (`mine`, `search`, `near`, `POST /`, `/:id/join`, `/:id/membership`, `/:id/confirm`).
+- After pulling this change run **3 - Restart Backend** once (it updates the database).
+
 ## 🔞 Adults only (18+)
 
 BloodBridge keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).

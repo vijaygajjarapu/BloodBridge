@@ -15,6 +15,7 @@ import { Button } from '../../../components/ui/Button';
 import { ErrorBanner } from '../../../components/ui/ErrorBanner';
 import { LocationFields, type LocationValue } from '../../../components/forms/LocationFields';
 import { HospitalPicker } from '../../../components/requests/HospitalPicker';
+import { NearbyCommunities } from '../../../components/requests/NearbyCommunities';
 import { getFieldErrors, errorMessage, errorTitle } from '../../../utils/formErrors';
 
 type Errors = Partial<Record<keyof CreateRequestInput, string>>;
@@ -46,6 +47,8 @@ export const NewRequestPage: React.FC = () => {
   // Optional patient document, uploaded right after the request is created
   const [docFile, setDocFile] = useState<File | null>(null);
   const [docError, setDocError] = useState<string | undefined>(undefined);
+  // Communities near the hospital to alert too (ticked by default for critical requests)
+  const [alertCommunityIds, setAlertCommunityIds] = useState<string[]>([]);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -94,6 +97,7 @@ export const NewRequestPage: React.FC = () => {
         urgency: form.urgency,
         neededBy: form.neededBy ? new Date(form.neededBy).toISOString() : null,
         notes: form.notes.trim() || undefined,
+        alertCommunityIds: alertCommunityIds.length ? alertCommunityIds : undefined,
       });
       let docUploadFailed = false;
       if (docFile) {
@@ -197,6 +201,16 @@ export const NewRequestPage: React.FC = () => {
               />
               <Input id="req-needed-by" label="Needed by (optional)" type="datetime-local" value={form.neededBy} onChange={set('neededBy')} error={errors.neededBy} />
             </div>
+            <NearbyCommunities
+              country={location.country}
+              state={location.state}
+              district={location.district}
+              pinCode={location.postalCode || undefined}
+              bloodGroup={form.bloodGroup || undefined}
+              selected={alertCommunityIds}
+              onChange={setAlertCommunityIds}
+              selectAllByDefault={form.urgency === 'critical'}
+            />
             <div>
               <label htmlFor="req-notes" className="block text-xs font-semibold text-ink-secondary mb-1">Notes for donors (optional)</label>
               <textarea

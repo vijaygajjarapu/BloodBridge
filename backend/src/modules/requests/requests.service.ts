@@ -11,6 +11,7 @@ import { familyService } from '../family/family.service.js';
 import { assessNewRequest, applyRisk, parseFlags, riskLevel } from './fraud.service.js';
 import { canBeAlerted, checkEligibility } from '../eligibility/eligibility.rules.js';
 import { scoreDonor, waveSize, waveIntervalMinutes, MANUAL_WAVE_COOLDOWN_MINUTES } from './matching.js';
+import { communityService } from '../communities/communities.service.js';
 
 export const BLOOD_GROUPS = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'] as const;
 export const COMPONENTS = ['whole_blood', 'red_cells', 'platelets', 'plasma'] as const;
@@ -93,6 +94,17 @@ const MAX_ALERTS_PER_REQUEST = 200;
 
 const firstName = (name?: string | null) => (name || 'A donor').trim().split(/\s+/)[0];
 
+/** JSON list of ids stored on a request ("[]" / null / broken = none) */
+function parseIdList(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 function newPublicCode() {
   return 'REQ-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 }
@@ -131,6 +143,7 @@ export interface CreateRequestInput {
   urgency: string;
   neededBy?: string | null;
   notes?: string;
+  alertCommunityIds?: string[];
 }
 
 export class RequestService {
@@ -257,6 +270,8 @@ export class RequestService {
       }
     }
 
+    const alertCommunityIds = await communityService.cleanChosenIds(input.alertCommunityIds, { country: loc.country, state: loc.state });
+
     let publicCode = newPublicCode();
     while (await prisma.bloodRequest.findUnique({ where: { publicCode } })) publicCode = newPublicCode();
 
@@ -280,6 +295,7 @@ export class RequestService {
         notes: input.notes?.trim() || null,
         contactPhone: user.phone,
         status: 'submitted',
+        alertCommunityIds: alertCommunityIds.length ? JSON.stringify(alertCommunityIds) : null,
       },
     });
 
@@ -332,9 +348,10 @@ export class RequestService {
   async rankCandidates(requestId: string) {
     const r = await prisma.bloodRequest.findUnique({ where: { id: requestId } });
     if (!r) return { added: 0 };
-    const [nearby, allies, existing, links] = await Promise.all([
+    const [nearby, allies, communityIds, existing, links] = await Promise.all([
       this.findMatchingDonors(r),
       this.findFamilyAllies(r.requesterUserId, r.bloodGroup),
+      communityService.donorIdsForRequest(r.requesterUserId, parseIdList(r.alertCommunityIds)).catch(() => [] as string[]),
       prisma.requestCandidate.findMany({ where: { requestId }, select: { donorUserId: true } }),
       prisma.referral.findMany({
         where: {
@@ -357,7 +374,24 @@ export class RequestService {
           select: { userId: true, postalCode: true, city: true, ...ELIGIBILITY_FIELDS, user: { select: { dateOfBirth: true, lastActiveAt: true } } },
         })
       : [];
-    const pool = [...nearby, ...allyProfiles].filter((p) => p.userId !== r.requesterUserId && !already.has(p.userId));
+    // Community donors may also live outside the district (fellow members who asked to be alerted):
+    // same checks as nearby donors (compatible group, available, verified, can donate now)
+    const communitySet = new Set(communityIds);
+    const extraCommunityIds = communityIds.filter((id) => !nearby.some((n) => n.userId === id) && !allyIds.includes(id));
+    const communityProfiles = extraCommunityIds.length
+      ? (
+          await prisma.donorProfile.findMany({
+            where: {
+              userId: { in: extraCommunityIds },
+              bloodGroup: { in: this.compatibleDonorGroups(r.bloodGroup) },
+              isAvailable: true,
+              user: { status: 'active', isEmailVerified: true },
+            },
+            select: { userId: true, postalCode: true, city: true, ...ELIGIBILITY_FIELDS, user: { select: { dateOfBirth: true, lastActiveAt: true } } },
+          })
+        ).filter((p) => canDonateNow(p))
+      : [];
+    const pool = [...nearby, ...allyProfiles, ...communityProfiles].filter((p) => p.userId !== r.requesterUserId && !already.has(p.userId));
     if (!pool.length) return { added: 0 };
 
     const ids = pool.map((p) => p.userId);
@@ -384,12 +418,13 @@ export class RequestService {
         sameCity: Boolean(cityOf(p.city) && cityOf(p.city) === cityOf(r.city)),
         isFamily,
         knowsRequester: known.has(p.userId),
+        community: communitySet.has(p.userId),
         alertsReceived: alertsOf.get(p.userId) || 0,
         accepted: acceptsOf.get(p.userId) || 0,
         totalDonations: p.totalDonations,
         lastActiveAt: p.user.lastActiveAt,
       });
-      return { donorUserId: p.userId, score, reasons, source: isFamily ? 'family' : 'nearby' };
+      return { donorUserId: p.userId, score, reasons, source: isFamily ? 'family' : communitySet.has(p.userId) ? 'community' : 'nearby' };
     });
 
     const room = Math.max(0, MAX_ALERTS_PER_REQUEST - already.size);
@@ -460,6 +495,8 @@ export class RequestService {
           title: `${urgencyWord}${r.bloodGroup} blood needed in ${r.city}`,
           message: isAlly
             ? `A family you pledged to help needs ${r.unitsNeeded} unit(s) of ${r.bloodGroup} at ${place}. Can you donate?`
+            : c.source === 'community'
+            ? `${r.unitsNeeded} unit(s) of ${r.bloodGroup} needed at ${place}. You get this because of a community you joined (you can mute it in Communities). Can you donate? Donating is always free: never pay anyone.`
             : `${r.unitsNeeded} unit(s) of ${r.bloodGroup} needed at ${place}. You are a matching donor nearby. Can you donate? Donating is always free: never pay anyone.`,
           relatedEntity: `/app/requests/${r.id}`,
         },
@@ -544,6 +581,7 @@ export class RequestService {
       viewed: n('viewed') + n('accepted') + n('declined'),
       accepted: n('accepted'),
       declined: n('declined'),
+      fromCommunities: await prisma.requestCandidate.count({ where: { requestId: r.id, source: 'community', status: { not: 'queued' } } }),
       waiting: n('queued'),
       nextWaveAt: LIVE.includes(r.status as RequestStatus) && n('queued') > 0 ? r.nextWaveAt?.toISOString() ?? null : null,
     };

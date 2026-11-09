@@ -36,6 +36,8 @@ export interface MatchingSummary {
   declined: number;
   waiting: number;
   nextWaveAt: string | null;
+  /** Donors contacted because of a community (counts only) */
+  fromCommunities?: number;
 }
 
 export interface BloodRequest {
@@ -105,6 +107,8 @@ export interface CreateRequestInput {
   urgency: Urgency;
   neededBy?: string | null;
   notes?: string;
+  /** Communities near the hospital to alert too */
+  alertCommunityIds?: string[];
 }
 
 export interface DonorCounts {

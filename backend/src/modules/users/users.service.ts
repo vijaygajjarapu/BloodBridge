@@ -173,6 +173,12 @@ export class UsersService {
         },
         requestResponses: { select: { status: true, createdAt: true, request: { select: { publicCode: true, bloodGroup: true, hospitalName: true } } } },
         notifications: { select: { title: true, message: true, createdAt: true, isRead: true }, orderBy: { createdAt: 'desc' }, take: 500 },
+        communityMemberships: {
+          select: {
+            alertNearby: true, alertFromMembers: true, muted: true, isAlumni: true, status: true, confirmedAt: true, createdAt: true,
+            community: { select: { name: true, type: true, city: true, district: true, state: true } },
+          },
+        },
       },
     });
     if (!user) throw new AppError('Account not found.', 404, 'NOT_FOUND');
@@ -216,6 +222,7 @@ export class UsersService {
         bloodRequestsIPosted: user.bloodRequests,
         requestsIRespondedTo: user.requestResponses,
         notifications: user.notifications,
+        communities: user.communityMemberships,
       },
     };
   }

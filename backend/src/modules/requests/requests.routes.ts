@@ -38,6 +38,8 @@ const createSchema = z.object({
   urgency: z.enum(URGENCIES, { errorMap: () => ({ message: 'Choose how urgent this is.' }) }),
   neededBy: z.string().optional().nullable(),
   notes: z.string().trim().max(500, 'Notes can be at most 500 characters.').optional(),
+  /** Communities near the hospital to alert too (from GET /communities/near) */
+  alertCommunityIds: z.array(z.string().max(64)).max(10).optional(),
 });
 
 const respondSchema = z.object({

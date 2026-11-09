@@ -12,6 +12,7 @@ import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { ErrorBanner } from '../../../components/ui/ErrorBanner';
 import { LocationFields, type LocationValue } from '../../../components/forms/LocationFields';
+import { NearbyCommunities } from '../../../components/requests/NearbyCommunities';
 import { errorMessage } from '../../../utils/formErrors';
 
 /**
@@ -115,6 +116,9 @@ export const FindDonorsPage: React.FC = () => {
                 <Button variant="primary" size="sm" leftIcon={<Siren className="w-4 h-4" />}>Request blood</Button>
               </Link>
             </div>
+            {result.area.district && (
+              <NearbyCommunities country={loc.country} state={result.area.state} district={result.area.district} bloodGroup={result.bloodGroup} />
+            )}
             {result.compatible === 0 && (
               <p className="text-xs text-ink-secondary flex items-center gap-1.5"><Users className="w-4 h-4" /> No donors registered here yet. Try the whole state (leave the district empty).</p>
             )}
