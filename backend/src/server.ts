@@ -5,6 +5,7 @@ import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { initSocketServer } from './sockets/socket.server.js';
 import { logger } from './shared/logger.js';
 import { subscriptionService } from './modules/subscriptions/subscriptions.service.js';
+import { requestService } from './modules/requests/requests.service.js';
 
 const httpServer = http.createServer(app);
 
@@ -34,6 +35,11 @@ async function startServer() {
       subscriptionService.processRenewals().catch((err) => logger.error('Renewal job failed:', err?.message));
     setTimeout(runRenewals, 30_000);
     setInterval(runRenewals, 60 * 60 * 1000).unref();
+
+    // Smart matching waves: contact the next group of donors for requests that still need them (every minute)
+    const runWaves = () =>
+      requestService.runDueWaves().catch((err) => logger.error('Wave job failed:', err?.message));
+    setInterval(runWaves, 60 * 1000).unref();
   } catch (error: any) {
     logger.error('Failed to start server:', error.message);
     process.exit(1);

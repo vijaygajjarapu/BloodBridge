@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
+import { requestService } from '../src/modules/requests/requests.service.js';
 
 const api = '/api/v1';
 const MARCUS = { identifier: 'marcus.vance@example.org', password: 'Password123!' };
@@ -116,6 +117,23 @@ describe('Phone privacy and donor eligibility', () => {
     const res = await request(app).post(`${api}/requests/${firstRequestId}/respond`).set(auth(priya)).send({ action: 'accept' });
     expect(res.status).toBe(200);
     expect(res.body.requesterPhone).toBeTruthy();
+  });
+
+  it('the family sees live progress (counts only) and enough donors stops more waves', async () => {
+    const res = await request(app).get(`${api}/requests/${firstRequestId}`).set(auth(marcus));
+    expect(res.status).toBe(200);
+    expect(res.body.matching.contacted).toBeGreaterThanOrEqual(1);
+    expect(res.body.matching.viewed).toBeGreaterThanOrEqual(1);
+    expect(res.body.matching.accepted).toBe(1);
+    // 1 unit needed and 1 accepted: no next wave
+    expect(res.body.matching.nextWaveAt).toBeNull();
+    const row = await prisma.bloodRequest.findUnique({ where: { id: firstRequestId } });
+    expect(row?.nextWaveAt).toBeNull();
+  });
+
+  it('the wave timer runs without errors', async () => {
+    const res = await requestService.runDueWaves(new Date(Date.now() + 2 * 60 * 60 * 1000));
+    expect(res.checked).toBeGreaterThanOrEqual(0);
   });
 });
 

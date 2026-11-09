@@ -27,6 +27,17 @@ export interface RequestResponseItem {
   respondedAt: string;
 }
 
+/** Live progress of smart matching (requester only; counts, never names) */
+export interface MatchingSummary {
+  wave: number;
+  contacted: number;
+  viewed: number;
+  accepted: number;
+  declined: number;
+  waiting: number;
+  nextWaveAt: string | null;
+}
+
 export interface BloodRequest {
   id: string;
   publicCode: string;
@@ -65,6 +76,7 @@ export interface BloodRequest {
   patientName?: string;
   isRequester?: boolean;
   acceptedCount?: number;
+  matching?: MatchingSummary;
   responses?: RequestResponseItem[];
   // donor view
   requesterFirstName?: string;

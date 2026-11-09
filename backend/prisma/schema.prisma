@@ -22,6 +22,7 @@ model User {
   emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  lastActiveAt    DateTime? // last sign-in / session refresh (used to rank donors who are likely to answer)
 
   donorProfile       DonorProfile?
   oauthAccounts      OAuthAccount[]
@@ -40,6 +41,7 @@ model User {
   subscriptions      Subscription[]
   bloodRequests      BloodRequest[]     @relation("RequestRequester")
   requestResponses   RequestResponse[]  @relation("RequestDonorResponses")
+  requestCandidacies RequestCandidate[] @relation("RequestCandidateDonor")
 
   @@index([email])
   @@index([role])
@@ -346,6 +348,9 @@ model BloodRequest {
   onHold             Boolean   @default(false) // admin hold: paused, no new alerts or responses
   holdReason         String?
   donorsNotified     Int       @default(0)
+  waveNumber         Int       @default(0) // how many groups of donors have been contacted
+  nextWaveAt         DateTime? // when the next group is contacted if not enough donors accepted (null = no more)
+  lastManualWaveAt   DateTime? // requester pressed "Alert more donors now"
   riskScore          Int       @default(0) // automatic fraud checks (0 = no warning signs)
   riskFlags          String?   // JSON list of the warning signs found
   documentStatus     String    @default("none") // none, checking, passed, warnings, failed
@@ -355,13 +360,40 @@ model BloodRequest {
   updatedAt          DateTime  @updatedAt
 
   requester User              @relation("RequestRequester", fields: [requesterUserId], references: [id], onDelete: Cascade)
-  responses RequestResponse[]
-  documents RequestDocument[]
-  reports   RequestReport[]
+  responses  RequestResponse[]
+  documents  RequestDocument[]
+  reports    RequestReport[]
+  candidates RequestCandidate[]
 
   @@index([status])
   @@index([requesterUserId])
   @@index([country, state, district, bloodGroup])
+  @@index([nextWaveAt])
+}
+
+/// Ranked donors for a request: who to contact, in which wave, and what happened (private: only counts are shown)
+model RequestCandidate {
+  id          String    @id @default(uuid())
+  requestId   String
+  donorUserId String
+  score       Int
+  rank        Int
+  reasons     String    // JSON list of short labels (why this donor ranks here)
+  source      String    @default("nearby") // nearby, family, community
+  wave        Int?      // which wave contacted them (null = not contacted yet)
+  status      String    @default("queued") // queued, alerted, viewed, accepted, declined, withdrawn
+  alertedAt   DateTime?
+  viewedAt    DateTime?
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  request BloodRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  donor   User         @relation("RequestCandidateDonor", fields: [donorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, donorUserId])
+  @@index([requestId, status])
+  @@index([donorUserId])
 }
 
 model RequestResponse {

@@ -6,7 +6,7 @@ import { defineConfig } from 'vitest/config';
  */
 export default defineConfig({
   test: {
-    include: ['tests/eligibility.test.ts', 'tests/core.test.ts'],
+    include: ['tests/eligibility.test.ts', 'tests/matching.test.ts', 'tests/core.test.ts'],
     env: {
       NODE_ENV: 'test',
       DATABASE_URL: 'file:./test.db',

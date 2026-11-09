@@ -28,6 +28,7 @@ import { RequestStatusBadge, UrgencyBadge, VerificationBadge } from '../../../co
 import { MaskedPhone, RevealNumbersButton } from '../../../components/ui/PhoneReveal';
 import { NeverPayNotice, RequestDocumentsPanel, ReportRequestButton, DocumentResultBadge } from '../../../components/requests/SafetyBits';
 import { formatDate } from '../../../constants/countries';
+import { MatchingProgress } from '../../../components/requests/MatchingProgress';
 import { errorMessage, errorTitle } from '../../../utils/formErrors';
 
 const STATUS_HELP: Partial<Record<RequestStatus, string>> = {
@@ -61,6 +62,16 @@ export const RequestDetailPage: React.FC = () => {
   }, [id]);
 
   useEffect(load, [load]);
+
+  // Requester: refresh live progress every 20 s while the page is open and the tab is visible
+  const isRequester = Boolean(r?.isRequester);
+  useEffect(() => {
+    if (!isRequester) return;
+    const t = setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, 20_000);
+    return () => clearInterval(t);
+  }, [isRequester, load]);
 
   const run = async (fn: () => Promise<BloodRequest>) => {
     setBusy(true);
@@ -153,6 +164,16 @@ export const RequestDetailPage: React.FC = () => {
       {/* ---------- Requester view ---------- */}
       {r.isRequester && (
         <>
+          {r.matching && (
+            <MatchingProgress
+              matching={r.matching}
+              unitsNeeded={r.unitsNeeded}
+              live={['submitted', 'open', 'donors_notified', 'donor_found', 'in_progress', 'partially_fulfilled'].includes(r.status) && !r.onHold}
+              busy={busy}
+              onAlertMore={() => run(() => requestApi.alertMore(r.id))}
+            />
+          )}
+
           <Card>
             <CardHeader>
               <h2 className="text-base font-bold text-ink-main">Patient document</h2>

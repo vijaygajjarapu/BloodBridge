@@ -252,6 +252,15 @@ npm test --workspace=backend
 - **Delete Account** (type DELETE to confirm): cancels open requests and tells donors who accepted not to go, turns off automatic renewal, removes uploaded documents, then deletes the account and everything linked to it. The email and mobile number can be used again. Only an audit note without personal details (and payment references for tax/refunds) is kept. Admin accounts can't be deleted this way.
 - **Privacy Policy** (`/privacy`): a draft written for India's DPDP Act 2023. Fill in the [bracketed] company and Grievance Officer details and have a lawyer review it before launch.
 
+## 🎯 Smart matching (ranked donors, waves, live progress)
+
+Instead of alerting every matching donor at once, BloodBridge ranks them and contacts them in waves.
+
+- **Who first** (`backend\src\modules\requests\matching.ts`): family donors (Family Circle), donors in the hospital's PIN code area, same city, people who know the family (savior links), donors who usually say yes, who have donated before, and who were active recently. Only donors who are compatible, available and eligible today are considered.
+- **Waves**: wave 1 = all family donors + top 5, wave 2 = next 10, then 20 at a time. The next wave goes out after 10 / 20 / 60 minutes (critical / urgent / planned) unless enough donors have accepted. If half of a wave says "can't today", the next wave comes within 3 minutes. A withdrawal triggers the next wave straight away.
+- **Live progress** (request page, requester only): contacted, viewed, accepted, can't today, and when the next group is contacted. Counts only, never names. **Alert more donors now** sends the next group (at most every 2 minutes).
+- The wave timer runs inside the backend every minute (`server.ts`). Ranked lists are stored in the `RequestCandidate` table.
+
 ## 🔞 Adults only (18+)
 
 BloodBridge keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).
