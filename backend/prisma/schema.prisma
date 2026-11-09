@@ -60,6 +60,12 @@ model DonorProfile {
   donationWillingness String    @default("regular") // "regular", "emergency_only", "occasional"
   totalDonations      Int       @default(0)
   lastDonationDate    DateTime?
+  // Eligibility self-check (see src/modules/eligibility/eligibility.rules.ts)
+  sex                 String?   // "male", "female", "other": sets the gap between donations (90 / 120 days)
+  weightKg            Int?
+  deferredUntil       DateTime? // self-declared reason to wait (tattoo, illness, pregnancy...)
+  deferralReason      String?
+  permanentlyDeferred Boolean   @default(false)
   isProfileCompleted  Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

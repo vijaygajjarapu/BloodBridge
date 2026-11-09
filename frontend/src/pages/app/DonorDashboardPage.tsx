@@ -74,7 +74,7 @@ export const DonorDashboardPage: React.FC = () => {
     };
   }, []);
 
-  const referralCode = referralStats?.code || user?.referralCode || 'SAVIOR-MV2026';
+  const referralCode = referralStats?.code || user?.referralCode || '';
   const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
   const referralUrl = `${origin}/join/${referralCode}`;
 
@@ -178,36 +178,30 @@ export const DonorDashboardPage: React.FC = () => {
           <>
             <StatCard
               label="Circle Donors"
-              value={referralStats?.successfulRegistrations || 6}
+              value={referralStats?.successfulRegistrations ?? 0}
               subtext="Joined via your link"
-              trend={{ value: '+2 this month', isPositive: true }}
               icon={<Users className="w-5 h-5" />}
-              isSampleData
             />
 
             <StatCard
-              label="Active Saviors"
-              value={referralStats?.activeDonorsCount || 4}
-              subtext="Eligible for matching"
+              label="Ready to Donate"
+              value={referralStats?.activeDonorsCount ?? 0}
+              subtext="Marked available right now"
               icon={<ShieldCheck className="w-5 h-5 text-status-success" />}
-              isSampleData
             />
 
             <StatCard
-              label="Invites Shared"
-              value={referralStats?.totalInvitesSent || 14}
-              subtext="Invitation links generated"
+              label="Joined This Month"
+              value={referralStats?.joinedThisMonth ?? 0}
+              subtext="New donors in your circle"
               icon={<Share2 className="w-5 h-5" />}
-              isSampleData
             />
 
             <StatCard
-              label="Emergency Readiness"
-              value="100%"
-              subtext="Consent verified"
-              trend={{ value: 'Ready', isPositive: true }}
+              label="Awaiting Approval"
+              value={referralStats?.pendingRegistrations ?? 0}
+              subtext="Signed up, not yet active"
               icon={<Activity className="w-5 h-5 text-brand-500" />}
-              isSampleData
             />
           </>
         )}

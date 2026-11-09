@@ -205,7 +205,8 @@ export class OAuthService {
     });
 
     const profile = await prisma.donorProfile.findUnique({ where: { userId: result.user.id } });
-    const needsProfile = !result.user.phone || !profile?.state || !profile?.district;
+    // Date of birth is asked on the profile page (adults only)
+    const needsProfile = !result.user.phone || !result.user.dateOfBirth || !profile?.state || !profile?.district;
 
     // Token goes in the URL fragment (#...), which browsers never send to servers or write to logs
     const fragment = new URLSearchParams({

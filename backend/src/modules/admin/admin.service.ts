@@ -53,6 +53,9 @@ export class AdminService {
       consentsWithdrawn,
       bloodGroupCounts,
       donorsList,
+      referralRegistrations,
+      emergencyReadyCount,
+      completedReferralDates,
     ] = await Promise.all([
       prisma.user.count({ where: userWhere }),
       prisma.donorProfile.count({ where: donorWhere }),
@@ -68,6 +71,12 @@ export class AdminService {
         where: donorWhere,
         select: { createdAt: true },
       }),
+      prisma.referral.count({ where: { referredUserId: { not: null }, ...(c && { referred: { country: c } }) } }),
+      prisma.donorProfile.count({ where: { ...donorWhere, isAvailable: true } }),
+      prisma.referral.findMany({
+        where: { referredUserId: { not: null }, ...(c && { referred: { country: c } }) },
+        select: { completedAt: true, createdAt: true },
+      }),
     ]);
 
     const bloodGroupDistribution = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-'].map((group) => {
@@ -78,24 +87,32 @@ export class AdminService {
       };
     });
 
+    // Real counts per month for the last 6 months (no made-up curve)
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonthIdx = new Date().getMonth();
-    const last6Months = [];
+    const now = new Date();
+    const registrationTrends = [];
     for (let i = 5; i >= 0; i--) {
-      const idx = (currentMonthIdx - i + 12) % 12;
-      last6Months.push(monthNames[idx]);
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const inMonth = (d: Date) => d >= start && d < end;
+      registrationTrends.push({
+        month: monthNames[start.getMonth()],
+        registrations: donorsList.filter((d) => inMonth(d.createdAt)).length,
+        referrals: completedReferralDates.filter((r) => inMonth(r.completedAt || r.createdAt)).length,
+      });
     }
 
-    const registrationTrends = last6Months.map((m, idx) => ({
-      month: m,
-      registrations: Math.max(12, Math.floor(totalDonors * ((idx + 2) / 10))),
-      donations: Math.max(8, Math.floor(totalDonors * ((idx + 1) / 12))),
-    }));
+    const consentTotal = consentsGranted + consentsWithdrawn;
+    const consentGrantedRate = consentTotal ? Math.round((consentsGranted / consentTotal) * 1000) / 10 : 0;
 
     return {
       totalUsers,
       totalDonors,
       verifiedContacts: totalDonors,
+      referralRegistrations,
+      activeReferralCodes: activeReferrals,
+      consentGrantedRate,
+      emergencyReadyCount,
       activeReferrals,
       consentsGranted,
       consentsWithdrawn,

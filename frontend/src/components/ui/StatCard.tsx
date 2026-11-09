@@ -20,7 +20,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   subtext,
   trend,
   icon,
-  isSampleData = true,
+  isSampleData = false,
 }) => {
   return (
     <Card hoverable className="p-5 relative flex flex-col justify-between">

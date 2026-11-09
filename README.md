@@ -165,6 +165,13 @@ How sign-in works:
 Without these, the "Continue with Google" button shows a "not set up yet" message.
 
 ### Family Safety Circle subscription (web-first payments)
+
+**What is free and what is paid**
+- **Free for everyone, always:** sign up, find donors (counts), post blood requests, matching donors near the hospital get alerted, receive alerts, respond, donate, public request pages, fraud reports.
+- **Paid (Family Circle subscription):** sharing the savior (referral) link, sharing the family invite, seeing your family's donor list (names and numbers), and alerting those family donors on your requests wherever they live.
+- Pledging to someone else's family through their invite is free.
+- The server enforces this: only `POST /referrals/share` and `POST /family/invite` refuse without a subscription (HTTP 402 `SUBSCRIPTION_REQUIRED`); the family circle sends counts only, and family donors are left out of request alerts. Request and donor-search endpoints never check the subscription.
+
 | Setting | Default | What it controls |
 | :--- | :--- | :--- |
 | `SUBSCRIPTION_AMOUNT_INR` | `200` | Price in rupees. |
@@ -231,8 +238,32 @@ Only the person who sent the invite sees these, never other family members.
 
 ```bash
 npm test --workspace=backend
-npm test --workspace=frontend
 ```
+
+- Runs against a **separate test database** (`backend\prisma\test.db`) that is rebuilt and seeded on every run. Your real local data (`dev.db`) is never touched, and no emails or SMS are sent.
+- `tests/eligibility.test.ts`: donor eligibility rules (age, weight, 90/120-day gap, reasons to wait).
+- `tests/core.test.ts`: sign-in, free Find Donors and requests, alerts to matching donors, phone privacy before/after accepting, ineligible donors not alerted and unable to accept, Family Circle paywall, referral counting, data download without secrets, and account deletion freeing the email/mobile.
+- **"7 - Push Changes" runs these tests and refuses to push if any fail.**
+- `tests/api.test.ts` is an older suite that is out of date and not run.
+
+## 🔐 Privacy: download and delete
+
+- **Download Data** (Privacy Settings) saves a JSON file of the person's own data: account, donor profile, consents, family, pledges, requests, responses, payments, notifications. It never includes password hashes or tokens.
+- **Delete Account** (type DELETE to confirm): cancels open requests and tells donors who accepted not to go, turns off automatic renewal, removes uploaded documents, then deletes the account and everything linked to it. The email and mobile number can be used again. Only an audit note without personal details (and payment references for tax/refunds) is kept. Admin accounts can't be deleted this way.
+- **Privacy Policy** (`/privacy`): a draft written for India's DPDP Act 2023. Fill in the [bracketed] company and Grievance Officer details and have a lawyer review it before launch.
+
+## 🔞 Adults only (18+)
+
+BloodBridge keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).
+
+- Sign-up and invite-link registration ask for a date of birth and refuse anyone under 18 before anything is stored.
+- Google sign-ups must add a date of birth on the profile page. If an account that never had a date of birth turns out to be under 18, it is deleted straight away (same as Delete Account).
+- Server rule: `backend\src\shared\age.ts`; website rule: `frontend\src\utils\age.ts`.
+- Family members a user adds (for example their children) are part of that adult's family list, not accounts.
+
+## 🩺 Donor eligibility
+
+Rules are in `backend\src\modules\eligibility\eligibility.rules.ts` (based on India's NBTC donor selection guidelines, 2017): age 18–65 (first-time donors up to 60), at least 45 kg, 90 days between donations for men and 120 for women (120 when not given), and self-declared reasons to wait (tattoo 12 months, pregnancy 12 months, surgery, typhoid, malaria, dengue, antibiotics, etc.). Alerts, "available now" counts and accepting a request all use these rules. Donors manage this on the Profile page ("Can I donate now?"). The blood bank always does the final medical check.
 
 ---
 

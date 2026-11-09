@@ -54,7 +54,7 @@ export const FindDonorsPage: React.FC = () => {
           <Search className="w-7 h-7 text-brand-600" /> Find donors
         </h1>
         <p className="text-xs sm:text-sm text-ink-secondary">
-          See how many donors could help in an area. For everyone’s privacy we don’t list donors. Post a request and it reaches them directly.
+          Free for everyone. See how many donors could help in an area. For everyone’s privacy we don’t list donors. Post a request (also free) and it reaches them directly.
         </p>
       </div>
 

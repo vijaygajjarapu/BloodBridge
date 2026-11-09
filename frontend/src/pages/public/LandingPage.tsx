@@ -38,7 +38,7 @@ export const LandingPage: React.FC = () => {
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2">
-                <Link to="/join/SAVIOR-MV2026" className="w-full sm:w-auto">
+                <Link to="/auth/register" className="w-full sm:w-auto">
                   <Button
                     variant="primary"
                     size="lg"
@@ -59,16 +59,16 @@ export const LandingPage: React.FC = () => {
               {/* Trust Badges */}
               <div className="pt-6 grid grid-cols-3 gap-4 border-t border-line-border/80 text-center sm:text-left">
                 <div>
-                  <div className="text-xl sm:text-2xl font-black text-ink-main">1,400+</div>
-                  <div className="text-xs text-ink-secondary">Active Donors</div>
+                  <div className="text-xl sm:text-2xl font-black text-ink-main">Free</div>
+                  <div className="text-xs text-ink-secondary">Find Donors &amp; Request Blood</div>
                 </div>
                 <div>
                   <div className="text-xl sm:text-2xl font-black text-ink-main">100%</div>
                   <div className="text-xs text-ink-secondary">Consent-Controlled</div>
                 </div>
                 <div>
-                  <div className="text-xl sm:text-2xl font-black text-ink-main">&lt; 15 min</div>
-                  <div className="text-xs text-ink-secondary">Emergency Response</div>
+                  <div className="text-xl sm:text-2xl font-black text-ink-main">₹0</div>
+                  <div className="text-xs text-ink-secondary">Blood Is Never Sold Here</div>
                 </div>
               </div>
             </div>
@@ -87,7 +87,7 @@ export const LandingPage: React.FC = () => {
                       </div>
                       <div>
                         <h2 className="text-sm font-bold">Savior Circle Invitation</h2>
-                        <p className="text-[11px] text-white/80">Referral Code: SAVIOR-MV2026</p>
+                        <p className="text-[11px] text-white/80">Example of what a friend’s invite looks like</p>
                       </div>
                     </div>
                     <span className="text-xs bg-white text-brand-600 font-extrabold px-2.5 py-1 rounded-full shadow-sm">
@@ -99,23 +99,23 @@ export const LandingPage: React.FC = () => {
                     <div className="flex items-start space-x-3 text-xs text-ink-secondary bg-gray-50 p-3 rounded-lg border border-line-border">
                       <ShieldCheck className="w-4 h-4 text-status-success mt-0.5 flex-shrink-0" />
                       <span>
-                        Invited by <strong className="text-ink-main">Marcus Vance</strong>. Your personal contact details remain encrypted until you explicitly authorize emergency contact.
+                        Invited by <strong className="text-ink-main">someone you know</strong>. Your personal contact details remain encrypted until you explicitly authorize emergency contact.
                       </span>
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs font-medium text-ink-secondary">
                         <span>Urgent Donor Readiness</span>
-                        <span className="text-status-success font-bold">Active in Hyderabad</span>
+                        <span className="text-status-success font-bold">Near the hospital</span>
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                         <div className="bg-brand-500 h-2.5 rounded-full w-4/5" />
                       </div>
                     </div>
 
-                    <Link to="/join/SAVIOR-MV2026" className="block pt-2">
+                    <Link to="/auth/register" className="block pt-2">
                       <Button variant="primary" className="w-full justify-center">
-                        Accept Savior Invite
+                        Join Free
                       </Button>
                     </Link>
                   </CardContent>
@@ -133,10 +133,10 @@ export const LandingPage: React.FC = () => {
             The Savior Protocol
           </h2>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-ink-main tracking-tight">
-            How Referral-Based Blood Donation Saves Lives
+            How BloodBridge Saves Lives
           </h3>
           <p className="text-sm sm:text-base text-ink-secondary mt-3">
-            Traditional public directories suffer from fake entries and unresponsive contacts. BloodBridge utilizes a chain-of-trust referral system to ensure reliable, compassionate donors.
+            Traditional public directories suffer from fake entries and unresponsive contacts. BloodBridge is free for finding donors and posting requests. An optional Family Circle adds a trusted donor list for your own family.
           </p>
         </div>
 
@@ -146,9 +146,9 @@ export const LandingPage: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-black text-lg mb-4">
               01
             </div>
-            <h4 className="text-lg font-bold text-ink-main mb-2">Register via Referral</h4>
+            <h4 className="text-lg font-bold text-ink-main mb-2">Join Free</h4>
             <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-              Join exclusively through an invitation from a registered savior or certified emergency healthcare coordinator. Define your blood type and locality.
+              Sign up free, or through a savior’s invitation. Add your blood type and locality. Finding donors and posting requests never cost anything.
             </p>
           </Card>
 
@@ -157,9 +157,9 @@ export const LandingPage: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-black text-lg mb-4">
               02
             </div>
-            <h4 className="text-lg font-bold text-ink-main mb-2">Build Your Savior Circle</h4>
+            <h4 className="text-lg font-bold text-ink-main mb-2">Build Your Family Circle (optional)</h4>
             <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-              Generate your unique savior referral code. Invite friends, family, and colleagues to become ready donors. Track how many saviors have joined through your link.
+              With the Family Circle subscription, share your savior link and invite friends, family and colleagues to become your family’s own ready donors. Track who has joined through your link.
             </p>
           </Card>
 
@@ -215,10 +215,10 @@ export const LandingPage: React.FC = () => {
           Ready to save a life in your neighborhood?
         </h3>
         <p className="text-sm sm:text-base text-ink-secondary">
-          Join thousands of community saviors. Every single blood donation can save up to three lives.
+          Join your community’s saviors. One blood donation can help up to three patients.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link to="/join/SAVIOR-MV2026" className="w-full sm:w-auto">
+          <Link to="/auth/register" className="w-full sm:w-auto">
             <Button variant="primary" size="lg" className="w-full">
               Join as a Savior Today
             </Button>

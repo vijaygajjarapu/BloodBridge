@@ -171,7 +171,7 @@ export class SubscriptionService {
             recipientId: sub.userId,
             notificationType: 'system',
             title: 'Your Family Safety Circle renews soon',
-            message: `Your plan ends on ${sub.endsAt!.toDateString()}. Renew now to keep your family's donor list unlocked.`,
+            message: `Your plan ends on ${sub.endsAt!.toDateString()}. Renew now to keep your family's donor list. Finding donors and posting requests stay free either way.`,
             relatedEntity: '/app/subscribe',
           },
         }),

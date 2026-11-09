@@ -89,8 +89,9 @@ export interface NotificationService {
 export interface ProfileService {
   getProfile(): Promise<User>;
   updateProfile(input: UpdateDonorProfileInput): Promise<User>;
-  requestDataExport(): Promise<{ downloadUrl: string; generatedAt: string }>;
-  requestAccountDeletion(reason: string): Promise<{ success: boolean; message: string }>;
+  requestDataExport(): Promise<{ downloadUrl: string; generatedAt: string; data?: unknown }>;
+  /** confirm must be the word DELETE, typed by the person */
+  requestAccountDeletion(reason: string, confirm?: string): Promise<{ success: boolean; message: string; deleted?: boolean }>;
 }
 
 export interface ConsentService {

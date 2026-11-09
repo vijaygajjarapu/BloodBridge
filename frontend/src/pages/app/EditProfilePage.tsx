@@ -17,9 +17,10 @@ import { Select } from '../../components/ui/Select';
 import { Checkbox } from '../../components/ui/Checkbox';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { applyFieldErrors, errorMessage, errorTitle } from '../../utils/formErrors';
+import { maxAdultDob, UNDER_AGE_MESSAGE } from '../../utils/age';
 
 export const EditProfilePage: React.FC = () => {
-  const { user, refreshSession } = useAuth();
+  const { user, refreshSession, logout } = useAuth();
   const navigate = useNavigate();
 
   const [searchParams] = useSearchParams();
@@ -40,6 +41,7 @@ export const EditProfilePage: React.FC = () => {
     resolver: zodResolver(updateDonorProfileSchema),
     defaultValues: {
       name: user?.name || '',
+      dateOfBirth: '',
       email: user?.email || '',
       phone: '',
       bloodGroup: 'O+',
@@ -66,6 +68,7 @@ export const EditProfilePage: React.FC = () => {
           : 'regular';
         reset({
           name: p.name || user?.name || '',
+          dateOfBirth: p.dateOfBirth || '',
           email: p.email || user?.email || '',
           // Shown as the 10-digit number; the +91 prefix sits in front of the field
           phone: p.phone ? formatPhone(p.phone, p.country).replace(/^\+\d+\s*/, '') : '',
@@ -108,6 +111,7 @@ export const EditProfilePage: React.FC = () => {
     try {
       await profileService.updateProfile({
         name: data.name,
+        dateOfBirth: data.dateOfBirth,
         email: data.email,
         phone: normalizePhone(data.country, data.phone) || data.phone,
         bloodGroup: data.bloodGroup as BloodGroup,
@@ -129,8 +133,19 @@ export const EditProfilePage: React.FC = () => {
         navigate('/app/profile');
       }, 1500);
     } catch (err: unknown) {
+      // Under 18 on an account that never had a date of birth: the server removed the account
+      if ((err as { code?: string })?.code === 'UNDER_AGE_ACCOUNT_REMOVED') {
+        setErrorHeading('Account removed');
+        setErrorMsg(errorMessage(err, UNDER_AGE_MESSAGE));
+        setTimeout(async () => {
+          await logout().catch(() => undefined);
+          navigate('/', { replace: true });
+        }, 4000);
+        return;
+      }
       const shown = applyFieldErrors(err, setError, [
         'name',
+        'dateOfBirth',
         'email',
         'phone',
         'bloodGroup',
@@ -176,7 +191,7 @@ export const EditProfilePage: React.FC = () => {
         <CardContent className="p-6 sm:p-8 space-y-6">
           {mustComplete && (
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-              <strong>Welcome! Please complete your profile.</strong> Add your mobile number, blood group and location so we
+              <strong>Welcome! Please complete your profile.</strong> Add your date of birth (18+ only), mobile number, blood group and location so we
               can match you with people who need blood near you.
             </div>
           )}
@@ -196,6 +211,16 @@ export const EditProfilePage: React.FC = () => {
               required
               error={errors.name?.message}
               {...register('name')}
+            />
+
+            <Input
+              label="Date of Birth"
+              type="date"
+              required
+              max={maxAdultDob()}
+              helperText="BloodBridge is for people aged 18 or older. Also used for the donor eligibility check."
+              error={errors.dateOfBirth?.message}
+              {...register('dateOfBirth')}
             />
 
             <Input

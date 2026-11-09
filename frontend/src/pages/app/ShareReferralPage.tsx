@@ -23,7 +23,7 @@ export const ShareReferralPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'standard' | 'urgent' | 'family'>('standard');
 
-  const referralCode = user?.referralCode || 'SAVIOR-MV2026';
+  const referralCode = user?.referralCode || '';
   const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
   const referralUrl = `${origin}/join/${referralCode}`;
 

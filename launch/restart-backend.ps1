@@ -15,6 +15,9 @@ Start-Sleep -Seconds 2
 Set-Location $be
 cmd /c "npx prisma generate 2>&1" | Tee-Object -FilePath $log -Append | Out-Host
 Say "EXIT CODE [prisma generate]: $LASTEXITCODE"
+# Apply new database columns/tables (adds only; stops instead of deleting data)
+cmd /c "npx prisma db push --skip-generate 2>&1" | Tee-Object -FilePath $log -Append | Out-Host
+Say "EXIT CODE [prisma db push]: $LASTEXITCODE"
 
 $beLog = Join-Path $root 'launch\backend-run.log'
 Start-Process powershell -ArgumentList '-NoProfile','-NoExit','-Command', "`$host.UI.RawUI.WindowTitle='BloodBridge - Backend API'; Set-Location '$be'; cmd /c 'npm run dev 2>&1' | Tee-Object -FilePath '$beLog'"

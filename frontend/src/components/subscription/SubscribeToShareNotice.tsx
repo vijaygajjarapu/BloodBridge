@@ -9,7 +9,10 @@ interface Props {
   compact?: boolean;
 }
 
-/** Shown instead of the savior (referral) link for people without an active subscription */
+/**
+ * Shown instead of the savior (referral) link for people without an active subscription.
+ * Pricing rule: only referrals and the Family Circle are paid. Donor search and blood requests are free for everyone.
+ */
 export const SubscribeToShareNotice: React.FC<Props> = ({ compact = false }) => (
   <Card className="border-amber-300 bg-amber-50/60 shadow-sm" id="subscribe-to-share">
     <CardContent className={compact ? 'p-4 space-y-3' : 'p-6 space-y-4'}>
@@ -19,12 +22,12 @@ export const SubscribeToShareNotice: React.FC<Props> = ({ compact = false }) => 
         </div>
         <div className="space-y-1">
           <h2 className={`${compact ? 'text-sm' : 'text-base'} font-bold text-ink-main`}>
-            Your savior link is locked
+            Savior link is a Family Circle feature
           </h2>
           <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-            Emergencies don’t wait. When your family needs blood, the donors you know are the fastest help, and right
-            now you can’t invite them. Subscribe to share your savior link, reach the donors your family may need, and
-            grow your family’s coverage before it’s needed.
+            Finding donors and posting blood requests are always free. With the Family Circle you can also invite the
+            people you trust, keep your own list of donors for your family, and have them alerted first when your family
+            needs blood.
           </p>
         </div>
       </div>
@@ -49,7 +52,7 @@ export const SubscribeToShareNotice: React.FC<Props> = ({ compact = false }) => 
       <div className="flex flex-wrap items-center gap-3">
         <Link to="/app/subscribe">
           <Button variant="primary" size={compact ? 'sm' : 'md'} rightIcon={<ArrowRight className="w-4 h-4" />}>
-            Subscribe to keep your family safe
+            Get Family Circle
           </Button>
         </Link>
         <span className="text-[11px] text-ink-muted">Donors you already invited stay in your list.</span>

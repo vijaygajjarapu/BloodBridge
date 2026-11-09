@@ -31,36 +31,50 @@ export const TermsPage: React.FC = () => {
             </p>
           </section>
 
+          <section className="space-y-2" id="terms-age">
+            <h2 className="text-base font-bold text-ink-main">2. Adults Only (18+)</h2>
+            <p>
+              You must be 18 or older to create a BloodBridge account. We don’t create accounts for anyone younger, and if we learn that an account belongs to someone under 18, we delete it and its data.
+            </p>
+          </section>
+
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-ink-main">2. Voluntary Participation</h2>
+            <h2 className="text-base font-bold text-ink-main">3. Voluntary Participation</h2>
             <p>
               All blood and platelet donations are completely voluntary and unpaid in accordance with humanitarian blood banking standards. You may declare yourself unavailable or adjust your readiness preferences at any time through your dashboard.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-ink-main">3. Accurate Medical Self-Reporting</h2>
+            <h2 className="text-base font-bold text-ink-main">4. Accurate Medical Self-Reporting</h2>
             <p>
               Savior donors pledge to provide truthful and accurate information regarding their blood group and general eligibility. Blood collection centers will always conduct standard mandatory hemoglobin and infectious marker screenings before any actual phlebotomy procedure.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-ink-main">4. Referral Conduct &amp; Safety</h2>
+            <h2 className="text-base font-bold text-ink-main">5. Referral Conduct &amp; Safety</h2>
             <p>
               Referral codes may only be shared with individuals you believe meet the voluntary criteria for blood donation. Harassment, spam invitations, or commercial use of savior codes will result in account suspension and referral code invalidation.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-ink-main">5. Limitation of Liability</h2>
+            <h2 className="text-base font-bold text-ink-main">6. What Is Free and What Is Paid</h2>
+            <p>
+              Searching for donors, posting blood requests, receiving alerts, responding and donating are free for everyone, always. BloodBridge never charges for blood or for access to donors in an emergency. The optional Family Circle subscription covers only extra features: sharing a savior (referral) link or family invite, keeping your family’s own donor list, and alerting those donors on your requests. Not subscribing never stops a request from reaching matching donors.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-base font-bold text-ink-main">7. Limitation of Liability</h2>
             <p>
               BloodBridge makes every reasonable effort to verify emergency coordinator identities. However, clinical arrangements between donors and licensed healthcare centers remain the clinical responsibility of the certified medical facility.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-ink-main">6. Country of Service and Governing Law</h2>
+            <h2 className="text-base font-bold text-ink-main">8. Country of Service and Governing Law</h2>
             <p>
               BloodBridge is currently available in {getDefaultCountry().name}. Your account, donor profile and searches belong to the country you choose at sign-up. Personal data of donors in {getDefaultCountry().name} is handled under the {getDefaultCountry().privacyLaw}, and these terms are governed by the laws of {getDefaultCountry().name}.
             </p>
@@ -68,7 +82,7 @@ export const TermsPage: React.FC = () => {
 
           <div className="pt-6 border-t border-line-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-ink-secondary">Last updated: April 2026</p>
-            <Link to="/join/SAVIOR-MV2026">
+            <Link to="/auth/register">
               <Button variant="primary" size="md">
                 Accept &amp; Join as Savior
               </Button>

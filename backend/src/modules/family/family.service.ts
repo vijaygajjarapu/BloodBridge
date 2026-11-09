@@ -3,6 +3,7 @@ import { AppError } from '../../shared/types.js';
 import { generateRandomToken } from '../../shared/password.js';
 import { formatPhone } from '../../shared/location.js';
 import { subscriptionService } from '../subscriptions/subscriptions.service.js';
+import { gapDaysFor } from '../eligibility/eligibility.rules.js';
 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
 export const RELATIONS = ['self', 'spouse', 'son', 'daughter', 'father', 'mother', 'brother', 'sister', 'grandparent', 'other'] as const;
@@ -13,10 +14,11 @@ function firstName(name?: string | null): string {
   return (name || '').trim().split(/\s+/)[0] || 'A BloodBridge member';
 }
 
-function availabilityOf(profile?: { isAvailable: boolean; lastDonationDate: Date | null } | null): 'available' | 'recently_donated' | 'unavailable' | null {
+function availabilityOf(profile?: { isAvailable: boolean; lastDonationDate: Date | null; sex?: string | null } | null): 'available' | 'recently_donated' | 'unavailable' | null {
   if (!profile) return null;
   if (!profile.isAvailable) return 'unavailable';
-  if (profile.lastDonationDate && Date.now() - profile.lastDonationDate.getTime() < 90 * 24 * 60 * 60 * 1000) return 'recently_donated';
+  // Men 90 days, women (and not given) 120 days between donations
+  if (profile.lastDonationDate && Date.now() - profile.lastDonationDate.getTime() < gapDaysFor(profile.sex) * 24 * 60 * 60 * 1000) return 'recently_donated';
   return 'available';
 }
 
@@ -347,7 +349,7 @@ export class FamilyService {
           donor: {
             select: {
               id: true, fullName: true, username: true, phone: true, country: true, status: true,
-              donorProfile: { select: { isAvailable: true, lastDonationDate: true } },
+              donorProfile: { select: { isAvailable: true, lastDonationDate: true, sex: true } },
             },
           },
         },

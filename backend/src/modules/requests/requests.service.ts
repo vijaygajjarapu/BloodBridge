@@ -9,6 +9,7 @@ import { emitToUser } from '../../sockets/socket.server.js';
 import { subscriptionService } from '../subscriptions/subscriptions.service.js';
 import { familyService } from '../family/family.service.js';
 import { assessNewRequest, applyRisk, parseFlags, riskLevel } from './fraud.service.js';
+import { canBeAlerted, checkEligibility } from '../eligibility/eligibility.rules.js';
 
 export const BLOOD_GROUPS = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'] as const;
 export const COMPONENTS = ['whole_blood', 'red_cells', 'platelets', 'plasma'] as const;
@@ -75,8 +76,17 @@ const COMPATIBLE_DONORS: Record<string, string[]> = {
   'AB+': ['AB+', 'AB-', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-'],
 };
 
-/** Minimum gap between whole-blood donations used for "can donate now" */
-const DONATION_GAP_DAYS = 90;
+/** Who may be alerted now: age, weight, gap between donations (men 90 / women 120 days) and reasons to wait */
+const ELIGIBILITY_FIELDS = {
+  lastDonationDate: true,
+  totalDonations: true,
+  sex: true,
+  weightKg: true,
+  deferredUntil: true,
+  deferralReason: true,
+  permanentlyDeferred: true,
+  user: { select: { dateOfBirth: true } },
+} as const;
 const MAX_LIVE_REQUESTS = 3;
 const MAX_ALERTS_PER_REQUEST = 200;
 
@@ -86,9 +96,17 @@ function newPublicCode() {
   return 'REQ-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 }
 
-function canDonateNow(lastDonationDate: Date | null) {
-  if (!lastDonationDate) return true;
-  return Date.now() - lastDonationDate.getTime() >= DONATION_GAP_DAYS * 24 * 60 * 60 * 1000;
+function canDonateNow(p: {
+  lastDonationDate: Date | null;
+  totalDonations: number;
+  sex: string | null;
+  weightKg: number | null;
+  deferredUntil: Date | null;
+  deferralReason: string | null;
+  permanentlyDeferred: boolean;
+  user: { dateOfBirth: Date | null };
+}) {
+  return canBeAlerted({ ...p, dateOfBirth: p.user.dateOfBirth });
 }
 
 function assertPair(verificationStatus: string, status: RequestStatus) {
@@ -153,10 +171,10 @@ export class RequestService {
         userId: { not: r.requesterUserId },
         user: { status: 'active', isEmailVerified: true },
       },
-      select: { userId: true, lastDonationDate: true },
+      select: { userId: true, ...ELIGIBILITY_FIELDS },
       take: 1000,
     });
-    return profiles.filter((p) => canDonateNow(p.lastDonationDate)).map((p) => p.userId);
+    return profiles.filter((p) => canDonateNow(p)).map((p) => p.userId);
   }
 
   /**
@@ -174,11 +192,17 @@ export class RequestService {
         allowRequestAlerts: true,
         donor: { status: 'active' },
       },
-      select: { donorUserId: true, donor: { select: { donorProfile: { select: { bloodGroup: true } } } }, bloodGroup: true },
+      select: {
+        donorUserId: true,
+        bloodGroup: true,
+        donor: { select: { donorProfile: { select: { bloodGroup: true, ...ELIGIBILITY_FIELDS } } } },
+      },
     });
     const ok = this.compatibleDonorGroups(patientGroup);
     return pledges
       .filter((p) => ok.includes(p.donor.donorProfile?.bloodGroup || p.bloodGroup))
+      // Saved donors are alerted wherever they live, but only if they can donate right now
+      .filter((p) => !p.donor.donorProfile || canDonateNow(p.donor.donorProfile))
       .map((p) => p.donorUserId);
   }
 
@@ -348,10 +372,10 @@ export class RequestService {
       prisma.donorProfile.count({ where: { ...area, ...base, bloodGroup: q.bloodGroup } }),
       prisma.donorProfile.findMany({
         where: { ...area, ...base, bloodGroup: { in: compatible } },
-        select: { isAvailable: true, lastDonationDate: true },
+        select: { isAvailable: true, ...ELIGIBILITY_FIELDS },
       }),
     ]);
-    const availableNow = compatibleRows.filter((p) => p.isAvailable && canDonateNow(p.lastDonationDate)).length;
+    const availableNow = compatibleRows.filter((p) => p.isAvailable && canDonateNow(p)).length;
     return {
       bloodGroup: q.bloodGroup,
       area: { country, state: q.state, district: q.district || null },
@@ -559,6 +583,16 @@ export class RequestService {
 
     const eligibility = await this.donorEligibility(userId, r);
     if (!eligibility.canRespond) throw new AppError(eligibility.reason || 'You cannot respond to this request.', 400, 'NOT_ELIGIBLE');
+    if (input.action === 'accept') {
+      // Medical self-check: age, weight, gap since last donation, reasons to wait
+      const me = await prisma.donorProfile.findUnique({ where: { userId }, select: ELIGIBILITY_FIELDS });
+      if (me) {
+        const check = checkEligibility({ ...me, dateOfBirth: me.user.dateOfBirth });
+        if (!check.eligible) {
+          throw new AppError(`You can't donate right now. ${check.reasons[0]} You can still decline so the family knows.`, 400, 'NOT_ELIGIBLE');
+        }
+      }
+    }
     if (existing?.status === 'donated') throw new AppError('Thank you, your donation is already recorded.', 400, 'BAD_REQUEST');
 
     const status = input.action === 'accept' ? 'accepted' : 'declined';

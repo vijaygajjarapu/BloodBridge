@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { maxAdultDob } from '../../utils/age';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -138,6 +139,16 @@ export const DonorRegistrationPage: React.FC = () => {
                 required
                 error={errors.fullName?.message}
                 {...register('fullName')}
+              />
+
+              <Input
+                label="Date of Birth"
+                type="date"
+                required
+                max={maxAdultDob()}
+                helperText="You must be 18 or older to join BloodBridge."
+                error={errors.dateOfBirth?.message}
+                {...register('dateOfBirth')}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

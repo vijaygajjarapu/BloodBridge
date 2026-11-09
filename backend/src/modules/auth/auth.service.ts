@@ -4,6 +4,7 @@ import { smsService } from '../../shared/sms.service.js';
 import { hashPassword, verifyPassword, generateSecureOtp, hashToken, generateRandomToken } from '../../shared/password.js';
 import { signAccessToken, signRefreshToken } from '../../shared/jwt.js';
 import { emailService } from '../../shared/email.service.js';
+import { parseAdultDateOfBirth } from '../../shared/age.js';
 import { AppError } from '../../shared/types.js';
 import { config } from '../../config/index.js';
 import { logger } from '../../shared/logger.js';
@@ -427,10 +428,8 @@ export class AuthService {
     const country = requireCountry(input.country).code;
     const phone = requirePhone(country, input.phone);
 
-    const birthDate = new Date(input.dateOfBirth);
-    if (isNaN(birthDate.getTime()) || birthDate >= new Date()) {
-      throw new AppError('Please provide a valid date of birth in the past.', 400, 'VALIDATION_FAILED');
-    }
+    // Adults only: refuses anyone under 18 before anything is stored
+    const birthDate = parseAdultDateOfBirth(input.dateOfBirth);
 
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -523,15 +522,19 @@ export class AuthService {
         },
       });
 
+      // Record who invited this person as its own row. The inviter's code row stays unchanged,
+      // so one savior link can count every person who joins with it (not just the latest one).
       if (input.referralCode) {
         const parentReferral = await tx.referral.findUnique({
           where: { referralCode: input.referralCode.toUpperCase() },
         });
-        if (parentReferral && parentReferral.referrerUserId !== user.id) {
-          await tx.referral.update({
-            where: { id: parentReferral.id },
+        if (parentReferral && parentReferral.status === 'active' && parentReferral.referrerUserId !== user.id) {
+          await tx.referral.create({
             data: {
+              referrerUserId: parentReferral.referrerUserId,
+              referralCode: `${parentReferral.referralCode}-${generateRandomToken(4).toUpperCase()}`,
               referredUserId: user.id,
+              status: 'completed',
               completedAt: new Date(),
             },
           });
@@ -694,7 +697,7 @@ export class AuthService {
         phone: user.phone,
         country: user.country,
         role: user.role,
-        referralCode: userReferral?.referralCode || (user.role === 'donor' ? 'SAVIOR-MV2026' : undefined),
+        referralCode: userReferral?.referralCode || undefined,
         isVerified: true,
         createdAt: user.createdAt.toISOString(),
       },
@@ -727,7 +730,8 @@ export class AuthService {
   async register(input: RegisterInput) {
     return this.signup({
       username: input.username || input.fullName || input.email.split('@')[0],
-      dateOfBirth: input.dateOfBirth || '2000-01-01',
+      // No default: a real date of birth is needed to confirm the person is 18 or older
+      dateOfBirth: input.dateOfBirth || '',
       email: input.email,
       password: input.password,
       confirmPassword: input.password,
@@ -1111,7 +1115,7 @@ export class AuthService {
         phone: user.phone,
         country: user.country,
         role: user.role,
-        referralCode: userReferral?.referralCode || (user.role === 'donor' ? 'SAVIOR-MV2026' : undefined),
+        referralCode: userReferral?.referralCode || undefined,
         isVerified: user.isEmailVerified,
         verified: user.isEmailVerified,
         createdAt: user.createdAt.toISOString(),

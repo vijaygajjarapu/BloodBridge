@@ -43,7 +43,7 @@ export const PublicFooter: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/join/SAVIOR-MV2026" className="text-ink-secondary hover:text-brand-500 transition-colors">
+                <Link to="/auth/register" className="text-ink-secondary hover:text-brand-500 transition-colors">
                   Join as a Donor
                 </Link>
               </li>

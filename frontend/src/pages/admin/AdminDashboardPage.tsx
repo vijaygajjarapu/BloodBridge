@@ -104,36 +104,34 @@ export const AdminDashboardPage: React.FC = () => {
           <>
             <StatCard
               label="Total Enrolled Donors"
-              value={metrics?.totalDonors || 1184}
-              subtext="Verified community pool"
-              trend={{ value: '+14% this quarter', isPositive: true }}
+              value={metrics?.totalDonors ?? 0}
+              subtext="Registered donor profiles"
               icon={<HeartHandshake className="w-5 h-5 text-brand-500" />}
-              isSampleData
             />
 
             <StatCard
               label="Referral Registrations"
-              value={metrics?.referralRegistrations || 842}
-              subtext="71% of total enrollment"
-              trend={{ value: 'Savior Circle', isPositive: true }}
+              value={metrics?.referralRegistrations ?? 0}
+              subtext={
+                metrics?.totalDonors
+                  ? `${Math.round(((metrics.referralRegistrations ?? 0) / metrics.totalDonors) * 100)}% of all donors joined via a link`
+                  : 'Joined through a savior link'
+              }
               icon={<Share2 className="w-5 h-5 text-blue-600" />}
-              isSampleData
             />
 
             <StatCard
               label="Consent Authorization Rate"
-              value={`${metrics?.consentGrantedRate || 88.5}%`}
+              value={`${metrics?.consentGrantedRate ?? 0}%`}
               subtext="Granted contact sharing"
               icon={<ShieldCheck className="w-5 h-5 text-status-success" />}
-              isSampleData
             />
 
             <StatCard
               label="Emergency Ready Pool"
-              value={metrics?.emergencyReadyCount || 645}
-              subtext="Available for urgent calls"
+              value={metrics?.emergencyReadyCount ?? 0}
+              subtext="Donors marked available"
               icon={<Activity className="w-5 h-5 text-amber-500" />}
-              isSampleData
             />
           </>
         )}
@@ -147,7 +145,7 @@ export const AdminDashboardPage: React.FC = () => {
             <CardHeader>
               <div>
                 <h3 className="font-bold text-sm text-ink-main">Registration &amp; Referral Growth</h3>
-                <p className="text-xs text-ink-secondary">6-Month historical intake curve (Sample Data)</p>
+                <p className="text-xs text-ink-secondary">New donors and referral sign-ups, last 6 months</p>
               </div>
               <span className="text-[10px] uppercase font-bold text-ink-muted bg-gray-100 px-2 py-0.5 rounded">
                 Trend Analysis

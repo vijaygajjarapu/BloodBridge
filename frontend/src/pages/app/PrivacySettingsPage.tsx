@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { errorMessage } from '../../utils/formErrors';
 import {
   ShieldCheck,
   Eye,
@@ -32,6 +34,10 @@ export const PrivacySettingsPage: React.FC = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteResultNotice, setDeleteResultNotice] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const loadPreferences = async () => {
     setLoading(true);
@@ -89,27 +95,47 @@ export const PrivacySettingsPage: React.FC = () => {
   };
 
   const handleDataExport = async () => {
+    setErrorMsg(null);
     try {
       const result = await profileService.requestDataExport();
-      setStatusMessage(`[Demo Mode] Data export compiled. Generated at ${new Date(result.generatedAt).toLocaleTimeString()}.`);
-    } catch {
-      setErrorMsg('Data export failed.');
+      if (result.data) {
+        // Save the archive as a JSON file on this device
+        const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bloodbridge-my-data-${result.generatedAt.slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatusMessage('Your data file was downloaded. Keep it private: it contains your contact details.');
+      } else {
+        setStatusMessage(`Data export prepared at ${new Date(result.generatedAt).toLocaleTimeString()}.`);
+      }
+    } catch (e) {
+      setErrorMsg(errorMessage(e, 'Data export failed.'));
     }
   };
 
   const handleDeleteRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (deleteConfirm.trim().toUpperCase() !== 'DELETE') {
+      setDeleteError('Type DELETE to confirm.');
+      return;
+    }
     setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
-      const res = await profileService.requestAccountDeletion(deleteReason);
+      const res = await profileService.requestAccountDeletion(deleteReason, 'DELETE');
       setDeleteResultNotice(res.message);
-      setTimeout(() => {
-        setShowDeleteModal(false);
-        setDeleteResultNotice(null);
-        setDeleteReason('');
+      // The account no longer exists: sign out and go to the home page
+      setTimeout(async () => {
+        await logout().catch(() => undefined);
+        navigate('/', { replace: true });
       }, 3000);
-    } catch {
-      setErrorMsg('Failed to submit deletion request.');
+    } catch (err) {
+      setDeleteError(errorMessage(err, 'Could not delete your account. Please try again.'));
     } finally {
       setDeleteSubmitting(false);
     }
@@ -286,7 +312,7 @@ export const PrivacySettingsPage: React.FC = () => {
                 <div>
                   <span className="font-bold text-sm text-ink-main block">Export My Data Archive</span>
                   <p className="text-xs text-ink-secondary mt-0.5">
-                    Download a secure JSON archive of your personal donor history, referral metrics, and consent log.
+                    Download a file with everything you’ve given us: account, donor profile, consents, family, requests and payments.
                   </p>
                 </div>
                 <Button
@@ -302,9 +328,9 @@ export const PrivacySettingsPage: React.FC = () => {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-red-50/50 rounded-xl border border-red-200">
                 <div>
-                  <span className="font-bold text-sm text-status-error block">Permanent Account Erasure</span>
+                  <span className="font-bold text-sm text-status-error block">Delete My Account</span>
                   <p className="text-xs text-ink-secondary mt-0.5">
-                    Irrevocably remove your phone number, donor listings, and savior referral associations.
+                    Permanently deletes your account, donor profile, family list, requests and alerts. This can’t be undone.
                   </p>
                 </div>
                 <Button
@@ -314,7 +340,7 @@ export const PrivacySettingsPage: React.FC = () => {
                   leftIcon={<Trash2 className="w-4 h-4" />}
                   className="flex-shrink-0"
                 >
-                  Request Deletion
+                  Delete Account
                 </Button>
               </div>
             </CardContent>
@@ -326,29 +352,45 @@ export const PrivacySettingsPage: React.FC = () => {
       <Modal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        title="Request Account Erasure"
-        description="This action will remove your donor availability from BloodBridge."
+        title="Delete your account?"
+        description="This permanently deletes your account and data. It can’t be undone."
       >
         {deleteResultNotice ? (
           <div className="text-center py-6 space-y-2">
             <CheckCircle2 className="w-10 h-10 text-status-success mx-auto" />
-            <h3 className="font-bold text-ink-main">Request Submitted</h3>
+            <h3 className="font-bold text-ink-main">Account deleted</h3>
             <p className="text-xs text-ink-secondary">{deleteResultNotice}</p>
           </div>
         ) : (
           <form onSubmit={handleDeleteRequest} className="space-y-4">
-            <p className="text-xs text-ink-secondary leading-relaxed">
-              In accordance with our privacy charter, account deletion ceases all emergency matching broadcasts. Please state the reason for leaving:
-            </p>
+            <ul className="text-xs text-ink-secondary leading-relaxed list-disc pl-4 space-y-1">
+              <li>Your account, donor profile, family list, pledges, requests and alerts are deleted.</li>
+              <li>Open blood requests are cancelled, and donors who accepted are told not to go.</li>
+              <li>Automatic renewal of your subscription is turned off. Paid time is not refunded automatically.</li>
+              <li>Your email and mobile number can be used to sign up again.</li>
+              <li>Tip: download your data first if you want a copy.</li>
+            </ul>
 
+            <label className="block text-xs font-semibold text-ink-secondary">Why are you leaving? (optional)</label>
             <textarea
-              rows={3}
-              required
+              rows={2}
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
               placeholder="e.g., Medical deferral, relocation, or privacy preference."
               className="w-full text-xs p-3 rounded-lg border border-line-border focus:ring-2 focus:ring-status-error focus:outline-none"
             />
+
+            <label className="block text-xs font-semibold text-ink-secondary" htmlFor="delete-confirm">
+              Type <strong className="text-status-error">DELETE</strong> to confirm
+            </label>
+            <input
+              id="delete-confirm"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              autoComplete="off"
+              className="w-full text-sm p-2.5 rounded-lg border border-line-border focus:ring-2 focus:ring-status-error focus:outline-none"
+            />
+            {deleteError && <p className="text-xs text-status-error" role="alert">{deleteError}</p>}
 
             <div className="flex justify-end space-x-2 pt-2">
               <Button
@@ -361,7 +403,7 @@ export const PrivacySettingsPage: React.FC = () => {
                 Cancel
               </Button>
               <Button type="submit" variant="danger" size="sm" isLoading={deleteSubmitting}>
-                Confirm Erasure Request
+                Delete permanently
               </Button>
             </div>
           </form>

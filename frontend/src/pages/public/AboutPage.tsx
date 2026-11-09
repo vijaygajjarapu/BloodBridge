@@ -78,7 +78,7 @@ export const AboutPage: React.FC = () => {
           </div>
 
           <div className="pt-6 border-t border-line-border flex flex-col sm:flex-row items-center gap-3">
-            <Link to="/join/SAVIOR-MV2026">
+            <Link to="/auth/register">
               <Button variant="primary">Join as a Community Savior</Button>
             </Link>
             <Link to="/privacy">

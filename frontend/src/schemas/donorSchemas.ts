@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isAdultDob } from '../utils/age';
 import { countryOrDefault, normalizePhone, isValidPostalCode } from '../constants/countries';
 
 /** Adds country-specific checks (mobile number and PIN / postal code) to a form schema */
@@ -30,6 +31,10 @@ function checkCountryFields(
 export const donorRegistrationSchema = z
   .object({
     fullName: z.string().min(2, 'Full legal or preferred name must be at least 2 characters.'),
+    dateOfBirth: z
+      .string()
+      .min(1, 'Please enter your date of birth.')
+      .refine((val) => isAdultDob(val), 'You must be 18 or older to join BloodBridge.'),
     country: z.string().min(2, 'Please choose your country.'),
     phone: z.string().min(1, 'Please enter your mobile number.'),
     email: z.string().trim().min(1, 'Please enter your email address. We send a code to it to confirm your account.').email('Please enter a valid email address.'),
@@ -61,6 +66,11 @@ export type DonorRegistrationFormInput = z.input<typeof donorRegistrationSchema>
 export const updateDonorProfileSchema = z
   .object({
     name: z.string().min(2, 'Full name must be at least 2 characters.'),
+    // Required for every account (adults only); the server removes an account whose first date of birth is under 18
+    dateOfBirth: z
+      .string()
+      .min(1, 'Please enter your date of birth.')
+      .refine((val) => isAdultDob(val), 'You must be 18 or older to use BloodBridge.'),
     email: z.string().email('Please enter a valid email address.').optional().or(z.literal('')),
     phone: z.string().min(1, 'Please enter your mobile number.'),
     bloodGroup: z.enum(['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+']),

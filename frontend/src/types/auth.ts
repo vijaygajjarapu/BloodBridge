@@ -20,6 +20,10 @@ export interface User {
   postalCode?: string;
   donationWillingness?: string;
   isAvailable?: boolean;
+  totalDonations?: number;
+  /** YYYY-MM-DD, null if never given */
+  dateOfBirth?: string | null;
+  lastDonationDate?: string | null;
 }
 
 export interface AuthSession {

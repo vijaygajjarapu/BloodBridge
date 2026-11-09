@@ -212,6 +212,7 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
                   <p className="text-xs text-ink-secondary">
                     See who is ready to donate for each family member and call them directly in an emergency.
                   </p>
+                  <p className="text-[11px] text-ink-muted">Finding donors and posting requests are free for everyone.</p>
                   <Link to="/app/subscribe">
                     <Button size="sm" variant="primary" leftIcon={<ShieldCheck className="w-4 h-4" />}>
                       Subscribe
