@@ -109,11 +109,11 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
-    title: '9. Children',
+    title: '9. Adults only (18+)',
     body: (
       <p>
-        You must be 18 or older to donate blood. People under 18 may use BloodBridge only with verifiable consent from a parent or guardian, and we
-        don’t use their data for tracking or advertising.
+        BloodBridge is only for people aged 18 or older. We ask for your date of birth and don’t create accounts for anyone younger. If we learn
+        that an account belongs to someone under 18, we delete it and its data.
       </p>
     ),
   },

@@ -3,6 +3,8 @@ import { z } from 'zod';
 export const donorRegistrationSchema = z.object({
   referralCode: z.string().min(1, 'Referral code is required'),
   fullName: z.string().min(2, 'Full name is required'),
+  // Adults only (checked again in the service): no accounts for under-18s
+  dateOfBirth: z.string({ required_error: 'Date of birth is required.' }).min(1, 'Date of birth is required.'),
   mobileNumber: z.string().optional(),
   phone: z.string().optional(),
   // A real BloodBridge account is created, so email (for the verification code) and a password are required

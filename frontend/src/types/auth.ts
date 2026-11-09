@@ -21,6 +21,8 @@ export interface User {
   donationWillingness?: string;
   isAvailable?: boolean;
   totalDonations?: number;
+  /** YYYY-MM-DD, null if never given */
+  dateOfBirth?: string | null;
   lastDonationDate?: string | null;
 }
 

@@ -206,7 +206,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       username: '',
-      dateOfBirth: '2000-01-15',
+      dateOfBirth: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -1002,9 +1002,9 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
                           Age {calculatedAge} &bull; Eligible for voluntary blood donation
                         </span>
                       ) : (
-                        <span className="inline-flex items-center text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-200">
-                          <AlertCircle className="w-3.5 h-3.5 mr-1 text-amber-600" />
-                          Age {calculatedAge} &bull; Youth Advocate (Voluntary donation unlocks at age 18)
+                        <span className="inline-flex items-center text-red-700 bg-red-50 px-2 py-0.5 rounded-md font-medium border border-red-200">
+                          <AlertCircle className="w-3.5 h-3.5 mr-1 text-red-600" />
+                          BloodBridge is for people aged 18 or older. You can join on your 18th birthday.
                         </span>
                       )}
                     </div>

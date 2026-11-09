@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isAdultDob } from '../utils/age';
 import { getEnabledCountries, normalizePhone } from '../constants/countries';
 
 /** A mobile number valid in any supported country */
@@ -38,7 +39,8 @@ export const signUpSchema = z
       .refine((val) => {
         const d = new Date(val);
         return !isNaN(d.getTime()) && d < new Date();
-      }, 'Please enter a valid date of birth in the past.'),
+      }, 'Please enter a valid date of birth in the past.')
+      .refine((val) => isAdultDob(val), 'You must be 18 or older to join BloodBridge.'),
     email: z.string().min(1, 'Email address is required.').email('Please enter a valid email address.'),
     password: z
       .string()

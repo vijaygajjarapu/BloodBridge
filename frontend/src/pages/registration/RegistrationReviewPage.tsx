@@ -271,6 +271,11 @@ export const RegistrationReviewPage: React.FC = () => {
             </div>
 
             <div className="p-4 flex items-center justify-between">
+              <span className="text-xs font-semibold text-ink-secondary">Date of Birth</span>
+              <span className="font-bold text-ink-main">{data.dateOfBirth || 'Not given: go back and add it'}</span>
+            </div>
+
+            <div className="p-4 flex items-center justify-between">
               <span className="text-xs font-semibold text-ink-secondary">Blood Group</span>
               <div className="flex items-center space-x-2">
                 <BloodGroupBadge group={data.bloodGroup as BloodGroup} />

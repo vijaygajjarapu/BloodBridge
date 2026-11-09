@@ -41,6 +41,8 @@ export interface DonorDetails extends DonorSummary {
 
 export interface DonorRegistrationInput {
   fullName: string;
+  /** YYYY-MM-DD; must be 18 or older */
+  dateOfBirth: string;
   phone: string;
   email?: string;
   /** Password for the new BloodBridge account */
@@ -84,6 +86,8 @@ export interface DonorListParams {
 
 export interface UpdateDonorProfileInput {
   name: string;
+  /** YYYY-MM-DD; must be 18 or older */
+  dateOfBirth?: string;
   email?: string;
   /** Mobile number, stored as +91XXXXXXXXXX */
   phone?: string;

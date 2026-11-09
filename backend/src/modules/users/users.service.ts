@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database.js';
 import { AppError } from '../../shared/types.js';
 import { validateLocation, requirePhone } from '../../shared/location.js';
+import { parseAdultDateOfBirth, UNDER_AGE_MESSAGE } from '../../shared/age.js';
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { subscriptionService } from '../subscriptions/subscriptions.service.js';
@@ -27,6 +28,7 @@ export class UsersService {
       role: user.role,
       verified: user.isEmailVerified,
       createdAt: user.createdAt.toISOString(),
+      dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null,
       country: user.donorProfile?.country || user.country,
       // null = no donor profile yet (never invent a blood group)
       bloodGroup: user.donorProfile?.bloodGroup ?? null,
@@ -67,12 +69,32 @@ export class UsersService {
       : null;
     const phone = input.phone ? requirePhone(location?.country || current.country, input.phone) : undefined;
 
+    // Date of birth: adults only. An account that never had a date of birth (Google or invite sign-up)
+    // and turns out to belong to someone under 18 is removed, because BloodBridge keeps no under-18 accounts.
+    let dateOfBirth: Date | undefined;
+    if (input.dateOfBirth) {
+      try {
+        dateOfBirth = parseAdultDateOfBirth(input.dateOfBirth);
+      } catch (err) {
+        if (err instanceof AppError && err.code === 'UNDER_AGE' && !current.dateOfBirth && current.role !== 'admin') {
+          await this.requestAccountDeletion(userId, 'Under 18 (date of birth added after sign-up)', 'DELETE');
+          throw new AppError(
+            `${UNDER_AGE_MESSAGE} Your account has been removed and nothing was kept.`,
+            403,
+            'UNDER_AGE_ACCOUNT_REMOVED',
+          );
+        }
+        throw err;
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
-      if (input.fullName || input.name || location || phone) {
+      if (input.fullName || input.name || location || phone || dateOfBirth) {
         await tx.user.update({
           where: { id: userId },
           data: {
             ...((input.fullName || input.name) && { fullName: input.fullName || input.name }),
+            ...(dateOfBirth && { dateOfBirth }),
             ...(location && { country: location.country }),
             ...(phone && { phone }),
           },

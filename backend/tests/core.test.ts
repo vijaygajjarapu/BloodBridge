@@ -207,3 +207,64 @@ describe('Privacy: download and delete my data', () => {
     expect(again.status).toBeLessThan(300);
   });
 });
+
+describe('Adults only (18+)', () => {
+  const fifteenYearsAgo = () => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 15);
+    return d.toISOString().slice(0, 10);
+  };
+
+  it('sign-up refuses anyone under 18 and stores nothing', async () => {
+    const res = await request(app).post(`${api}/auth/signup`).send({
+      username: 'teen_test',
+      dateOfBirth: fifteenYearsAgo(),
+      email: 'teen.test@example.test',
+      password: 'Password123',
+      confirmPassword: 'Password123',
+      phone: '9811100099',
+      country: 'IN',
+      termsAccepted: true,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('UNDER_AGE');
+    expect(await prisma.user.findUnique({ where: { email: 'teen.test@example.test' } })).toBeNull();
+  });
+
+  it('invite-link registration refuses anyone under 18', async () => {
+    const res = await request(app).post(`${api}/donors/register`).send({
+      referralCode: 'SAVIOR-MV2026',
+      fullName: 'Teen Invite Test',
+      dateOfBirth: fifteenYearsAgo(),
+      email: 'teen.invite@example.test',
+      password: 'Password123',
+      phone: '9811100098',
+      bloodGroup: 'O+',
+      country: 'IN',
+      state: 'Telangana',
+      district: 'Hyderabad',
+      city: 'Ameerpet',
+      postalCode: '500016',
+    });
+    expect(res.status).toBe(400);
+    expect(await prisma.user.findUnique({ where: { email: 'teen.invite@example.test' } })).toBeNull();
+  });
+
+  it('an account without a date of birth that turns out to be under 18 is removed', async () => {
+    const login = await request(app).post(`${api}/auth/login`).send({ identifier: 'rahul.verma@example.org', password: 'password123' });
+    expect(login.status).toBe(200);
+    const res = await request(app).put(`${api}/profile`).set(auth(login.body.token)).send({ dateOfBirth: fifteenYearsAgo() });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('UNDER_AGE_ACCOUNT_REMOVED');
+    expect(await prisma.user.findUnique({ where: { email: 'rahul.verma@example.org' } })).toBeNull();
+  });
+
+  it('an adult can add their date of birth', async () => {
+    const login = await request(app).post(`${api}/auth/login`).send({ identifier: 'ananya.iyer@example.org', password: 'password123' });
+    expect(login.status).toBe(200);
+    const res = await request(app).put(`${api}/profile`).set(auth(login.body.token)).send({ dateOfBirth: '1990-06-15' });
+    expect(res.status).toBe(200);
+    const u = await prisma.user.findUnique({ where: { email: 'ananya.iyer@example.org' } });
+    expect(u?.dateOfBirth?.toISOString().slice(0, 10)).toBe('1990-06-15');
+  });
+});

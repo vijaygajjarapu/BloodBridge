@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database.js';
+import { parseAdultDateOfBirth } from '../../shared/age.js';
 import { AppError } from '../../shared/types.js';
 import { hashPassword, generateRandomToken } from '../../shared/password.js';
 import { emitToUser, emitAdminEvent } from '../../sockets/socket.server.js';
@@ -279,6 +280,9 @@ export class DonorService {
       throw new AppError(message, 409, 'CONFLICT', fieldErrors);
     }
 
+    // Adults only
+    const dateOfBirth = parseAdultDateOfBirth(input.dateOfBirth);
+
     // The donor chooses their own password; the account stays unverified until they enter the emailed code
     const passwordHash = await hashPassword(input.password);
 
@@ -289,6 +293,7 @@ export class DonorService {
       const user = await tx.user.create({
         data: {
           fullName: input.fullName,
+          dateOfBirth,
           email,
           phone,
           country: location.country,

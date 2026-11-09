@@ -252,6 +252,15 @@ npm test --workspace=backend
 - **Delete Account** (type DELETE to confirm): cancels open requests and tells donors who accepted not to go, turns off automatic renewal, removes uploaded documents, then deletes the account and everything linked to it. The email and mobile number can be used again. Only an audit note without personal details (and payment references for tax/refunds) is kept. Admin accounts can't be deleted this way.
 - **Privacy Policy** (`/privacy`): a draft written for India's DPDP Act 2023. Fill in the [bracketed] company and Grievance Officer details and have a lawyer review it before launch.
 
+## 🔞 Adults only (18+)
+
+BloodBridge keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).
+
+- Sign-up and invite-link registration ask for a date of birth and refuse anyone under 18 before anything is stored.
+- Google sign-ups must add a date of birth on the profile page. If an account that never had a date of birth turns out to be under 18, it is deleted straight away (same as Delete Account).
+- Server rule: `backend\src\shared\age.ts`; website rule: `frontend\src\utils\age.ts`.
+- Family members a user adds (for example their children) are part of that adult's family list, not accounts.
+
 ## 🩺 Donor eligibility
 
 Rules are in `backend\src\modules\eligibility\eligibility.rules.ts` (based on India's NBTC donor selection guidelines, 2017): age 18–65 (first-time donors up to 60), at least 45 kg, 90 days between donations for men and 120 for women (120 when not given), and self-declared reasons to wait (tattoo 12 months, pregnancy 12 months, surgery, typhoid, malaria, dengue, antibiotics, etc.). Alerts, "available now" counts and accepting a request all use these rules. Donors manage this on the Profile page ("Can I donate now?"). The blood bank always does the final medical check.
