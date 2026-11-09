@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Heart, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { LanguagePicker } from '../ui/LanguagePicker';
 
 export const PublicNavbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -55,12 +56,13 @@ export const PublicNavbar: React.FC = () => {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center space-x-3">
+            <LanguagePicker id="language-picker-public" />
             <Link to="/auth/login">
               <Button variant="ghost" size="sm">
                 Sign In
               </Button>
             </Link>
-            <Link to="/join/SAVIOR-MV2026">
+            <Link to="/auth/register">
               <Button
                 variant="primary"
                 size="sm"
@@ -73,7 +75,8 @@ export const PublicNavbar: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
+          <div className="md:hidden flex items-center gap-2">
+            <LanguagePicker id="language-picker-public-mobile" />
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -109,7 +112,7 @@ export const PublicNavbar: React.FC = () => {
                 Sign In
               </Button>
             </Link>
-            <Link to="/join/SAVIOR-MV2026" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/auth/register" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="primary" className="w-full justify-center" rightIcon={<ArrowRight className="w-4 h-4" />}>
                 Join as Savior
               </Button>

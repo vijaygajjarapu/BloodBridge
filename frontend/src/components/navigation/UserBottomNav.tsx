@@ -2,17 +2,19 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, HeartHandshake, Bell, User, Siren } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useT } from '../../i18n/I18nProvider';
 
 export const UserBottomNav: React.FC<{ unreadCount?: number }> = ({ unreadCount }) => {
   const { unreadCount: liveUnreadCount } = useNotifications();
   const effectiveUnread = typeof unreadCount === 'number' ? unreadCount : liveUnreadCount;
 
+  const t = useT();
   const navItems = [
-    { label: 'Dashboard', to: '/app/dashboard', icon: LayoutDashboard },
-    { label: 'Requests', to: '/app/requests', icon: Siren },
-    { label: 'Family', to: '/app/family', icon: HeartHandshake },
-    { label: 'Alerts', to: '/app/notifications', icon: Bell, badge: effectiveUnread },
-    { label: 'Profile', to: '/app/profile', icon: User },
+    { label: t('nav.dashboard'), to: '/app/dashboard', icon: LayoutDashboard },
+    { label: t('nav.requests'), to: '/app/requests', icon: Siren },
+    { label: t('nav.familyShort'), to: '/app/family', icon: HeartHandshake },
+    { label: t('nav.alerts'), to: '/app/notifications', icon: Bell, badge: effectiveUnread },
+    { label: t('nav.profile'), to: '/app/profile', icon: User },
   ];
 
   return (
@@ -25,7 +27,7 @@ export const UserBottomNav: React.FC<{ unreadCount?: number }> = ({ unreadCount 
           const Icon = item.icon;
           return (
             <NavLink
-              key={item.label}
+              key={item.to}
               to={item.to}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 text-center relative transition-colors ${

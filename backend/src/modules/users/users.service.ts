@@ -6,6 +6,9 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { subscriptionService } from '../subscriptions/subscriptions.service.js';
 
+
+/** Languages the app is translated into (see frontend/src/i18n) */
+export const SUPPORTED_LANGUAGES = ['en', 'hi', 'te', 'ta', 'ml'] as const;
 export class UsersService {
   async getProfile(userId: string) {
     const user = await prisma.user.findUnique({
@@ -29,6 +32,7 @@ export class UsersService {
       verified: user.isEmailVerified,
       createdAt: user.createdAt.toISOString(),
       dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null,
+      language: user.language,
       country: user.donorProfile?.country || user.country,
       // null = no donor profile yet (never invent a blood group)
       bloodGroup: user.donorProfile?.bloodGroup ?? null,
@@ -153,6 +157,15 @@ export class UsersService {
    * "Download my data": everything this person gave us or created, as one JSON file.
    * Never includes password hashes, tokens, or other people's private details.
    */
+  /** App language for this account (used on new devices, and later for alerts) */
+  async setLanguage(userId: string, language: unknown) {
+    if (typeof language !== 'string' || !SUPPORTED_LANGUAGES.includes(language as (typeof SUPPORTED_LANGUAGES)[number])) {
+      throw new AppError('This language is not available yet.', 400, 'VALIDATION_FAILED', { language: 'Choose one of the listed languages.' });
+    }
+    await prisma.user.update({ where: { id: userId }, data: { language } });
+    return { language };
+  }
+
   async exportData(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -199,6 +212,7 @@ export class UsersService {
           phone: user.phone,
           dateOfBirth: user.dateOfBirth,
           country: user.country,
+          language: user.language,
           role: user.role,
           status: user.status,
           emailVerified: user.isEmailVerified,

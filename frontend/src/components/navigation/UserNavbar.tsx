@@ -14,6 +14,8 @@ import {
   HelpCircle,
   Menu,
   X, Siren, Building2 } from 'lucide-react';
+import { useT } from '../../i18n/I18nProvider';
+import { LanguagePicker } from '../ui/LanguagePicker';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { ConfirmDialog } from '../feedback/ConfirmDialog';
@@ -27,14 +29,15 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  const t = useT();
   const navLinks = [
-    { label: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
-    { label: 'Requests', href: '/app/requests', icon: Siren },
-    { label: 'My Family', href: '/app/family', icon: HeartHandshake },
-    { label: 'Communities', href: '/app/communities', icon: Building2 },
-    { label: 'My Donors', href: '/app/donors', icon: Users },
-    { label: 'Referrals', href: '/app/referrals', icon: Share2 },
-    { label: 'Notifications', href: '/app/notifications', icon: Bell, badge: effectiveUnread },
+    { label: t('nav.dashboard'), href: '/app/dashboard', icon: LayoutDashboard },
+    { label: t('nav.requests'), href: '/app/requests', icon: Siren },
+    { label: t('nav.family'), href: '/app/family', icon: HeartHandshake },
+    { label: t('nav.communities'), href: '/app/communities', icon: Building2 },
+    { label: t('nav.donors'), href: '/app/donors', icon: Users },
+    { label: t('nav.referrals'), href: '/app/referrals', icon: Share2 },
+    { label: t('nav.notifications'), href: '/app/notifications', icon: Bell, badge: effectiveUnread },
   ];
 
   const handleConfirmLogout = async () => {
@@ -70,7 +73,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
                 const isActive = location.pathname === link.href || location.pathname.startsWith(link.href + '/');
                 return (
                   <Link
-                    key={link.label}
+                    key={link.href}
                     to={link.href}
                     className={`relative inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                       isActive
@@ -90,7 +93,9 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
               })}
             </nav>
 
-            {/* Profile Dropdown */}
+            {/* Language + profile */}
+            <div className="flex items-center gap-2">
+            <LanguagePicker id="language-picker-app" />
             <div className="relative">
               <button
                 type="button"
@@ -108,7 +113,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
                   )}
                 </div>
                 <div className="hidden sm:block text-left">
-                  <div className="text-xs font-semibold text-ink-main leading-tight">{user?.name || 'Marcus Vance'}</div>
+                  <div className="text-xs font-semibold text-ink-main leading-tight">{user?.name || ''}</div>
                   <div className="text-[10px] text-brand-600 font-medium">Savior Donor</div>
                 </div>
               </button>
@@ -170,6 +175,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
                   </button>
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>

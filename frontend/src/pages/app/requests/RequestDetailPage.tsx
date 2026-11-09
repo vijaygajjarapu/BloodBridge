@@ -28,6 +28,7 @@ import { RequestStatusBadge, UrgencyBadge, VerificationBadge } from '../../../co
 import { MaskedPhone, RevealNumbersButton } from '../../../components/ui/PhoneReveal';
 import { NeverPayNotice, RequestDocumentsPanel, ReportRequestButton, DocumentResultBadge } from '../../../components/requests/SafetyBits';
 import { formatDate } from '../../../constants/countries';
+import { useT } from '../../../i18n/I18nProvider';
 import { MatchingProgress } from '../../../components/requests/MatchingProgress';
 import { errorMessage, errorTitle } from '../../../utils/formErrors';
 
@@ -41,6 +42,7 @@ const STATUS_HELP: Partial<Record<RequestStatus, string>> = {
 
 export const RequestDetailPage: React.FC = () => {
   const { id = '' } = useParams();
+  const t = useT();
   const location = useLocation();
   const navState = location.state as { justCreated?: boolean; savedDonorsAlerted?: number; docUploadFailed?: boolean } | null;
   const justCreated = Boolean(navState?.justCreated);
@@ -280,20 +282,20 @@ export const RequestDetailPage: React.FC = () => {
                   <CheckCircle2 className="w-6 h-6 text-status-success shrink-0" />
                   <div>
                     <p className="text-base font-bold text-ink-main">
-                      {myResponse?.status === 'donated' ? 'Your donation is recorded. Thank you!' : 'You accepted. Please call the family now.'}
+                      {myResponse?.status === 'donated' ? t('donor.donated') : t('donor.accepted')}
                     </p>
-                    <p className="text-xs text-ink-secondary">Tell them when you can reach {r.hospitalName}.</p>
+                    <p className="text-xs text-ink-secondary">{t('donor.tellWhen', { hospital: r.hospitalName })}</p>
                   </div>
                 </div>
                 {r.requesterPhone && (
                   <a href={`tel:${r.requesterPhone.replace(/\s/g, '')}`} className="inline-block">
-                    <Button variant="primary" size="lg" leftIcon={<Phone className="w-5 h-5" />}>Call {r.requesterFirstName}: {r.requesterPhone}</Button>
+                    <Button variant="primary" size="lg" leftIcon={<Phone className="w-5 h-5" />}>{t('donor.call', { name: r.requesterFirstName || '', phone: r.requesterPhone })}</Button>
                   </a>
                 )}
                 {myResponse?.status === 'accepted' && (
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     <Checkbox
-                      label="Also show my number to this family (for this request only)"
+                      label={t('donor.shareNumber')}
                       checked={shareNumber}
                       onChange={(e) => {
                         setShareNumber(e.target.checked);
@@ -301,36 +303,36 @@ export const RequestDetailPage: React.FC = () => {
                       }}
                     />
                     <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => requestApi.respond(r.id, 'withdraw'))}>
-                      I can’t come any more
+                      {t('donor.cantCome')}
                     </Button>
                   </div>
                 )}
               </>
             ) : r.canRespond ? (
               <>
-                <h2 className="text-base font-bold text-ink-main">Can you donate?</h2>
+                <h2 className="text-base font-bold text-ink-main">{t('donor.canYouDonate')}</h2>
                 <p className="text-xs text-ink-secondary flex items-start gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-status-success shrink-0" />
-                  When you accept, you’ll see the family’s number to call them. Your own number stays private unless you tick the box below.
+                  {t('donor.acceptHint')}
                 </p>
                 <Checkbox
-                  label="Also show my number to this family (for this request only)"
+                  label={t('donor.shareNumber')}
                   checked={shareNumber}
                   onChange={(e) => setShareNumber(e.target.checked)}
                 />
                 <div className="flex flex-wrap gap-2">
                   <Button variant="primary" size="lg" isLoading={busy} id="accept-request" onClick={() => run(() => requestApi.respond(r.id, 'accept', shareNumber))}>
-                    Yes, I can donate
+                    {t('donor.yes')}
                   </Button>
                   <Button variant="outline" size="lg" disabled={busy} onClick={() => run(() => requestApi.respond(r.id, 'decline'))}>
-                    Not this time
+                    {t('donor.no')}
                   </Button>
                 </div>
-                {myResponse?.status === 'declined' && <p className="text-xs text-ink-muted">You said “not this time”. You can still change your mind.</p>}
+                {myResponse?.status === 'declined' && <p className="text-xs text-ink-muted">{t('donor.declined')}</p>}
               </>
             ) : (
               <p className="text-sm text-ink-secondary flex items-start gap-2">
-                <Info className="w-4 h-4 shrink-0 mt-0.5" /> {r.cannotRespondReason || 'You can’t respond to this request.'}
+                <Info className="w-4 h-4 shrink-0 mt-0.5" /> {r.cannotRespondReason || t('donor.cannotRespond')}
               </p>
             )}
             <div className="pt-2 border-t border-line-border">

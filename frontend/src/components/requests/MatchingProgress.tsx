@@ -3,11 +3,12 @@ import { Activity as Radar, Send, Eye, CheckCircle2, XCircle, Clock } from 'luci
 import type { MatchingSummary } from '../../types/request';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
+import { useT, type TFunction } from '../../i18n/I18nProvider';
 
-const timeLeft = (iso: string) => {
+const timeLeft = (iso: string, t: TFunction) => {
   const ms = new Date(iso).getTime() - Date.now();
-  if (ms <= 60_000) return 'in a moment';
-  return `in ${Math.ceil(ms / 60_000)} min`;
+  if (ms <= 60_000) return t('match.inMoment');
+  return t('match.inMinutes', { n: Math.ceil(ms / 60_000) });
 };
 
 /** Requester: live progress of smart matching (counts only, never who) */
@@ -20,6 +21,7 @@ export const MatchingProgress: React.FC<{
 }> = ({ matching: m, unitsNeeded, live, busy, onAlertMore }) => {
   // Re-render every 30 s so "next group in N min" stays current
   const [, tick] = useState(0);
+  const t = useT();
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 30_000);
     return () => clearInterval(t);
@@ -27,10 +29,10 @@ export const MatchingProgress: React.FC<{
 
   const enough = m.accepted >= unitsNeeded;
   const stats = [
-    { icon: <Send className="w-4 h-4" />, label: 'Contacted', value: m.contacted },
-    { icon: <Eye className="w-4 h-4" />, label: 'Viewed', value: m.viewed },
-    { icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />, label: 'Accepted', value: m.accepted },
-    { icon: <XCircle className="w-4 h-4 text-ink-muted" />, label: 'Can’t today', value: m.declined },
+    { icon: <Send className="w-4 h-4" />, label: t('match.contacted'), value: m.contacted },
+    { icon: <Eye className="w-4 h-4" />, label: t('match.viewed'), value: m.viewed },
+    { icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />, label: t('match.accepted'), value: m.accepted },
+    { icon: <XCircle className="w-4 h-4 text-ink-muted" />, label: t('match.declined'), value: m.declined },
   ];
 
   return (
@@ -38,10 +40,10 @@ export const MatchingProgress: React.FC<{
       <CardHeader>
         <div className="flex items-center gap-2">
           <Radar className="w-5 h-5 text-brand-500" />
-          <h2 className="text-base font-bold text-ink-main">Finding donors</h2>
+          <h2 className="text-base font-bold text-ink-main">{t('match.title')}</h2>
         </div>
         <p className="text-xs text-ink-secondary">
-          We contact the donors most likely to help first (closest, available, reliable), then more groups until enough say yes.
+          {t('match.intro')}
         </p>
       </CardHeader>
       <CardContent className="p-5 space-y-4">
@@ -61,20 +63,21 @@ export const MatchingProgress: React.FC<{
           <Clock className="w-4 h-4 shrink-0" />
           <span>
             {!live
-              ? 'This request is closed, so no more donors are contacted.'
+              ? t('match.closed')
               : enough
-                ? `Enough donors have accepted (${m.accepted} of ${unitsNeeded}). We’ve stopped contacting more.`
+                ? t('match.enough', { accepted: m.accepted, units: unitsNeeded })
                 : m.nextWaveAt
-                  ? `Group ${m.wave} contacted. If not enough donors accept, the next ${m.waiting > 1 ? 'group' : 'donor'} (${m.waiting} waiting) is contacted ${timeLeft(m.nextWaveAt)}.`
+                  ? t('match.next', { wave: m.wave, waiting: m.waiting, when: timeLeft(m.nextWaveAt, t) })
                   : m.contacted > 0
-                    ? 'Every matching donor has been contacted. We keep checking for donors who become available.'
-                    : 'No matching donors found yet. We keep checking for donors who become available.'}
+                    ? t('match.allContacted')
+                    : t('match.noneYet')}
+            {m.fromCommunities ? ` ${t('match.fromCommunities', { n: m.fromCommunities })}` : ''}
           </span>
         </div>
 
         {live && !enough && m.waiting > 0 && (
           <Button variant="outline" size="sm" isLoading={busy} onClick={onAlertMore} id="alert-more-donors">
-            Alert more donors now
+            {t('match.alertMore')}
           </Button>
         )}
       </CardContent>

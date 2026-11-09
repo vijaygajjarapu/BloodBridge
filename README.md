@@ -272,6 +272,15 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 - Up to 5 communities per person; names are de-duplicated (“Green Meadows Apartments” = “green-meadows”). Page: `/app/communities`. API: `/api/v1/communities` (`mine`, `search`, `near`, `POST /`, `/:id/join`, `/:id/membership`, `/:id/confirm`).
 - After pulling this change run **3 - Restart Backend** once (it updates the database).
 
+## 🌐 Languages
+
+The app can be shown in **English, हिन्दी (Hindi), తెలుగు (Telugu), தமிழ் (Tamil) and മലയാളം (Malayalam)**. Pick the language from the menu at the top (public pages and the signed-in app). The first visit follows the phone's language; the choice is remembered on the device and on the account.
+
+- Texts live in `frontend/src/i18n/locales/` (`en.ts` is the source). Any text not translated yet falls back to English.
+- Use it in a screen with `const t = useT();` then `t('find.title')` or `t('find.exact', { group: 'B+' })`.
+- Translated so far: menus, Find donors, Request blood, communities near a hospital, live matching progress, and the donor's answer screen. More screens follow.
+- **The Hindi, Telugu, Tamil and Malayalam texts are drafts.** Please have a native speaker check them before launch.
+
 ## 🔞 Adults only (18+)
 
 BloodBridge keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).

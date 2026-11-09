@@ -23,6 +23,7 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   lastActiveAt    DateTime? // last sign-in / session refresh (used to rank donors who are likely to answer)
+  language        String    @default("en") // app language: en, hi, te, ta, ml (alerts can use it later)
 
   donorProfile       DonorProfile?
   oauthAccounts      OAuthAccount[]

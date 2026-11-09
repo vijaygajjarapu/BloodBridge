@@ -8,6 +8,7 @@ const router = Router();
 router.get('/', requireAuth, usersController.getProfile);
 router.put('/', requireAuth, usersController.updateProfile);
 router.put('/settings', requireAuth, usersController.updateProfile);
+router.put('/language', requireAuth, usersController.setLanguage);
 router.get('/consent', requireAuth, consentController.getPreferences);
 router.patch('/consent', requireAuth, consentController.updateConsent);
 router.post('/export', requireAuth, usersController.exportData);

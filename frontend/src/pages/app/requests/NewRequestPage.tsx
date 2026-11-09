@@ -4,6 +4,8 @@ import { ArrowLeft, Siren, ShieldCheck, Phone } from 'lucide-react';
 import { requestApi } from '../../../services/requestApi';
 import type { BloodComponent, CreateRequestInput, Urgency } from '../../../types/request';
 import { URGENCY_LABELS, COMPONENT_LABELS } from '../../../types/request';
+import { useT } from '../../../i18n/I18nProvider';
+import type { TranslationKey } from '../../../i18n/locales/en';
 import type { BloodGroup } from '../../../types/donor';
 import { BLOOD_GROUPS } from '../../../constants/bloodGroups';
 import { useAuth } from '../../../hooks/useAuth';
@@ -23,6 +25,7 @@ type Errors = Partial<Record<keyof CreateRequestInput, string>>;
 export const NewRequestPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const t = useT();
   const [form, setForm] = useState({
     patientName: '',
     bloodGroup: '' as BloodGroup | '',
@@ -57,17 +60,17 @@ export const NewRequestPage: React.FC = () => {
 
   const validate = (): Errors => {
     const e: Errors = {};
-    if (form.patientName.trim().length < 2) e.patientName = 'Enter the patient’s name (at least 2 letters).';
-    if (!form.bloodGroup) e.bloodGroup = 'Choose the blood group needed.';
+    if (form.patientName.trim().length < 2) e.patientName = t('req.err.patient');
+    if (!form.bloodGroup) e.bloodGroup = t('req.err.group');
     const units = Number(form.unitsNeeded);
-    if (!Number.isInteger(units) || units < 1) e.unitsNeeded = 'Enter how many units are needed (1 or more).';
-    else if (units > 20) e.unitsNeeded = 'For more than 20 units, please contact the blood bank directly.';
-    if (form.hospitalName.trim().length < 3) e.hospitalName = 'Enter the hospital name.';
-    if (location.postalCode && !/^[1-9]\d{5}$/.test(location.postalCode)) e.hospitalPinCode = 'Please enter a valid 6-digit PIN code.';
-    if (!location.state) e.state = 'Please choose the state.';
-    if (!location.district) e.district = 'Please choose the district.';
-    if ((location.city || '').trim().length < 2) e.city = 'Enter the city or town.';
-    if (form.neededBy && new Date(form.neededBy).getTime() < Date.now() - 60 * 60 * 1000) e.neededBy = '"Needed by" cannot be in the past.';
+    if (!Number.isInteger(units) || units < 1) e.unitsNeeded = t('req.err.units');
+    else if (units > 20) e.unitsNeeded = t('req.err.unitsMax');
+    if (form.hospitalName.trim().length < 3) e.hospitalName = t('req.err.hospital');
+    if (location.postalCode && !/^[1-9]\d{5}$/.test(location.postalCode)) e.hospitalPinCode = t('req.err.pin');
+    if (!location.state) e.state = t('req.err.state');
+    if (!location.district) e.district = t('req.err.district');
+    if ((location.city || '').trim().length < 2) e.city = t('req.err.city');
+    if (form.neededBy && new Date(form.neededBy).getTime() < Date.now() - 60 * 60 * 1000) e.neededBy = t('req.err.past');
     return e;
   };
 
@@ -77,7 +80,7 @@ export const NewRequestPage: React.FC = () => {
     const errs = validate();
     setErrors(errs);
     if (Object.keys(errs).length) {
-      setBanner({ title: 'Please check the form', message: 'Some details are missing or need a fix. See the messages below each field.' });
+      setBanner({ title: t('req.checkTitle'), message: t('req.checkMessage') });
       return;
     }
     setSaving(true);
@@ -109,7 +112,7 @@ export const NewRequestPage: React.FC = () => {
     } catch (err) {
       const fe = getFieldErrors(err) as Errors;
       setErrors(fe);
-      setBanner({ title: errorTitle(err), message: errorMessage(err, 'Could not post the request. Please try again.') });
+      setBanner({ title: errorTitle(err), message: errorMessage(err, t('req.postError')) });
     } finally {
       setSaving(false);
     }
@@ -118,14 +121,14 @@ export const NewRequestPage: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <Link to="/app/requests" className="inline-flex items-center text-xs font-semibold text-ink-secondary hover:text-ink-main min-h-[44px]">
-        <ArrowLeft className="w-4 h-4 mr-1" /> Back to requests
+        <ArrowLeft className="w-4 h-4 mr-1" /> {t('req.back')}
       </Link>
       <div>
         <h1 className="text-2xl font-extrabold text-ink-main flex items-center gap-2">
-          <Siren className="w-6 h-6 text-brand-600" /> Request blood
+          <Siren className="w-6 h-6 text-brand-600" /> {t('req.title')}
         </h1>
         <p className="text-xs sm:text-sm text-ink-secondary">
-          Free for everyone. Matching donors near the hospital are alerted as soon as you post. With the Family Circle, your family’s own donors are alerted too.
+          {t('req.intro')}
         </p>
       </div>
 
@@ -134,26 +137,26 @@ export const NewRequestPage: React.FC = () => {
       <Card>
         <CardContent className="p-5 sm:p-6">
           <form noValidate onSubmit={submit} className="space-y-4">
-            <Input id="req-patient" label="Patient name" required value={form.patientName} onChange={set('patientName')} error={errors.patientName}
-              helperText="Shown only to you and our team, never on the public page." />
+            <Input id="req-patient" label={t('req.patient')} required value={form.patientName} onChange={set('patientName')} error={errors.patientName}
+              helperText={t('req.patientHelp')} />
             <div className="grid sm:grid-cols-3 gap-4">
               <Select
                 id="req-blood-group"
-                label="Blood group needed"
+                label={t('req.bloodGroup')}
                 required
                 value={form.bloodGroup}
                 onChange={set('bloodGroup')}
                 error={errors.bloodGroup}
-                options={[{ value: '', label: 'Select', disabled: true }, ...BLOOD_GROUPS.map((g) => ({ value: g.value, label: g.value }))]}
+                options={[{ value: '', label: t('common.select'), disabled: true }, ...BLOOD_GROUPS.map((g) => ({ value: g.value, label: g.value }))]}
               />
               <Select
                 id="req-component"
-                label="Component"
+                label={t('req.component')}
                 value={form.component}
                 onChange={set('component')}
-                options={Object.entries(COMPONENT_LABELS).map(([value, label]) => ({ value, label }))}
+                options={Object.keys(COMPONENT_LABELS).map((value) => ({ value, label: t(`component.${value}` as TranslationKey) }))}
               />
-              <Input id="req-units" label="Units needed" type="number" min={1} max={20} required value={form.unitsNeeded} onChange={set('unitsNeeded')} error={errors.unitsNeeded} />
+              <Input id="req-units" label={t('req.units')} type="number" min={1} max={20} required value={form.unitsNeeded} onChange={set('unitsNeeded')} error={errors.unitsNeeded} />
             </div>
             <LocationFields
               idPrefix="req"
@@ -167,9 +170,9 @@ export const NewRequestPage: React.FC = () => {
               }}
               errors={{ state: errors.state, district: errors.district, city: errors.city, postalCode: errors.hospitalPinCode }}
               showCountry={false}
-              postalCodeLabel="Hospital PIN code"
+              postalCodeLabel={t('req.hospitalPin')}
               postalCodeRequired={false}
-              postalCodeHelper="Donors living in this PIN code are alerted too."
+              postalCodeHelper={t('req.hospitalPinHelp')}
             />
             <HospitalPicker
               country={location.country}
@@ -194,12 +197,12 @@ export const NewRequestPage: React.FC = () => {
             <div className="grid sm:grid-cols-2 gap-4">
               <Select
                 id="req-urgency"
-                label="How urgent?"
+                label={t('req.urgency')}
                 value={form.urgency}
                 onChange={set('urgency')}
-                options={Object.entries(URGENCY_LABELS).map(([value, label]) => ({ value, label }))}
+                options={Object.keys(URGENCY_LABELS).map((value) => ({ value, label: t(`urgency.${value}` as TranslationKey) }))}
               />
-              <Input id="req-needed-by" label="Needed by (optional)" type="datetime-local" value={form.neededBy} onChange={set('neededBy')} error={errors.neededBy} />
+              <Input id="req-needed-by" label={t('req.neededBy')} type="datetime-local" value={form.neededBy} onChange={set('neededBy')} error={errors.neededBy} />
             </div>
             <NearbyCommunities
               country={location.country}
@@ -212,7 +215,7 @@ export const NewRequestPage: React.FC = () => {
               selectAllByDefault={form.urgency === 'critical'}
             />
             <div>
-              <label htmlFor="req-notes" className="block text-xs font-semibold text-ink-secondary mb-1">Notes for donors (optional)</label>
+              <label htmlFor="req-notes" className="block text-xs font-semibold text-ink-secondary mb-1">{t('req.notes')}</label>
               <textarea
                 id="req-notes"
                 rows={3}
@@ -220,13 +223,13 @@ export const NewRequestPage: React.FC = () => {
                 value={form.notes}
                 onChange={set('notes')}
                 className="w-full text-sm p-3 rounded-lg border border-line-border focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                placeholder="e.g. Ask for Blood Bank, 2nd floor. Bring an ID."
+                placeholder={t('req.notesPlaceholder')}
               />
             </div>
 
             <div>
               <label htmlFor="req-document" className="block text-xs font-semibold text-ink-secondary mb-1">
-                Patient document {form.urgency === 'critical' ? '(recommended for critical requests)' : '(optional)'}
+                {t('req.document')} {form.urgency === 'critical' ? t('req.documentCritical') : t('common.optional')}
               </label>
               <input
                 id="req-document"
@@ -236,13 +239,13 @@ export const NewRequestPage: React.FC = () => {
                   const f = e.target.files?.[0] || null;
                   setDocError(undefined);
                   if (f && !['image/jpeg', 'image/png', 'application/pdf'].includes(f.type)) {
-                    setDocError('Please choose a photo (JPG or PNG) or a PDF.');
+                    setDocError(t('req.documentType'));
                     setDocFile(null);
                     e.target.value = '';
                     return;
                   }
                   if (f && f.size > 5 * 1024 * 1024) {
-                    setDocError('The file is larger than 5 MB. Please choose a smaller photo.');
+                    setDocError(t('req.documentSize'));
                     setDocFile(null);
                     e.target.value = '';
                     return;
@@ -252,7 +255,7 @@ export const NewRequestPage: React.FC = () => {
                 className="block w-full text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700 file:font-semibold"
               />
               <p className="mt-1 text-xs text-ink-muted">
-                Blood requisition form or doctor’s note (photo or PDF, up to 5 MB). We check it automatically; only you and our team can see it.
+                {t('req.documentHelp')}
               </p>
               {docError && <p className="mt-1 text-xs text-status-error font-medium" role="alert">{docError}</p>}
             </div>
@@ -260,16 +263,16 @@ export const NewRequestPage: React.FC = () => {
             <div className="rounded-xl bg-gray-50 border border-line-border p-3 text-xs text-ink-secondary space-y-1.5">
               <p className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-brand-600 shrink-0" />
-                Donors who accept will see your mobile number{user?.phone ? ` (${user.phone})` : ''} so they can call you. Nobody else sees it.
+                {t('req.callInfo', { phone: user?.phone ? ` (${user.phone})` : '' })}
               </p>
               <p className="flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 text-status-success shrink-0" />
-                Donors’ numbers stay hidden unless a donor chooses to share theirs.
+                {t('req.donorPrivacy')}
               </p>
             </div>
 
             <Button type="submit" variant="primary" size="lg" isLoading={saving} className="w-full justify-center font-bold">
-              Post request & alert donors
+              {t('req.submit')}
             </Button>
           </form>
         </CardContent>
