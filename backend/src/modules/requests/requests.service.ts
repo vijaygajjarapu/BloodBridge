@@ -13,6 +13,8 @@ import { canBeAlerted, checkEligibility } from '../eligibility/eligibility.rules
 import { scoreDonor, waveSize, waveIntervalMinutes, MANUAL_WAVE_COOLDOWN_MINUTES } from './matching.js';
 import { communityService } from '../communities/communities.service.js';
 import { outreachService } from '../outreach/outreach.service.js';
+import { organisationService } from '../organisations/organisations.service.js';
+import { remoteDonationService } from '../remote/remote.service.js';
 
 export const BLOOD_GROUPS = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'] as const;
 export const COMPONENTS = ['whole_blood', 'red_cells', 'platelets', 'plasma'] as const;
@@ -150,6 +152,10 @@ export interface CreateRequestInput {
   notes?: string;
   alertCommunityIds?: string[];
   shareNumberInAlerts?: boolean;
+  /** Requester's organisations whose colleagues should be alerted (only offered to members) */
+  alertOrgIds?: string[];
+  /** Also ask colleagues in other cities to donate at a partner blood bank (replacement) */
+  askRemoteReplacement?: boolean;
 }
 
 export class RequestService {
@@ -188,6 +194,8 @@ export class RequestService {
         ],
         bloodGroup: { in: this.compatibleDonorGroups(r.bloodGroup) },
         isAvailable: true,
+        // Donor chose to be reachable for public requests near them
+        reachRegular: true,
         userId: { not: r.requesterUserId },
         user: { status: 'active', isEmailVerified: true },
       },
@@ -277,6 +285,7 @@ export class RequestService {
     }
 
     const alertCommunityIds = await communityService.cleanChosenIds(input.alertCommunityIds, { country: loc.country, state: loc.state });
+    const alertOrgIds = await organisationService.cleanAlertOrgIds(userId, input.alertOrgIds);
 
     let publicCode = newPublicCode();
     while (await prisma.bloodRequest.findUnique({ where: { publicCode } })) publicCode = newPublicCode();
@@ -303,6 +312,8 @@ export class RequestService {
         status: 'submitted',
         alertCommunityIds: alertCommunityIds.length ? JSON.stringify(alertCommunityIds) : null,
         shareNumberInAlerts: Boolean(input.shareNumberInAlerts),
+        alertOrgIds: alertOrgIds.length ? JSON.stringify(alertOrgIds) : null,
+        askRemoteReplacement: Boolean(alertOrgIds.length && input.askRemoteReplacement),
       },
     });
 
@@ -336,6 +347,11 @@ export class RequestService {
     if (flags.length) await applyRisk(request.id, flags, 'New request');
 
     const { total: notified, savedDonors: savedDonorsAlerted } = await this.notifyDonors(request.id);
+    // Colleagues in other cities: "donate at a partner blood bank in your city" (replacement), if the family asked
+    if (request.askRemoteReplacement && !request.onHold) {
+      const colleagues = await organisationService.colleagueIds(userId, alertOrgIds);
+      await remoteDonationService.askColleaguesElsewhere(request, colleagues).catch((err) => logger.error(`Remote ask failed: ${err?.message}`));
+    }
     await prisma.auditLog.create({
       data: {
         actorId: userId,
@@ -355,10 +371,11 @@ export class RequestService {
   async rankCandidates(requestId: string) {
     const r = await prisma.bloodRequest.findUnique({ where: { id: requestId } });
     if (!r) return { added: 0 };
-    const [nearby, allies, communityIds, existing, links] = await Promise.all([
+    const [nearby, allies, communityOnlyIds, colleagueAll, existing, links] = await Promise.all([
       this.findMatchingDonors(r),
       this.findFamilyAllies(r.requesterUserId, r.bloodGroup),
       communityService.donorIdsForRequest(r.requesterUserId, parseIdList(r.alertCommunityIds)).catch(() => [] as string[]),
+      organisationService.colleagueIds(r.requesterUserId, parseIdList(r.alertOrgIds)).catch(() => [] as string[]),
       prisma.requestCandidate.findMany({ where: { requestId }, select: { donorUserId: true } }),
       prisma.referral.findMany({
         where: {
@@ -383,7 +400,13 @@ export class RequestService {
       : [];
     // Community donors may also live outside the district (fellow members who asked to be alerted):
     // same checks as nearby donors (compatible group, available, verified, can donate now)
-    const communitySet = new Set(communityIds);
+    // Colleagues are alerted like community members, but only those in the hospital's state (others can donate remotely)
+    const colleagueNear = colleagueAll.length
+      ? (await prisma.donorProfile.findMany({ where: { userId: { in: colleagueAll }, state: r.state }, select: { userId: true } })).map((p) => p.userId)
+      : [];
+    const colleagueSet = new Set(colleagueNear);
+    const communityIds = [...new Set([...communityOnlyIds, ...colleagueNear])];
+    const communitySet = new Set(communityOnlyIds);
     const extraCommunityIds = communityIds.filter((id) => !nearby.some((n) => n.userId === id) && !allyIds.includes(id));
     const communityProfiles = extraCommunityIds.length
       ? (
@@ -426,6 +449,7 @@ export class RequestService {
         isFamily,
         knowsRequester: known.has(p.userId),
         community: communitySet.has(p.userId),
+        colleague: colleagueSet.has(p.userId),
         onCall: Boolean(p.onCallUntil && p.onCallUntil > new Date()),
         verified: Boolean(p.bloodGroupVerifiedAt),
         alertsReceived: alertsOf.get(p.userId) || 0,
@@ -433,7 +457,7 @@ export class RequestService {
         totalDonations: p.totalDonations,
         lastActiveAt: p.user.lastActiveAt,
       });
-      return { donorUserId: p.userId, score, reasons, source: isFamily ? 'family' : communitySet.has(p.userId) ? 'community' : 'nearby' };
+      return { donorUserId: p.userId, score, reasons, source: isFamily ? 'family' : colleagueSet.has(p.userId) ? 'colleague' : communitySet.has(p.userId) ? 'community' : 'nearby' };
     });
 
     const room = Math.max(0, MAX_ALERTS_PER_REQUEST - already.size);
@@ -508,6 +532,8 @@ export class RequestService {
           title: `${urgencyWord}${r.bloodGroup} blood needed in ${r.city}`,
           message: (isAlly
             ? `A family you pledged to help needs ${r.unitsNeeded} unit(s) of ${r.bloodGroup} at ${place}. Can you donate?`
+            : c.source === 'colleague'
+            ? `A colleague's family needs ${r.unitsNeeded} unit(s) of ${r.bloodGroup} at ${place}. Can you donate? (You can turn off company alerts on your profile.) Donating is always free: never pay anyone.`
             : c.source === 'community'
             ? `${r.unitsNeeded} unit(s) of ${r.bloodGroup} needed at ${place}. You get this because of a community you joined (you can mute it in Communities). Can you donate? Donating is always free: never pay anyone.`
             : `${r.unitsNeeded} unit(s) of ${r.bloodGroup} needed at ${place}. You are a matching donor nearby. Can you donate? Donating is always free: never pay anyone.`
@@ -608,7 +634,7 @@ export class RequestService {
     const country = (q.country || 'IN').toUpperCase();
     const compatible = this.compatibleDonorGroups(q.bloodGroup);
     const area = { country, state: q.state, ...(q.district ? { district: q.district } : {}) };
-    const base = { user: { status: 'active', isEmailVerified: true } } as const;
+    const base = { reachRegular: true, user: { status: 'active', isEmailVerified: true } } as const;
 
     const [exact, compatibleRows] = await Promise.all([
       prisma.donorProfile.count({ where: { ...area, ...base, bloodGroup: q.bloodGroup } }),
@@ -709,6 +735,8 @@ export class RequestService {
       isRequester: true,
       matching,
       shareNumberInAlerts: r.shareNumberInAlerts,
+      colleaguesAlerted: parseIdList(r.alertOrgIds).length > 0,
+      remote: await remoteDonationService.summary(r.id),
       // Call a donor through BloodBridge (their number stays hidden)
       maskedCallAvailable: outreachService.status().maskedCalls,
       responses: r.responses.map((x) => ({
@@ -768,7 +796,18 @@ export class RequestService {
       // Revealed after accepting, or straight away if the family chose to share it in alerts
       requesterPhone: accepted || r.shareNumberInAlerts ? formatPhone(r.contactPhone, r.requester.country) : null,
       maskedCallAvailable: Boolean(accepted) && outreachService.status().maskedCalls,
+      // "Donate here, save a life there": offered when the donor lives in another district
+      remote: await remoteDonationService.summary(r.id, userId),
+      remoteOffered: await this.remoteOffered(userId, r),
     });
+  }
+
+  /** Offer "donate at a partner blood bank in your city" to donors far from the hospital, where such a bank exists */
+  private async remoteOffered(userId: string, r: { district: string; state: string; status: string; onHold: boolean }) {
+    if (!(LIVE as string[]).includes(r.status) || r.onHold) return false;
+    const p = await prisma.donorProfile.findUnique({ where: { userId }, select: { district: true, state: true } });
+    if (!p || !remoteDonationService.isFar(p, r)) return false;
+    return (await prisma.partnerBloodBank.count({ where: { active: true, state: p.state } })) > 0;
   }
 
   async getById(userId: string, id: string) {

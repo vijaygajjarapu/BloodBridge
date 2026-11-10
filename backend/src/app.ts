@@ -23,6 +23,8 @@ import subscriptionRoutes from './modules/subscriptions/subscriptions.routes.js'
 import eligibilityRoutes from './modules/eligibility/eligibility.routes.js';
 import communityRoutes from './modules/communities/communities.routes.js';
 import outreachRoutes from './modules/outreach/outreach.routes.js';
+import organisationRoutes from './modules/organisations/organisations.routes.js';
+import remoteRoutes from './modules/remote/remote.routes.js';
 
 export const app = express();
 
@@ -99,6 +101,8 @@ v1Router.use('/subscriptions', subscriptionRoutes);
 v1Router.use('/eligibility', eligibilityRoutes);
 v1Router.use('/communities', communityRoutes);
 v1Router.use('/outreach', outreachRoutes);
+v1Router.use('/organisations', organisationRoutes);
+v1Router.use('/remote-donations', remoteRoutes);
 
 app.use('/api/v1', v1Router);
 

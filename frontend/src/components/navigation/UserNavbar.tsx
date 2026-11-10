@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   HeartHandshake,
@@ -13,7 +13,8 @@ import {
   Shield,
   HelpCircle,
   Menu,
-  X, Siren, Building2 } from 'lucide-react';
+  X, Siren, Building2, Briefcase } from 'lucide-react';
+import { orgApi } from '../../services/orgApi';
 import { useT } from '../../i18n/I18nProvider';
 import { LanguagePicker } from '../ui/LanguagePicker';
 import { useAuth } from '../../hooks/useAuth';
@@ -30,11 +31,17 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const t = useT();
+  // "My company" only appears for people who belong to an organisation
+  const [inOrg, setInOrg] = useState(false);
+  useEffect(() => {
+    orgApi.mine().then((rows) => setInOrg(rows.length > 0)).catch(() => setInOrg(false));
+  }, []);
   const navLinks = [
     { label: t('nav.dashboard'), href: '/app/dashboard', icon: LayoutDashboard },
     { label: t('nav.requests'), href: '/app/requests', icon: Siren },
     { label: t('nav.family'), href: '/app/family', icon: HeartHandshake },
     { label: t('nav.communities'), href: '/app/communities', icon: Building2 },
+    ...(inOrg ? [{ label: t('org.navLink'), href: '/app/organisations', icon: Briefcase }] : []),
     { label: t('nav.donors'), href: '/app/donors', icon: Users },
     { label: t('nav.referrals'), href: '/app/referrals', icon: Share2 },
     { label: t('nav.notifications'), href: '/app/notifications', icon: Bell, badge: effectiveUnread },

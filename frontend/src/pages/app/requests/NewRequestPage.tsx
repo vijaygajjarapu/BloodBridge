@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Siren, ShieldCheck, Phone } from 'lucide-react';
 import { requestApi } from '../../../services/requestApi';
@@ -18,6 +18,8 @@ import { ErrorBanner } from '../../../components/ui/ErrorBanner';
 import { LocationFields, type LocationValue } from '../../../components/forms/LocationFields';
 import { HospitalPicker } from '../../../components/requests/HospitalPicker';
 import { NearbyCommunities } from '../../../components/requests/NearbyCommunities';
+import { orgApi } from '../../../services/orgApi';
+import type { MyOrganisation } from '../../../types/organisation';
 import { getFieldErrors, errorMessage, errorTitle } from '../../../utils/formErrors';
 
 type Errors = Partial<Record<keyof CreateRequestInput, string>>;
@@ -54,6 +56,20 @@ export const NewRequestPage: React.FC = () => {
   const [alertCommunityIds, setAlertCommunityIds] = useState<string[]>([]);
   // Off by default: the number goes to every alerted donor
   const [shareNumberInAlerts, setShareNumberInAlerts] = useState(false);
+  // Only for members of an organisation: alert colleagues (hidden for everyone else)
+  const [myOrgs, setMyOrgs] = useState<MyOrganisation[]>([]);
+  const [alertOrgIds, setAlertOrgIds] = useState<string[]>([]);
+  const [askRemote, setAskRemote] = useState(false);
+  useEffect(() => {
+    orgApi
+      .mine()
+      .then((rows) => {
+        const active = rows.filter((o) => o.membership.status === 'active' && o.verified);
+        setMyOrgs(active);
+        setAlertOrgIds(active.map((o) => o.id));
+      })
+      .catch(() => setMyOrgs([]));
+  }, []);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -104,6 +120,8 @@ export const NewRequestPage: React.FC = () => {
         notes: form.notes.trim() || undefined,
         alertCommunityIds: alertCommunityIds.length ? alertCommunityIds : undefined,
         shareNumberInAlerts,
+        alertOrgIds: alertOrgIds.length ? alertOrgIds : undefined,
+        askRemoteReplacement: alertOrgIds.length ? askRemote : undefined,
       });
       let docUploadFailed = false;
       if (docFile) {
@@ -262,6 +280,24 @@ export const NewRequestPage: React.FC = () => {
               </p>
               {docError && <p className="mt-1 text-xs text-status-error font-medium" role="alert">{docError}</p>}
             </div>
+
+            {myOrgs.length > 0 && (
+              <div className="rounded-xl border border-line-border p-3 space-y-2">
+                {myOrgs.map((o) => (
+                  <label key={o.id} className="flex items-start gap-3 cursor-pointer text-sm text-ink-main">
+                    <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand-600" checked={alertOrgIds.includes(o.id)}
+                      onChange={(e) => setAlertOrgIds((ids) => (e.target.checked ? [...ids, o.id] : ids.filter((x) => x !== o.id)))} />
+                    {t('req.alertColleagues', { name: o.name })}
+                  </label>
+                ))}
+                {alertOrgIds.length > 0 && (
+                  <label className="flex items-start gap-3 cursor-pointer text-sm text-ink-main">
+                    <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand-600" checked={askRemote} onChange={(e) => setAskRemote(e.target.checked)} />
+                    {t('req.askRemote')}
+                  </label>
+                )}
+              </div>
+            )}
 
             <label className="flex items-start gap-3 rounded-xl border border-line-border p-3 cursor-pointer">
               <input

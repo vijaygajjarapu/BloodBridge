@@ -272,6 +272,23 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 - Up to 5 communities per person; names are de-duplicated (“Green Meadows Apartments” = “green-meadows”). Page: `/app/communities`. API: `/api/v1/communities` (`mine`, `search`, `near`, `POST /`, `/:id/join`, `/:id/membership`, `/:id/confirm`).
 - After pulling this change run **3 - Restart Backend** once (it updates the database).
 
+## 🏢 Organisations (companies, colleges, NGOs) — v1
+
+- **One account per person.** Joining a company adds a link to the person's own account (`OrgMember`). Leaving the job ends the link, never the account or its donation history.
+- **Proof of working there:** a code sent to a work email on the organisation's domains (Gmail, Yahoo, Outlook... are refused). One work email belongs to one person. Up to 3 organisations per person.
+- **HR / CSR registers the organisation** (Profile → “Join with your work email” → Register). BloodBridge staff verify it in **Admin → Organisations & Banks** before employees can join with the invite code or invite link.
+- **Org admin dashboard** (`/app/organisations/:id/admin`): counts only — members, donors, “could donate now”, donors by blood group (below 3 shows “fewer than 3”), requests and helps in 90 days. Member list shows names and work emails only. Admins send announcements and donation camps (5 a day) and remove people who left.
+- **Emergencies need no approval:** an employee posts a request themselves; if they are a member, “Also alert my colleagues at X” appears (hidden for everyone else). Colleagues in the hospital's state are added to the waves.
+- **Who can reach me** (Profile → How we reach you): “public requests near me” and, for members only, “my colleagues' requests and company camps”. Each can be switched off.
+
+## 🔁 Donate here, save a life there (replacement donations)
+
+- A donor far from the hospital (another district) sees “Can't reach the hospital? Donate in your city” when a **partner blood bank** exists in their state. They pledge, donate, enter the slip number; BloodBridge staff confirm it with the blood bank; the family sees the confirmed credit (bank + slip number) to show at the hospital's blood bank. Any blood group can be a replacement.
+- Requesters in an organisation can tick “Ask colleagues in other cities to donate at a partner blood bank”.
+- **Flyer:** on a request, “Make a flyer” opens a printable “Donate here, save a life in <city>” page (no patient name or phone, only the public link).
+- **Honest limit:** a credit only works where blood banks have agreed to honour it (same chain or a partnership). That agreement is business work outside the app. Blood is never sold.
+- After pulling this change run **3 - Restart Backend** once (new database tables).
+
 ## 🩸 After a donation, and pausing alerts
 
 - **Rest after donating (automatic):** when a donation is recorded, the donor gets no alerts until they can give again (men 90 days, women 120 days; 120 when not given). They are left out of waves, “can donate now” counts and community counts. Their number is never shown anyway.

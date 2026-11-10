@@ -195,6 +195,7 @@ export class UsersService {
         requestResponses: { select: { status: true, createdAt: true, request: { select: { publicCode: true, bloodGroup: true, hospitalName: true } } } },
         notifications: { select: { title: true, message: true, createdAt: true, isRead: true }, orderBy: { createdAt: 'desc' }, take: 500 },
         donationRecords: { select: { donatedOn: true, source: true, place: true, status: true }, orderBy: { donatedOn: 'desc' } },
+        orgMemberships: { select: { role: true, workEmail: true, status: true, joinedAt: true, leftAt: true, org: { select: { name: true } } } },
         communityMemberships: {
           select: {
             alertNearby: true, alertFromMembers: true, muted: true, isAlumni: true, status: true, confirmedAt: true, createdAt: true,
@@ -247,6 +248,7 @@ export class UsersService {
         notifications: user.notifications,
         communities: user.communityMemberships,
         donations: user.donationRecords,
+        organisations: user.orgMemberships,
       },
     };
   }

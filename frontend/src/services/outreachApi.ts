@@ -8,6 +8,10 @@ export interface OutreachStatus {
 }
 
 export interface ReachPrefs {
+  reachRegular: boolean;
+  reachCorporate: boolean;
+  /** Member of an organisation: show the corporate option */
+  inOrganisation: boolean;
   alertBySms: boolean;
   alertByCall: boolean;
   quietHoursStart: string | null;
@@ -37,7 +41,7 @@ export interface QuickView {
 export const outreachApi = {
   status: () => apiClient.get<OutreachStatus>('/outreach/status'),
   myPrefs: () => apiClient.get<ReachPrefs>('/outreach/me'),
-  savePrefs: (p: Partial<Omit<ReachPrefs, 'available'>>) => apiClient.put<ReachPrefs>('/outreach/me', p),
+  savePrefs: (p: Partial<Omit<ReachPrefs, 'available' | 'inOrganisation'>>) => apiClient.put<ReachPrefs>('/outreach/me', p),
   quickView: (token: string) => apiClient.get<QuickView>(`/outreach/quick/${encodeURIComponent(token)}`),
   quickRespond: (token: string, action: 'accept' | 'decline') =>
     apiClient.post<QuickView>(`/outreach/quick/${encodeURIComponent(token)}`, { action }),

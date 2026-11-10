@@ -41,6 +41,10 @@ export function inQuietHours(start: string | null | undefined, end: string | nul
 }
 
 export interface ReachPrefs {
+  /** Reachable for public requests near me */
+  reachRegular?: boolean;
+  /** Reachable for colleagues' requests and my organisation's camps */
+  reachCorporate?: boolean;
   alertBySms: boolean;
   alertByCall: boolean;
   quietHoursStart: string | null;
@@ -81,7 +85,8 @@ export class OutreachService {
   async getPrefs(userId: string) {
     const p = await prisma.donorProfile.findUnique({ where: { userId } });
     if (!p) throw new AppError('Add your blood group to your profile first.', 400, 'NO_DONOR_PROFILE');
-    return { ...this.prefsOf(p), available: this.status() };
+    const orgs = await prisma.orgMember.count({ where: { userId, status: 'active' } });
+    return { ...this.prefsOf(p), reachRegular: p.reachRegular, reachCorporate: p.reachCorporate, inOrganisation: orgs > 0, available: this.status() };
   }
 
   async updatePrefs(userId: string, input: Partial<ReachPrefs>) {
@@ -99,6 +104,8 @@ export class OutreachService {
       where: { userId },
       data: {
         ...(typeof input.alertBySms === 'boolean' && { alertBySms: input.alertBySms }),
+        ...(typeof input.reachRegular === 'boolean' && { reachRegular: input.reachRegular }),
+        ...(typeof input.reachCorporate === 'boolean' && { reachCorporate: input.reachCorporate }),
         ...(typeof input.alertByCall === 'boolean' && { alertByCall: input.alertByCall }),
         ...(typeof input.quietAllowCritical === 'boolean' && { quietAllowCritical: input.quietAllowCritical }),
         quietHoursStart: start,

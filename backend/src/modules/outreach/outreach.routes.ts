@@ -28,6 +28,8 @@ const quickLimiter = rateLimit({
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Choose a time like 22:00.').nullable().optional();
 const prefsSchema = z.object({
+  reachRegular: z.boolean().optional(),
+  reachCorporate: z.boolean().optional(),
   alertBySms: z.boolean().optional(),
   alertByCall: z.boolean().optional(),
   quietHoursStart: time,
