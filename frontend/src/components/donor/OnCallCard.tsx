@@ -55,7 +55,9 @@ export const OnCallCard: React.FC = () => {
           <p className="text-xs text-ink-secondary mt-1">{t('oncall.intro')}</p>
         </div>
 
-        {until ? (
+        {data.pause?.active ? (
+          <p className="text-xs text-ink-muted">{t('pause.blocksOnCall')}</p>
+        ) : until ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
             <p className="text-sm font-semibold text-emerald-800" role="status">{t('oncall.activeUntil', { time: when })}</p>
             <Button size="sm" variant="outline" isLoading={busy === 'stop'} onClick={() => run('stop', eligibilityApi.stopOnCall)}>

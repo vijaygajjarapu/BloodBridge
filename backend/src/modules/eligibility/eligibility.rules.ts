@@ -93,6 +93,8 @@ export interface EligibilityInput {
   deferredUntil?: Date | null;
   deferralReason?: string | null;
   permanentlyDeferred?: boolean | null;
+  /** Donor paused alerts (travel, exams, unwell...) until this time */
+  pausedUntil?: Date | null;
 }
 
 export interface EligibilityResult {
@@ -172,7 +174,20 @@ export function checkEligibility(p: EligibilityInput, now = new Date()): Eligibi
   };
 }
 
-/** Short form for matching: may this donor be alerted right now? */
-export function canBeAlerted(p: EligibilityInput, now = new Date()) {
-  return checkEligibility(p, now).eligible;
+/** Has the donor paused alerts right now? */
+export function isPaused(p: { pausedUntil?: Date | null }, now = new Date()) {
+  return Boolean(p.pausedUntil && p.pausedUntil > now);
 }
+
+/** Short form for matching: may this donor be alerted right now? (able to donate and not paused) */
+export function canBeAlerted(p: EligibilityInput, now = new Date()) {
+  return !isPaused(p, now) && checkEligibility(p, now).eligible;
+}
+
+/** The date a donor can give again after a donation */
+export function canDonateAgainOn(lastDonationDate: Date, sex?: string | null) {
+  return new Date(lastDonationDate.getTime() + gapDaysFor(sex) * DAY);
+}
+
+/** Pause choices in days (null = until I turn it back on) */
+export const PAUSE_DAYS = [3, 7, 14, 30] as const;

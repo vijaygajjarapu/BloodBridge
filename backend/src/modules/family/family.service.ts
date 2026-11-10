@@ -14,9 +14,9 @@ function firstName(name?: string | null): string {
   return (name || '').trim().split(/\s+/)[0] || 'A BloodBridge member';
 }
 
-function availabilityOf(profile?: { isAvailable: boolean; lastDonationDate: Date | null; sex?: string | null } | null): 'available' | 'recently_donated' | 'unavailable' | null {
+function availabilityOf(profile?: { isAvailable: boolean; lastDonationDate: Date | null; sex?: string | null; pausedUntil?: Date | null } | null): 'available' | 'recently_donated' | 'unavailable' | null {
   if (!profile) return null;
-  if (!profile.isAvailable) return 'unavailable';
+  if (!profile.isAvailable || (profile.pausedUntil && profile.pausedUntil > new Date())) return 'unavailable';
   // Men 90 days, women (and not given) 120 days between donations
   if (profile.lastDonationDate && Date.now() - profile.lastDonationDate.getTime() < gapDaysFor(profile.sex) * 24 * 60 * 60 * 1000) return 'recently_donated';
   return 'available';
@@ -349,7 +349,7 @@ export class FamilyService {
           donor: {
             select: {
               id: true, fullName: true, username: true, phone: true, country: true, status: true,
-              donorProfile: { select: { isAvailable: true, lastDonationDate: true, sex: true } },
+              donorProfile: { select: { isAvailable: true, lastDonationDate: true, sex: true, pausedUntil: true } },
             },
           },
         },

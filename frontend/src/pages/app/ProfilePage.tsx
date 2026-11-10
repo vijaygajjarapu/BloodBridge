@@ -21,6 +21,7 @@ import { BloodGroupBadge, StatusBadge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EligibilityCard } from '../../components/donor/EligibilityCard';
 import { OnCallCard } from '../../components/donor/OnCallCard';
+import { DonationsCard } from '../../components/donor/DonationsCard';
 import { ReachPrefsCard } from '../../components/donor/ReachPrefsCard';
 
 export const ProfilePage: React.FC = () => {
@@ -188,6 +189,7 @@ export const ProfilePage: React.FC = () => {
 
       {/* Donor self-check: age, weight, gap between donations, reasons to wait */}
       <EligibilityCard />
+      <DonationsCard />
       <OnCallCard />
       <ReachPrefsCard />
     </div>

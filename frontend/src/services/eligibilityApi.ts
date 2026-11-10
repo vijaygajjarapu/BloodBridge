@@ -9,4 +9,9 @@ export const eligibilityApi = {
   clearDeferral: () => apiClient.delete<Eligibility>('/eligibility/me/deferral'),
   goOnCall: (hours: number) => apiClient.post<Eligibility>('/eligibility/me/on-call', { hours }),
   stopOnCall: () => apiClient.delete<Eligibility>('/eligibility/me/on-call'),
+  /** days: null = until I turn it back on */
+  pause: (days: number | null, reason?: string) => apiClient.post<Eligibility>('/eligibility/me/pause', { days, reason }),
+  resume: () => apiClient.delete<Eligibility>('/eligibility/me/pause'),
+  addDonation: (date: string, place?: string) => apiClient.post<Eligibility>('/eligibility/me/donations', { date, place }),
+  confirmDonation: (id: string, donated: boolean) => apiClient.post<Eligibility>(`/eligibility/me/donations/${id}/confirm`, { donated }),
 };

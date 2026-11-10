@@ -7,6 +7,7 @@ import { logger } from './shared/logger.js';
 import { subscriptionService } from './modules/subscriptions/subscriptions.service.js';
 import { requestService } from './modules/requests/requests.service.js';
 import { communityService } from './modules/communities/communities.service.js';
+import { runDonorReminders } from './modules/eligibility/eligibility.jobs.js';
 
 const httpServer = http.createServer(app);
 
@@ -42,6 +43,11 @@ async function startServer() {
       communityService.processReconfirmations().catch((err) => logger.error('Community re-confirm job failed:', err?.message));
     setTimeout(runReconfirm, 45_000);
     setInterval(runReconfirm, 60 * 60 * 1000).unref();
+
+    // Donors: end finished pauses, and "You can donate again" after the gap (hourly)
+    const runReminders = () => runDonorReminders().catch((err) => logger.error('Donor reminders job failed:', err?.message));
+    setTimeout(runReminders, 60_000);
+    setInterval(runReminders, 60 * 60 * 1000).unref();
 
     // Smart matching waves: contact the next group of donors for requests that still need them (every minute)
     const runWaves = () =>

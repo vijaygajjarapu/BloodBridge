@@ -272,6 +272,16 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 - Up to 5 communities per person; names are de-duplicated (“Green Meadows Apartments” = “green-meadows”). Page: `/app/communities`. API: `/api/v1/communities` (`mine`, `search`, `near`, `POST /`, `/:id/join`, `/:id/membership`, `/:id/confirm`).
 - After pulling this change run **3 - Restart Backend** once (it updates the database).
 
+## 🩸 After a donation, and pausing alerts
+
+- **Rest after donating (automatic):** when a donation is recorded, the donor gets no alerts until they can give again (men 90 days, women 120 days; 120 when not given). They are left out of waves, “can donate now” counts and community counts. Their number is never shown anyway.
+- **The donor confirms:** when the family marks “donated”, the donor is taken off alerts at once and asked on their Profile: “Did you donate on [date]?” Yes keeps it; “No, I did not” undoes it (and is written to the audit log).
+- **“I donated somewhere else”:** donors add donations from a blood bank, camp or hospital (last 12 months, no duplicates within 3 days).
+- **“You can donate again”** notice once the gap is over (sent once per donation).
+- **Pause my alerts:** 3 days, 1 week, 2 weeks, 1 month or “until I turn it back on”, with a private note (travel, exams, unwell, family...). It switches back on by itself with a “You’re back on the donor list” notice. Pausing ends on-call; family lists show the donor as unavailable.
+- Health reasons with fixed waits (fever, antibiotics, malaria, dengue, surgery, tattoo...) are still under “Reasons to wait”.
+- After pulling this change run **3 - Restart Backend** once (new database columns).
+
 ## 📞 Phone numbers, SMS alerts and calls
 
 - **“Include my number in alerts”** (Request blood, off by default, with a warning): donors who miss the alert can call the family straight back. Off = donors see the number only after accepting.

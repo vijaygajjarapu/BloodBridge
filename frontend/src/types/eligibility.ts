@@ -28,5 +28,9 @@ export interface Eligibility {
   onCall?: { until: string | null; options: number[] };
   /** Blood group confirmed by our team from a blood bank card / lab report */
   bloodGroupVerified?: { at: string; source: string | null } | null;
+  /** "Pause my alerts" */
+  pause?: { until: string | null; untilTurnedOn: boolean; active: boolean; reason: string | null; options: number[] };
+  /** Recent donations; status pending_donor = the family recorded it and the donor should confirm */
+  donations?: { id: string; donatedOn: string; source: 'request' | 'self'; place: string | null; status: 'pending_donor' | 'confirmed' }[];
   note: string;
 }
