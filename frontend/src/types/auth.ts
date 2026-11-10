@@ -23,6 +23,8 @@ export interface User {
   totalDonations?: number;
   /** YYYY-MM-DD, null if never given */
   dateOfBirth?: string | null;
+  /** App language saved on the account: en, hi, te, ta, ml */
+  language?: string;
   lastDonationDate?: string | null;
 }
 

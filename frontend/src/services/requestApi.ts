@@ -25,6 +25,8 @@ export const requestApi = {
   mine: () => apiClient.get<BloodRequest[]>('/requests/mine'),
   forMe: () => apiClient.get<{ hasProfile: boolean; myBloodGroup?: string; items: BloodRequest[] }>('/requests/for-me'),
   get: (id: string) => apiClient.get<BloodRequest>(`/requests/${id}`),
+  /** Requester: contact the next group of ranked donors now */
+  alertMore: (id: string) => apiClient.post<BloodRequest>(`/requests/${id}/alert-more`),
   respond: (id: string, action: 'accept' | 'decline' | 'withdraw', shareDirectNumber = false) =>
     apiClient.post<BloodRequest>(`/requests/${id}/respond`, { action, shareDirectNumber }),
   setStatus: (id: string, status: RequestStatus) => apiClient.patch<BloodRequest>(`/requests/${id}/status`, { status }),

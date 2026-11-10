@@ -252,6 +252,52 @@ npm test --workspace=backend
 - **Delete Account** (type DELETE to confirm): cancels open requests and tells donors who accepted not to go, turns off automatic renewal, removes uploaded documents, then deletes the account and everything linked to it. The email and mobile number can be used again. Only an audit note without personal details (and payment references for tax/refunds) is kept. Admin accounts can't be deleted this way.
 - **Privacy Policy** (`/privacy`): a draft written for India's DPDP Act 2023. Fill in the [bracketed] company and Grievance Officer details and have a lawyer review it before launch.
 
+## 🎯 Smart matching (ranked donors, waves, live progress)
+
+Instead of alerting every matching donor at once, BloodBridge ranks them and contacts them in waves.
+
+- **Who first** (`backend\src\modules\requests\matching.ts`): family donors (Family Circle), donors in the hospital's PIN code area, same city, people who know the family (savior links), donors who usually say yes, who have donated before, and who were active recently. Only donors who are compatible, available and eligible today are considered.
+- **Waves**: wave 1 = all family donors + top 5, wave 2 = next 10, then 20 at a time. The next wave goes out after 10 / 20 / 60 minutes (critical / urgent / planned) unless enough donors have accepted. If half of a wave says "can't today", the next wave comes within 3 minutes. A withdrawal triggers the next wave straight away.
+- **Live progress** (request page, requester only): contacted, viewed, accepted, can't today, and when the next group is contacted. Counts only, never names. **Alert more donors now** sends the next group (at most every 2 minutes).
+- The wave timer runs inside the backend every minute (`server.ts`). Ranked lists are stored in the `RequestCandidate` table.
+
+## 🏘️ Communities (free)
+
+A community is just a tag a donor adds to themselves: a gated or villa community, an apartment, a college, a company, a place of worship or a club. Communities never have to sign up; an organiser can claim one later.
+
+- **Private by design.** Nobody can see who is in a community. Requesters only see counts, and any count below 3 shows as “fewer than 3”.
+- **Requesters don't need to be members.** New request and Find Donors show *Communities near this hospital* with how many members could donate now. Tick them to alert them too (ticked by default for critical requests).
+- **Fellow members.** Donors can choose “alert me when a fellow member needs blood, at any hospital” (off by default).
+- **People who move.** “Still at X?” is asked every 6 months; with no answer for 30 days the membership is paused. “I've moved / alumni” keeps the membership without nearby alerts; alerts always follow the donor's current address.
+- Up to 5 communities per person; names are de-duplicated (“Green Meadows Apartments” = “green-meadows”). Page: `/app/communities`. API: `/api/v1/communities` (`mine`, `search`, `near`, `POST /`, `/:id/join`, `/:id/membership`, `/:id/confirm`).
+- After pulling this change run **3 - Restart Backend** once (it updates the database).
+
+## 📞 Phone numbers, SMS alerts and calls
+
+- **“Include my number in alerts”** (Request blood, off by default, with a warning): donors who miss the alert can call the family straight back. Off = donors see the number only after accepting.
+- **Donor choices** (Profile → “How we reach you in an emergency”): SMS on/off, automatic call for critical requests on/off, quiet hours (India time), and whether critical requests may still come through during quiet hours. In-app alerts always arrive.
+- **One-tap link** in alert SMS: `/q/<code>` opens a page where the donor answers “Yes, I can donate” / “Not this time” without signing in. Each link belongs to one donor and one request.
+- **Calls through BloodBridge (masked):** a donor who accepted can call the family, and the family can call a donor who kept their number private. BloodBridge rings the caller first and then joins the other person; both see only the BloodBridge number. Max 3 calls per hour per donor and request.
+- **Automatic alert calls** for critical requests: the call reads the alert; press 1 = I can donate, 2 = not this time.
+- **All of this is OFF until you set it up** in `backend\.env` (see `.env.example`): `MSG91_ALERT_TEMPLATE_ID` for alert SMS (a DLT-approved template), and `VOICE_PROVIDER=exotel` with the Exotel keys for calls. Until then, buttons and options show “not switched on yet”, and nothing is sent. Check the Exotel request fields against Exotel's current documentation before going live.
+- Every SMS / call attempt is logged (without message text) for limits and support, and removed when the person deletes their account.
+- After pulling this change run **3 - Restart Backend** once (new database columns).
+
+## 📟 On-call donors and verified blood groups
+
+- **On call:** on their Profile a donor can say “contact me first” for 12 hours, 24 hours, 3 days or 7 days. It's only possible while they can donate; adding a reason to wait or turning off availability ends it. On-call donors get a big boost in smart matching.
+- **Verified blood group:** in Admin → Donors → Correct, tick “Blood group verified” after seeing a blood bank card, lab report or donation record. The donor sees a “Verified blood group” note on their profile, the family sees a badge on donors who accepted, and verified donors are contacted earlier. Changing the blood group removes the tick. Every change is written to the audit log.
+- After pulling this change run **3 - Restart Backend** once (new database columns).
+
+## 🌐 Languages
+
+The app can be shown in **English, हिन्दी (Hindi), తెలుగు (Telugu), தமிழ் (Tamil) and മലയാളം (Malayalam)**. Pick the language from the menu at the top (public pages and the signed-in app). The first visit follows the phone's language; the choice is remembered on the device and on the account.
+
+- Texts live in `frontend/src/i18n/locales/` (`en.ts` is the source). Any text not translated yet falls back to English.
+- Use it in a screen with `const t = useT();` then `t('find.title')` or `t('find.exact', { group: 'B+' })`.
+- Translated so far: menus, Find donors, Request blood, communities near a hospital, live matching progress, and the donor's answer screen. More screens follow.
+- **The Hindi, Telugu, Tamil and Malayalam texts are drafts.** Please have a native speaker check them before launch.
+
 ## 🔞 Adults only (18+)
 
 BloodBridge keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).

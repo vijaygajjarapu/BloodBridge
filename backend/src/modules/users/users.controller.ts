@@ -20,6 +20,14 @@ export class UsersController {
     }
   }
 
+  async setLanguage(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(await usersService.setLanguage(req.user!.userId, req.body?.language));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async exportData(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await usersService.exportData(req.user!.userId);

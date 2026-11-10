@@ -24,5 +24,9 @@ export interface Eligibility {
     gapDaysUnknown: number;
   };
   deferralOptions: { key: string; label: string }[];
+  /** On call: contacted first for emergencies until this time (null = not on call) */
+  onCall?: { until: string | null; options: number[] };
+  /** Blood group confirmed by our team from a blood bank card / lab report */
+  bloodGroupVerified?: { at: string; source: string | null } | null;
   note: string;
 }

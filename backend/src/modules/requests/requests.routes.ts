@@ -38,6 +38,10 @@ const createSchema = z.object({
   urgency: z.enum(URGENCIES, { errorMap: () => ({ message: 'Choose how urgent this is.' }) }),
   neededBy: z.string().optional().nullable(),
   notes: z.string().trim().max(500, 'Notes can be at most 500 characters.').optional(),
+  /** Communities near the hospital to alert too (from GET /communities/near) */
+  alertCommunityIds: z.array(z.string().max(64)).max(10).optional(),
+  /** Show my number in the alerts (before a donor accepts). Off by default. */
+  shareNumberInAlerts: z.boolean().optional(),
 });
 
 const respondSchema = z.object({
@@ -148,6 +152,8 @@ router.post(
   validate(z.object({ reason: z.enum(REPORT_REASONS, { errorMap: () => ({ message: 'Choose what went wrong.' }) }), details: z.string().max(500).optional() })),
   wrap((req) => reportRequest(req.user!.userId, req.params.id, req.body)),
 );
+// Requester: contact the next group of ranked donors now instead of waiting for the timer
+router.post('/:id/alert-more', requireAuth, wrap((req) => requestService.alertMoreNow(req.user!.userId, req.params.id)));
 router.post('/:id/respond', requireAuth, validate(respondSchema), wrap((req) => requestService.respond(req.user!.userId, req.params.id, req.body)));
 router.patch('/:id/status', requireAuth, validate(statusSchema), wrap((req) => requestService.updateStatus(req.user!.userId, req.params.id, req.body.status)));
 router.post('/:id/responses/:responseId/donated', requireAuth, wrap((req) => requestService.markDonated(req.user!.userId, req.params.id, req.params.responseId)));

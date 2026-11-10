@@ -20,11 +20,26 @@ export interface RequestResponseItem {
   id: string;
   donorFirstName: string;
   donorBloodGroup: BloodGroup | null;
+  /** Blood group confirmed by our team */
+  donorBloodGroupVerified?: boolean;
   status: 'accepted' | 'donated';
   /** Hidden unless the donor chose to share their number for this request */
   phone: string | null;
   phoneHidden: boolean;
   respondedAt: string;
+}
+
+/** Live progress of smart matching (requester only; counts, never names) */
+export interface MatchingSummary {
+  wave: number;
+  contacted: number;
+  viewed: number;
+  accepted: number;
+  declined: number;
+  waiting: number;
+  nextWaveAt: string | null;
+  /** Donors contacted because of a community (counts only) */
+  fromCommunities?: number;
 }
 
 export interface BloodRequest {
@@ -65,6 +80,7 @@ export interface BloodRequest {
   patientName?: string;
   isRequester?: boolean;
   acceptedCount?: number;
+  matching?: MatchingSummary;
   responses?: RequestResponseItem[];
   // donor view
   requesterFirstName?: string;
@@ -72,6 +88,10 @@ export interface BloodRequest {
   canRespond?: boolean;
   cannotRespondReason?: string | null;
   requesterPhone?: string | null;
+  /** Calls through BloodBridge are switched on (numbers stay hidden) */
+  maskedCallAvailable?: boolean;
+  /** Requester chose to include their number in alerts */
+  shareNumberInAlerts?: boolean;
   // admin view
   requesterName?: string;
   requesterEmail?: string;
@@ -93,6 +113,10 @@ export interface CreateRequestInput {
   urgency: Urgency;
   neededBy?: string | null;
   notes?: string;
+  /** Communities near the hospital to alert too */
+  alertCommunityIds?: string[];
+  /** Include the requester's number in alerts (off by default) */
+  shareNumberInAlerts?: boolean;
 }
 
 export interface DonorCounts {

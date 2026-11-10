@@ -92,6 +92,8 @@ export class AuthService {
 
     const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
     const idleSeconds = config.session.idleMinutes * 60;
+    // Last active: helps rank donors who are likely to answer a blood request
+    await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } }).catch(() => undefined);
 
     const userReferral = await prisma.referral.findFirst({
       where: { referrerUserId: user.id, status: 'active' },
@@ -127,6 +129,9 @@ export class AuthService {
       throw new AppError('Your session has ended. Please sign in again.', 401, 'UNAUTHORIZED');
     }
     const idleSeconds = config.session.idleMinutes * 60;
+    if (!user.lastActiveAt || Date.now() - user.lastActiveAt.getTime() > 10 * 60 * 1000) {
+      await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } }).catch(() => undefined);
+    }
     return {
       token: signAccessToken({ userId: user.id, email: user.email, role: user.role }),
       idleTimeoutSeconds: idleSeconds,

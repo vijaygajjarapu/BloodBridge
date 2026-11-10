@@ -21,6 +21,8 @@ import familyRoutes from './modules/family/family.routes.js';
 import requestRoutes from './modules/requests/requests.routes.js';
 import subscriptionRoutes from './modules/subscriptions/subscriptions.routes.js';
 import eligibilityRoutes from './modules/eligibility/eligibility.routes.js';
+import communityRoutes from './modules/communities/communities.routes.js';
+import outreachRoutes from './modules/outreach/outreach.routes.js';
 
 export const app = express();
 
@@ -95,6 +97,8 @@ v1Router.use('/family', familyRoutes);
 v1Router.use('/requests', requestRoutes);
 v1Router.use('/subscriptions', subscriptionRoutes);
 v1Router.use('/eligibility', eligibilityRoutes);
+v1Router.use('/communities', communityRoutes);
+v1Router.use('/outreach', outreachRoutes);
 
 app.use('/api/v1', v1Router);
 

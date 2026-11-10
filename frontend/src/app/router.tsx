@@ -44,9 +44,11 @@ import { SettingsPage } from '../pages/app/SettingsPage';
 import { PrivacySettingsPage } from '../pages/app/PrivacySettingsPage';
 import { HelpSupportPage } from '../pages/app/HelpSupportPage';
 import { FamilyPage } from '../pages/app/FamilyPage';
+import { CommunitiesPage } from '../pages/app/CommunitiesPage';
 import { SubscribePage } from '../pages/app/SubscribePage';
 import { FamilyInvitePage } from '../pages/public/FamilyInvitePage';
 import { PublicRequestPage } from '../pages/public/PublicRequestPage';
+import { QuickRespondPage } from '../pages/public/QuickRespondPage';
 import { SafetyPage } from '../pages/public/SafetyPage';
 import { RequestsPage } from '../pages/app/requests/RequestsPage';
 import { NewRequestPage } from '../pages/app/requests/NewRequestPage';
@@ -80,6 +82,7 @@ export const router = createBrowserRouter([
       { path: 'terms', element: <TermsPage /> },
       { path: 'family-invite/:code', element: <FamilyInvitePage /> },
       { path: 'r/:code', element: <PublicRequestPage /> },
+      { path: 'q/:token', element: <QuickRespondPage /> },
       { path: 'safety', element: <SafetyPage /> },
 
       // Referral Flow Routes inside PublicLayout (Crucial precedence: success route before dynamic parameter)
@@ -127,6 +130,7 @@ export const router = createBrowserRouter([
       { path: 'settings/privacy', element: <PrivacySettingsPage /> },
       { path: 'help', element: <HelpSupportPage /> },
       { path: 'family', element: <FamilyPage /> },
+      { path: 'communities', element: <CommunitiesPage /> },
       { path: 'requests', element: <RequestsPage /> },
       { path: 'requests/new', element: <NewRequestPage /> },
       { path: 'requests/:id', element: <RequestDetailPage /> },

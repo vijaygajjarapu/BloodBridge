@@ -22,6 +22,8 @@ model User {
   emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  lastActiveAt    DateTime? // last sign-in / session refresh (used to rank donors who are likely to answer)
+  language        String    @default("en") // app language: en, hi, te, ta, ml (alerts can use it later)
 
   donorProfile       DonorProfile?
   oauthAccounts      OAuthAccount[]
@@ -40,6 +42,9 @@ model User {
   subscriptions      Subscription[]
   bloodRequests      BloodRequest[]     @relation("RequestRequester")
   requestResponses   RequestResponse[]  @relation("RequestDonorResponses")
+  requestCandidacies RequestCandidate[] @relation("RequestCandidateDonor")
+  communityMemberships CommunityMember[]
+  communitiesCreated   Community[]       @relation("CommunityCreator")
 
   @@index([email])
   @@index([role])
@@ -66,6 +71,18 @@ model DonorProfile {
   deferredUntil       DateTime? // self-declared reason to wait (tattoo, illness, pregnancy...)
   deferralReason      String?
   permanentlyDeferred Boolean   @default(false)
+  // On call: "contact me first" for a set time (ranked higher in smart matching)
+  onCallUntil         DateTime?
+  // Blood group confirmed by a blood bank report / our team (shown as a "verified" badge, ranked higher)
+  bloodGroupVerifiedAt DateTime?
+  bloodGroupVerifiedBy String?  // admin user id
+  bloodGroupVerifySource String? // e.g. "blood bank card", "lab report", "donation record"
+  // How to reach me with emergency alerts (in-app alerts always arrive)
+  alertBySms          Boolean   @default(true)
+  alertByCall         Boolean   @default(false) // automatic voice call (only when a calling provider is set up)
+  quietHoursStart     String?   // "22:00" (India time): no SMS / calls from this time...
+  quietHoursEnd       String?   // "07:00" ...until this time
+  quietAllowCritical  Boolean   @default(true)  // critical requests may still reach me during quiet hours
   isProfileCompleted  Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -346,6 +363,11 @@ model BloodRequest {
   onHold             Boolean   @default(false) // admin hold: paused, no new alerts or responses
   holdReason         String?
   donorsNotified     Int       @default(0)
+  waveNumber         Int       @default(0) // how many groups of donors have been contacted
+  nextWaveAt         DateTime? // when the next group is contacted if not enough donors accepted (null = no more)
+  lastManualWaveAt   DateTime? // requester pressed "Alert more donors now"
+  alertCommunityIds  String?   // JSON list of communities near the hospital the requester chose to alert too
+  shareNumberInAlerts Boolean  @default(false) // requester chose to show their number in alerts (before a donor accepts)
   riskScore          Int       @default(0) // automatic fraud checks (0 = no warning signs)
   riskFlags          String?   // JSON list of the warning signs found
   documentStatus     String    @default("none") // none, checking, passed, warnings, failed
@@ -355,13 +377,42 @@ model BloodRequest {
   updatedAt          DateTime  @updatedAt
 
   requester User              @relation("RequestRequester", fields: [requesterUserId], references: [id], onDelete: Cascade)
-  responses RequestResponse[]
-  documents RequestDocument[]
-  reports   RequestReport[]
+  responses  RequestResponse[]
+  documents  RequestDocument[]
+  reports    RequestReport[]
+  candidates RequestCandidate[]
 
   @@index([status])
   @@index([requesterUserId])
   @@index([country, state, district, bloodGroup])
+  @@index([nextWaveAt])
+}
+
+/// Ranked donors for a request: who to contact, in which wave, and what happened (private: only counts are shown)
+model RequestCandidate {
+  id          String    @id @default(uuid())
+  requestId   String
+  donorUserId String
+  score       Int
+  rank        Int
+  reasons     String    // JSON list of short labels (why this donor ranks here)
+  source      String    @default("nearby") // nearby, family, community
+  wave        Int?      // which wave contacted them (null = not contacted yet)
+  status      String    @default("queued") // queued, alerted, viewed, accepted, declined, withdrawn
+  alertedAt   DateTime?
+  viewedAt    DateTime?
+  respondedAt DateTime?
+  quickToken  String?   // secret for the one-tap "I can help" link in SMS / call alerts (random, 144 bits)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  request BloodRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  donor   User         @relation("RequestCandidateDonor", fields: [donorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, donorUserId])
+  @@index([requestId, status])
+  @@index([donorUserId])
+  @@index([quickToken])
 }
 
 model RequestResponse {
@@ -435,4 +486,68 @@ model RequestReport {
   request BloodRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@unique([requestId, reporterUserId])
+}
+
+/// A community is just a tag donors add to themselves: gated community, villa, apartment, college, company, place of worship, club.
+/// Communities never need to sign up (they can be "claimed" by an organiser later). The name is never shown next to a donor: only counts.
+model Community {
+  id              String   @id @default(uuid())
+  name            String
+  nameKey         String   // lower-case name without spaces/punctuation, used to stop duplicates
+  type            String   @default("other") // gated, villa, apartment, college, company, worship, club, other
+  country         String   @default("IN")
+  state           String
+  district        String
+  city            String
+  locality        String?
+  pinCode         String?
+  createdByUserId String?
+  claimed         Boolean  @default(false) // an organiser has verified they run it (later)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdBy User?             @relation("CommunityCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  members   CommunityMember[]
+
+  @@unique([country, state, district, nameKey])
+  @@index([country, state, district])
+  @@index([pinCode])
+}
+
+/// One person in one community. Private: other users only ever see counts.
+model CommunityMember {
+  id               String    @id @default(uuid())
+  communityId      String
+  userId           String
+  alertNearby      Boolean   @default(true)  // alert me when a request near this community chooses to alert it
+  alertFromMembers Boolean   @default(false) // alert me when a fellow member needs blood, wherever the hospital is
+  muted            Boolean   @default(false) // stay listed, but send me nothing from this community
+  isAlumni         Boolean   @default(false) // moved away / graduated: no "nearby" alerts
+  status           String    @default("active") // active, stale (did not answer "Still at ...?")
+  confirmedAt      DateTime  @default(now())
+  reconfirmAskedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([userId])
+  @@index([communityId, status])
+}
+
+/// Phone outreach log: SMS alerts, automatic alert calls and masked calls (numbers stay hidden). Used for limits and support.
+model CallAttempt {
+  id             String   @id @default(uuid())
+  requestId      String
+  donorUserId    String
+  kind           String   // alert_sms, alert_call, donor_calls_family, family_calls_donor
+  provider       String   // msg91, exotel, none
+  providerCallId String?
+  status         String   // sent, failed, skipped_quiet_hours, not_configured
+  createdAt      DateTime @default(now())
+
+  @@index([requestId, donorUserId, kind])
+  @@index([createdAt])
 }

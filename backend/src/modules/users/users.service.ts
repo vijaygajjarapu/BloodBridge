@@ -6,6 +6,9 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { subscriptionService } from '../subscriptions/subscriptions.service.js';
 
+
+/** Languages the app is translated into (see frontend/src/i18n) */
+export const SUPPORTED_LANGUAGES = ['en', 'hi', 'te', 'ta', 'ml'] as const;
 export class UsersService {
   async getProfile(userId: string) {
     const user = await prisma.user.findUnique({
@@ -29,6 +32,7 @@ export class UsersService {
       verified: user.isEmailVerified,
       createdAt: user.createdAt.toISOString(),
       dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null,
+      language: user.language,
       country: user.donorProfile?.country || user.country,
       // null = no donor profile yet (never invent a blood group)
       bloodGroup: user.donorProfile?.bloodGroup ?? null,
@@ -127,8 +131,16 @@ export class UsersService {
               postalCode: location.postalCode,
             }),
             ...(input.bloodGroup && { bloodGroup: input.bloodGroup }),
+            // A changed blood group needs checking again
+            ...(input.bloodGroup && current.donorProfile && input.bloodGroup !== current.donorProfile.bloodGroup && {
+              bloodGroupVerifiedAt: null,
+              bloodGroupVerifiedBy: null,
+              bloodGroupVerifySource: null,
+            }),
             ...(willingness && { donationWillingness: willingness }),
             ...(isAvailable !== undefined && { isAvailable }),
+            // Not available any more = not on call either
+            ...(isAvailable === false && { onCallUntil: null }),
           },
         });
       }
@@ -153,6 +165,15 @@ export class UsersService {
    * "Download my data": everything this person gave us or created, as one JSON file.
    * Never includes password hashes, tokens, or other people's private details.
    */
+  /** App language for this account (used on new devices, and later for alerts) */
+  async setLanguage(userId: string, language: unknown) {
+    if (typeof language !== 'string' || !SUPPORTED_LANGUAGES.includes(language as (typeof SUPPORTED_LANGUAGES)[number])) {
+      throw new AppError('This language is not available yet.', 400, 'VALIDATION_FAILED', { language: 'Choose one of the listed languages.' });
+    }
+    await prisma.user.update({ where: { id: userId }, data: { language } });
+    return { language };
+  }
+
   async exportData(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -173,6 +194,12 @@ export class UsersService {
         },
         requestResponses: { select: { status: true, createdAt: true, request: { select: { publicCode: true, bloodGroup: true, hospitalName: true } } } },
         notifications: { select: { title: true, message: true, createdAt: true, isRead: true }, orderBy: { createdAt: 'desc' }, take: 500 },
+        communityMemberships: {
+          select: {
+            alertNearby: true, alertFromMembers: true, muted: true, isAlumni: true, status: true, confirmedAt: true, createdAt: true,
+            community: { select: { name: true, type: true, city: true, district: true, state: true } },
+          },
+        },
       },
     });
     if (!user) throw new AppError('Account not found.', 404, 'NOT_FOUND');
@@ -193,6 +220,7 @@ export class UsersService {
           phone: user.phone,
           dateOfBirth: user.dateOfBirth,
           country: user.country,
+          language: user.language,
           role: user.role,
           status: user.status,
           emailVerified: user.isEmailVerified,
@@ -216,6 +244,7 @@ export class UsersService {
         bloodRequestsIPosted: user.bloodRequests,
         requestsIRespondedTo: user.requestResponses,
         notifications: user.notifications,
+        communities: user.communityMemberships,
       },
     };
   }
@@ -265,6 +294,8 @@ export class UsersService {
     // 4. Delete the account (profile, family, pledges, referrals, requests, notifications, tokens are removed with it)
     await prisma.$transaction([
       prisma.emailOtpChallenge.deleteMany({ where: { OR: [{ userId }, { email: user.email }] } }),
+      // SMS / call log entries about this person or their requests
+      prisma.callAttempt.deleteMany({ where: { OR: [{ donorUserId: userId }, { requestId: { in: myRequests.map((r) => r.id) } }] } }),
       prisma.user.delete({ where: { id: userId } }),
     ]);
 
