@@ -13,8 +13,12 @@ import { prisma } from '../../config/database.js';
 import { AppError } from '../../shared/types.js';
 import { validateLocation } from '../../shared/location.js';
 import { canBeAlerted } from '../eligibility/eligibility.rules.js';
+import { generateRandomToken } from '../../shared/password.js';
+import { config } from '../../config/index.js';
 
-export const COMMUNITY_TYPES = ['gated', 'villa', 'apartment', 'college', 'company', 'worship', 'club', 'other'] as const;
+export const COMMUNITY_TYPES = ['gated', 'villa', 'apartment', 'college', 'company', 'worship', 'club', 'whatsapp', 'association', 'other'] as const;
+/** Groups of people who know each other (not a place): members help each other wherever the hospital is */
+export const PEOPLE_GROUP_TYPES = ['whatsapp', 'association', 'club', 'worship'];
 export type CommunityType = (typeof COMMUNITY_TYPES)[number];
 
 export const MAX_MEMBERSHIPS = 5;
@@ -169,6 +173,10 @@ export class CommunityService {
       });
     }
     await this.join(userId, community.id);
+    // Groups of people (WhatsApp group, association): the person who adds it wants members to help each other
+    if (PEOPLE_GROUP_TYPES.includes(community.type)) {
+      await prisma.communityMember.updateMany({ where: { communityId: community.id, userId }, data: { alertFromMembers: true } });
+    }
     return publicCommunity(community);
   }
 
@@ -182,6 +190,50 @@ export class CommunityService {
       throw new AppError(`You can be in up to ${MAX_MEMBERSHIPS} communities. Leave one to add another.`, 400, 'LIMIT_REACHED');
     }
     await prisma.communityMember.create({ data: { communityId, userId } });
+    return this.mine(userId);
+  }
+
+  // ---------- Invite links (WhatsApp groups, associations, clubs) ----------
+
+  /** A member gets the group's shareable link (created on first use) and a ready-made WhatsApp message */
+  async inviteLink(userId: string, communityId: string) {
+    const m = await prisma.communityMember.findUnique({ where: { communityId_userId: { communityId, userId } }, include: { community: true } });
+    if (!m) throw new AppError('Join this community first to invite others.', 403, 'FORBIDDEN');
+    let code = m.community.inviteCode;
+    if (!code) {
+      for (let i = 0; i < 5 && !code; i++) {
+        const candidate = 'GRP-' + generateRandomToken(3).toUpperCase();
+        if (!(await prisma.community.findFirst({ where: { inviteCode: candidate } }))) code = candidate;
+      }
+      if (!code) throw new AppError('Please try again.', 500, 'INTERNAL_ERROR');
+      await prisma.community.update({ where: { id: communityId }, data: { inviteCode: code } });
+    }
+    const url = `${config.frontendUrl}/app/communities/join/${code}`;
+    const message =
+      `Join "${m.community.name}" on BloodBridge. If anyone in our group needs blood, the members who can donate get an alert at once. ` +
+      `Your number stays hidden. It's free: ${url}`;
+    return { code, url, whatsappUrl: `https://wa.me/?text=${encodeURIComponent(message)}`, message };
+  }
+
+  /** What someone sees when they open an invite link: the group, how many members (small counts hidden) */
+  async byInviteCode(code: string, viewerUserId?: string) {
+    const c = await prisma.community.findFirst({
+      where: { inviteCode: code.trim().toUpperCase() },
+      include: { _count: { select: { members: { where: { status: 'active' } } } } },
+    });
+    if (!c) throw new AppError('This invite link is not valid. Ask the group for a new one.', 404, 'NOT_FOUND');
+    const isMember = viewerUserId ? Boolean(await prisma.communityMember.findUnique({ where: { communityId_userId: { communityId: c.id, userId: viewerUserId } } })) : false;
+    const { _count, ...rest } = c;
+    return { ...publicCommunity(rest), members: safeCount(_count.members), isMember, peopleGroup: PEOPLE_GROUP_TYPES.includes(c.type) };
+  }
+
+  /** Join through an invite link. "Alert me when a member needs blood" is the person's own choice (ticked by default for people-groups). */
+  async joinByInviteCode(userId: string, code: string, alertFromMembers?: boolean) {
+    const c = await prisma.community.findFirst({ where: { inviteCode: code.trim().toUpperCase() } });
+    if (!c) throw new AppError('This invite link is not valid. Ask the group for a new one.', 404, 'NOT_FOUND');
+    await this.join(userId, c.id);
+    const wants = typeof alertFromMembers === 'boolean' ? alertFromMembers : PEOPLE_GROUP_TYPES.includes(c.type);
+    await prisma.communityMember.updateMany({ where: { communityId: c.id, userId }, data: { alertFromMembers: wants } });
     return this.mine(userId);
   }
 

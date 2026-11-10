@@ -261,6 +261,31 @@ export const en = {
   'flyer.steps': 'Open the link, tap “I can help”, and choose a blood bank near you.',
   'flyer.print': 'Print or save as PDF',
   'flyer.free': 'Donating blood is always free. Never pay anyone.',
+
+  // Partner codes and group invite links
+  'partner.title': "Have a code from your insurer, bank, college or group?",
+  'partner.hint': "Some partners pay for Family Safety Circle for their customers and members. Enter the code they gave you.",
+  'partner.codeLabel': "Partner code",
+  'partner.check': "Check",
+  'partner.enterCode': "Enter the code.",
+  'partner.notFound': "We could not find this code.",
+  'partner.failed': "Could not use the code. Please try again.",
+  'partner.offer': "Family Safety Circle free for {months} months. No payment or card needed.",
+  'partner.redeem': "Use this code",
+  'partner.done': "Family Safety Circle is on, sponsored by {name}.",
+  'partner.until': "Covered until {date}. Add your family members and invite relatives to pledge.",
+  'group.title': "Join a group",
+  'group.notFound': "This invite link is not valid. Ask the group for a new one.",
+  'group.failed': "Could not join. Please try again.",
+  'group.members': "{count} members",
+  'group.explain': "When someone in this group needs blood, members who can donate get an alert straight away, before strangers.",
+  'group.privacy': "Nobody in the group sees your phone number or blood group. Others only see how many members could help, and numbers below 3 show as “fewer than 3”.",
+  'group.helpMembers': "Alert me when a group member needs blood, at any hospital",
+  'group.helpHint': "You can change this or leave the group any time in Communities.",
+  'group.join': "Join the group",
+  'group.joined': "You joined {name}.",
+  'group.manage': "Go to my communities",
+  'group.checkProfile': "Check my donor profile",
 } as const;
 
 export type TranslationKey = keyof typeof en;

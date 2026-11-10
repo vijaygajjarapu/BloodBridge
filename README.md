@@ -289,6 +289,13 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 - **Honest limit:** a credit only works where blood banks have agreed to honour it (same chain or a partnership). That agreement is business work outside the app. Blood is never sold.
 - After pulling this change run **3 - Restart Backend** once (new database tables).
 
+## 🤝 Partner programmes and group invite links
+
+- **Partner programmes (insurers, term-insurance providers, banks, colleges, large groups):** BloodBridge staff create a programme in **Admin → Partner Programmes** (name, kind, seats, free months, optional last day). The partner shares the code or the link `/app/subscribe?partner=CODE`. A person redeems once and Family Safety Circle switches on at no cost (starts after any paid period they already have). One sponsored period at a time. The partner report is counts only (codes used, families set up, donors pledged, emergencies posted / fulfilled), with numbers below 3 hidden.
+- **WhatsApp groups, associations, clubs:** new community kinds “WhatsApp / family group” and “Association / union / alumni”. Any member taps **Invite** to get a link and a ready-made WhatsApp message. People who open `/app/communities/join/<code>` join in one tap and choose “Alert me when a group member needs blood” (ticked by default for these groups). When a member posts a request, the group's donors are added to the first waves wherever they live. Nobody in the group sees anyone's number or blood group.
+- After pulling this change run **3 - Restart Backend** once (new database tables).
+- Manual test cases for every feature (100 cases): the shared "BloodBridge – Manual Test Cases" doc; export it to Word or PDF from the doc's menu and keep a copy in `docs/`.
+
 ## 🩸 After a donation, and pausing alerts
 
 - **Rest after donating (automatic):** when a donation is recorded, the donor gets no alerts until they can give again (men 90 days, women 120 days; 120 when not given). They are left out of waves, “can donate now” counts and community counts. Their number is never shown anyway.

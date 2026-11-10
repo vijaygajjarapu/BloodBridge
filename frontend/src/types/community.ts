@@ -1,5 +1,5 @@
 /** Communities v1: a tag donors add to themselves. Other people only ever see counts (small counts hidden). */
-export type CommunityType = 'gated' | 'villa' | 'apartment' | 'college' | 'company' | 'worship' | 'club' | 'other';
+export type CommunityType = 'gated' | 'villa' | 'apartment' | 'college' | 'company' | 'worship' | 'club' | 'whatsapp' | 'association' | 'other';
 
 export const COMMUNITY_TYPE_LABELS: Record<CommunityType, string> = {
   gated: 'Gated community',
@@ -9,6 +9,8 @@ export const COMMUNITY_TYPE_LABELS: Record<CommunityType, string> = {
   company: 'Company / office',
   worship: 'Place of worship',
   club: 'Club / group',
+  whatsapp: 'WhatsApp / family group',
+  association: 'Association / union / alumni',
   other: 'Other group',
 };
 
@@ -63,4 +65,20 @@ export interface CreateCommunityInput {
   city: string;
   locality?: string;
   pinCode?: string;
+}
+
+/** A group's shareable invite link (e.g. to post in a WhatsApp group) */
+export interface GroupInvite {
+  code: string;
+  url: string;
+  whatsappUrl: string;
+  message: string;
+}
+
+/** What someone sees when they open a group's invite link */
+export interface GroupInvitePreview extends Community {
+  members: SafeCount;
+  isMember: boolean;
+  /** WhatsApp group, association, club, place of worship: people who know each other */
+  peopleGroup: boolean;
 }

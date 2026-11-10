@@ -47,6 +47,7 @@ model User {
   donationRecords      DonationRecord[]
   orgMemberships       OrgMember[]
   remoteDonations      RemoteDonation[]
+  partnerRedemptions   PartnerRedemption[]
   communitiesCreated   Community[]       @relation("CommunityCreator")
 
   @@index([email])
@@ -507,7 +508,8 @@ model Community {
   id              String   @id @default(uuid())
   name            String
   nameKey         String   // lower-case name without spaces/punctuation, used to stop duplicates
-  type            String   @default("other") // gated, villa, apartment, college, company, worship, club, other
+  type            String   @default("other") // gated, villa, apartment, college, company, worship, club, whatsapp, association, other
+  inviteCode      String?  // (indexed, unique by generation) shareable link for groups (e.g. a WhatsApp group): /app/communities/join/<code>
   country         String   @default("IN")
   state           String
   district        String
@@ -523,6 +525,7 @@ model Community {
   members   CommunityMember[]
 
   @@unique([country, state, district, nameKey])
+  @@index([inviteCode])
   @@index([country, state, district])
   @@index([pinCode])
 }
@@ -687,4 +690,40 @@ model RemoteDonation {
 
   @@unique([requestId, donorUserId])
   @@index([requestId, status])
+}
+
+/// Partner programme: an insurer, term-insurance provider, bank, college or large group sponsors
+/// Family Safety Circle for its customers / members. People redeem the programme's code; the partner pays BloodBridge.
+model PartnerProgram {
+  id           String    @id @default(uuid())
+  name         String    // shown to people: "Sponsored by <name>"
+  partnerType  String    // insurer, term_insurer, bank, college, employer, group, ngo, other
+  code         String    @unique // what customers type, e.g. ACMELIFE-7KQ2
+  seats        Int       // how many people can redeem
+  monthsFree   Int       @default(12)
+  startsAt     DateTime  @default(now())
+  endsAt       DateTime? // last day the code can be redeemed
+  active       Boolean   @default(true)
+  contactName  String?
+  contactEmail String?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  redemptions PartnerRedemption[]
+}
+
+/// One person who redeemed a partner code (one per person per programme)
+model PartnerRedemption {
+  id             String   @id @default(uuid())
+  programId      String
+  userId         String
+  subscriptionId String?
+  redeemedAt     DateTime @default(now())
+
+  program PartnerProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, userId])
+  @@index([userId])
 }

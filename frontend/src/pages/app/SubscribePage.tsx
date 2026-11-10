@@ -11,6 +11,8 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { errorMessage, errorTitle } from '../../utils/formErrors';
+import { PartnerCodeCard } from '../../components/subscription/PartnerCodeCard';
+import { partnerApi } from '../../services/partnerApi';
 
 declare global {
   interface Window {
@@ -48,6 +50,11 @@ export const SubscribePage: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
   const [success, setSuccess] = useState(false);
+  const [sponsor, setSponsor] = useState<{ name: string; endsAt: string } | null>(null);
+
+  useEffect(() => {
+    if (!appConfig.isDemo) partnerApi.mine().then(setSponsor).catch(() => undefined);
+  }, [mine?.active]);
 
   useEffect(() => {
     if (appConfig.isDemo) {
@@ -201,6 +208,15 @@ export const SubscribePage: React.FC = () => {
 
           {error && <ErrorBanner title={error.title} message={error.message} />}
 
+          {sponsor && (
+            <p className="text-sm text-ink-main rounded-xl bg-emerald-50 border border-emerald-200 p-3" id="sponsored-by">
+              Sponsored by <strong>{sponsor.name}</strong> until {formatDate(sponsor.endsAt)}. No payment needed.
+            </p>
+          )}
+          {!appConfig.isDemo && !loading && !mine?.active && !success && (
+            <PartnerCodeCard onRedeemed={() => subscriptionApi.mine().then(setMine).catch(() => undefined)} />
+          )}
+
           {mine?.active && !success && (
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800 space-y-3" id="subscription-status">
               <p>
@@ -211,6 +227,7 @@ export const SubscribePage: React.FC = () => {
                     : `Automatic renewal is on: we’ll remind you a week before ${formatDate(mine.renewsOn)} to renew in one tap.`
                   : 'Automatic renewal is off, so it will end on that date.'}
               </p>
+              {mine.provider !== 'partner' && (
               <label className="flex items-center gap-2 text-sm text-ink-main">
                 <input
                   type="checkbox"
@@ -221,6 +238,7 @@ export const SubscribePage: React.FC = () => {
                 />
                 Renew automatically every {period}
               </label>
+              )}
               {plan?.devSimulation && mine.provider === 'dev_simulated' && (
                 <Button size="sm" variant="ghost" onClick={devRenewNow} isLoading={renewBusy} leftIcon={<FlaskConical className="w-4 h-4" />}>
                   Test: end my plan now and run renewal

@@ -14,6 +14,7 @@ import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { FamilyCircleCard } from '../../components/family/FamilyCircleCard';
 import { useSubscription } from '../../hooks/useSubscription';
 import { SubscribeToShareNotice } from '../../components/subscription/SubscribeToShareNotice';
+import { PartnerCodeCard } from '../../components/subscription/PartnerCodeCard';
 import { RELATION_LABELS, RELATION_OPTIONS } from '../../components/family/relations';
 import { getFieldErrors, errorMessage, errorTitle } from '../../utils/formErrors';
 
@@ -302,7 +303,10 @@ export const FamilyPage: React.FC = () => {
           )}
 
           {shareLocked ? (
-            <SubscribeToShareNotice compact />
+            <div className="space-y-3">
+              <SubscribeToShareNotice compact />
+              <PartnerCodeCard onRedeemed={() => setTimeout(() => window.location.reload(), 1500)} />
+            </div>
           ) : subLoading ? null : !invite ? (
             <Button variant="primary" onClick={createInvite} disabled={!members.length} leftIcon={<Share2 className="w-4 h-4" />}>
               Create invite message
