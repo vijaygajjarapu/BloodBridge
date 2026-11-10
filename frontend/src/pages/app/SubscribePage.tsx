@@ -213,7 +213,8 @@ export const SubscribePage: React.FC = () => {
               Sponsored by <strong>{sponsor.name}</strong> until {formatDate(sponsor.endsAt)}. No payment needed.
             </p>
           )}
-          {!appConfig.isDemo && !loading && !mine?.active && !success && (
+          {/* Also offered to people who already pay: sponsored months start after their paid period */}
+          {!appConfig.isDemo && !loading && !sponsor && !success && (
             <PartnerCodeCard onRedeemed={() => subscriptionApi.mine().then(setMine).catch(() => undefined)} />
           )}
 
