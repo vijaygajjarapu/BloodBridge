@@ -44,6 +44,7 @@ model User {
   requestResponses   RequestResponse[]  @relation("RequestDonorResponses")
   requestCandidacies RequestCandidate[] @relation("RequestCandidateDonor")
   communityMemberships CommunityMember[]
+  donationRecords      DonationRecord[]
   communitiesCreated   Community[]       @relation("CommunityCreator")
 
   @@index([email])
@@ -83,6 +84,11 @@ model DonorProfile {
   quietHoursStart     String?   // "22:00" (India time): no SMS / calls from this time...
   quietHoursEnd       String?   // "07:00" ...until this time
   quietAllowCritical  Boolean   @default(true)  // critical requests may still reach me during quiet hours
+  // "Pause my alerts" (travel, exams, unwell, family...): no alerts until this time. Far future = until I turn it back on.
+  pausedUntil         DateTime?
+  pauseReason         String?   // private, only the donor sees it
+  // Last donation date we already sent "You can donate again" for (so it is sent once)
+  canDonateAgainNotifiedFor DateTime?
   isProfileCompleted  Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -550,4 +556,22 @@ model CallAttempt {
 
   @@index([requestId, donorUserId, kind])
   @@index([createdAt])
+}
+
+/// Each donation: confirmed by the donor (needed before it counts as theirs) or recorded by the family who was helped.
+model DonationRecord {
+  id                 String    @id @default(uuid())
+  userId             String
+  donatedOn          DateTime
+  source             String    // request (family marked it) or self (donor added it)
+  requestId          String?
+  place              String?
+  status             String    @default("confirmed") // pending_donor (family marked it, waiting for the donor), confirmed, rejected (donor said no)
+  previousLastDonationDate DateTime? // to undo if the donor says "I did not donate"
+  confirmedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
 }

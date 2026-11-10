@@ -69,6 +69,7 @@ const ELIGIBILITY_SELECT = {
   deferredUntil: true,
   deferralReason: true,
   permanentlyDeferred: true,
+  pausedUntil: true,
 } as const;
 
 const publicCommunity = (c: {

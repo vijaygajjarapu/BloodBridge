@@ -90,6 +90,7 @@ const ELIGIBILITY_FIELDS = {
   permanentlyDeferred: true,
   onCallUntil: true,
   bloodGroupVerifiedAt: true,
+  pausedUntil: true,
   user: { select: { dateOfBirth: true } },
 } as const;
 const MAX_LIVE_REQUESTS = 3;
@@ -120,6 +121,7 @@ function canDonateNow(p: {
   deferredUntil: Date | null;
   deferralReason: string | null;
   permanentlyDeferred: boolean;
+  pausedUntil?: Date | null;
   user: { dateOfBirth: Date | null };
 }) {
   return canBeAlerted({ ...p, dateOfBirth: p.user.dateOfBirth });
@@ -945,7 +947,21 @@ export class RequestService {
     assertPair(r.verificationStatus, 'partially_fulfilled');
     const units = Math.min(r.unitsNeeded, r.unitsFulfilled + 1);
     const status: RequestStatus = units >= r.unitsNeeded ? 'fulfilled' : 'partially_fulfilled';
+    const before = await prisma.donorProfile.findUnique({ where: { userId: resp.donorUserId }, select: { lastDonationDate: true } });
     await prisma.$transaction([
+      // The donor is taken off the alert list straight away (their health comes first) and asked to confirm.
+      // If they say they did not donate, this is undone.
+      prisma.donationRecord.create({
+        data: {
+          userId: resp.donorUserId,
+          donatedOn: new Date(),
+          source: 'request',
+          requestId: r.id,
+          place: r.hospitalName,
+          status: 'pending_donor',
+          previousLastDonationDate: before?.lastDonationDate ?? null,
+        },
+      }),
       prisma.requestResponse.update({ where: { id: responseId }, data: { status: 'donated' } }),
       prisma.bloodRequest.update({
         where: { id },
@@ -959,9 +975,9 @@ export class RequestService {
         data: {
           recipientId: resp.donorUserId,
           notificationType: 'request_update',
-          title: 'Thank you for donating!',
-          message: `Your donation for the ${r.bloodGroup} request at ${r.hospitalName} was confirmed. You helped save a life.`,
-          relatedEntity: `/app/requests/${r.id}`,
+          title: 'Thank you for donating! Please confirm',
+          message: `The family says you donated today for the ${r.bloodGroup} request at ${r.hospitalName}. Please confirm it on your profile. We pause your alerts until you can donate again, so nobody asks you too soon.`,
+          relatedEntity: '/app/profile#donations',
         },
       }),
     ]);
