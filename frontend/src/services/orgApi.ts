@@ -23,7 +23,7 @@ export const orgApi = {
     apiClient.patch<OrgMemberRow[]>(`/organisations/${orgId}/members/${memberId}`, change),
   announce: (orgId: string, input: { kind: 'announcement' | 'camp'; title: string; body: string; campDate?: string; place?: string }) =>
     apiClient.post<{ id: string; sentTo: number }>(`/organisations/${orgId}/announcements`, input),
-  // BloodBridge staff
+  // Manvi Blood staff
   adminAll: () => apiClient.get<(Organisation & { plan: string; inviteCode: string; members: number; createdAt: string })[]>('/organisations/admin/all'),
   adminUpdate: (orgId: string, change: { verified?: boolean; plan?: string; emailDomains?: string[] }) => apiClient.patch<Organisation>(`/organisations/admin/${orgId}`, change),
 };
@@ -36,7 +36,7 @@ export const remoteApi = {
   pledge: (requestId: string, bloodBankId: string) => apiClient.post<RemoteSummary>(`/remote-donations/requests/${requestId}/pledge`, { bloodBankId }),
   donated: (requestId: string, donationRef: string) => apiClient.post<RemoteSummary>(`/remote-donations/requests/${requestId}/donated`, { donationRef }),
   cancel: (requestId: string) => apiClient.post<RemoteSummary>(`/remote-donations/requests/${requestId}/cancel`),
-  // BloodBridge staff
+  // Manvi Blood staff
   adminQueue: () =>
     apiClient.get<{ id: string; requestId: string; donor: string; donorPhone: string | null; bloodBank: string; bloodBankPhone: string | null; donationRef: string | null; donatedAt: string }[]>('/remote-donations/admin/queue'),
   adminConfirm: (id: string, ok: boolean) => apiClient.post<{ ok: boolean }>(`/remote-donations/admin/${id}/confirm`, { ok }),

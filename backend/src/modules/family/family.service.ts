@@ -11,7 +11,7 @@ export const RELATIONS = ['self', 'spouse', 'son', 'daughter', 'father', 'mother
 const BLOOD_ORDER = [...BLOOD_GROUPS];
 
 function firstName(name?: string | null): string {
-  return (name || '').trim().split(/\s+/)[0] || 'A BloodBridge member';
+  return (name || '').trim().split(/\s+/)[0] || 'A Manvi Blood member';
 }
 
 function availabilityOf(profile?: { isAvailable: boolean; lastDonationDate: Date | null; sex?: string | null; pausedUntil?: Date | null } | null): 'available' | 'recently_donated' | 'unavailable' | null {
@@ -201,7 +201,7 @@ export class FamilyService {
         data: {
           recipientId: invite.ownerUserId,
           notificationType: 'family_pledge',
-          title: 'A donor joined your Family Safety Circle',
+          title: 'A donor joined your Donor Circle',
           message: `${firstName(donor.fullName || donor.username)} pledged to donate ${chosen.join(', ')} if your family needs blood.`,
         },
       });
@@ -247,7 +247,7 @@ export class FamilyService {
     return this.myPledges(donorUserId);
   }
 
-  // ---------- Family Safety Circle (owner dashboard) ----------
+  // ---------- Donor Circle (owner dashboard) ----------
 
   /**
    * Each family member with the donors who pledged that member's blood group.

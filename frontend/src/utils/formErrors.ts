@@ -45,7 +45,7 @@ export function applyFieldErrors<F extends string>(
 export function errorMessage(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
   const e = asApiError(err);
   if (e.code === 'NETWORK_ERROR' || e.message === 'Failed to fetch') {
-    return 'We could not reach BloodBridge. Please check your internet connection and try again.';
+    return 'We could not reach Manvi Blood. Please check your internet connection and try again.';
   }
   if (e.code === 'REQUEST_TIMEOUT') return 'This is taking too long. Please try again.';
   return e.message || fallback;

@@ -34,7 +34,7 @@ export class SupportService {
   async getFaqs() {
     return [
       {
-        question: 'Who is eligible to donate blood through BloodBridge?',
+        question: 'Who is eligible to donate blood through Manvi Blood?',
         answer: 'Healthy adults aged 18–65 weighing at least 50 kg (110 lbs) with no active infections or recent tattoos within 6 months are generally eligible.',
         category: 'Eligibility',
       },
@@ -45,7 +45,7 @@ export class SupportService {
       },
       {
         question: 'How is my private telephone number protected?',
-        answer: 'BloodBridge strictly enforces zero-knowledge contact masking. Your raw phone number is never exposed publicly without your explicit, voluntary opt-in consent.',
+        answer: 'Manvi Blood strictly enforces zero-knowledge contact masking. Your raw phone number is never exposed publicly without your explicit, voluntary opt-in consent.',
         category: 'Privacy',
       },
       {

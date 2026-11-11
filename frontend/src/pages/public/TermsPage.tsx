@@ -15,7 +15,7 @@ export const TermsPage: React.FC = () => {
           <span>Terms Version {appConfig.currentPolicyVersion}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-ink-main tracking-tight">
-          BloodBridge Savior Participation Terms
+          Manvi Blood Savior Participation Terms
         </h1>
         <p className="text-sm text-ink-secondary max-w-2xl mx-auto">
           Please review the operating terms governing community donor enrollment and emergency network coordination.
@@ -27,14 +27,14 @@ export const TermsPage: React.FC = () => {
           <section className="space-y-2">
             <h2 className="text-base font-bold text-ink-main">1. Nature of the Network</h2>
             <p>
-              BloodBridge operates as an emergency information bridge connecting voluntary donors with registered health providers. BloodBridge does not directly perform blood transfusions, collect specimens, or replace professional clinical advice.
+              Manvi Blood operates as an emergency information bridge connecting voluntary donors with registered health providers. Manvi Blood does not directly perform blood transfusions, collect specimens, or replace professional clinical advice.
             </p>
           </section>
 
           <section className="space-y-2" id="terms-age">
             <h2 className="text-base font-bold text-ink-main">2. Adults Only (18+)</h2>
             <p>
-              You must be 18 or older to create a BloodBridge account. We don’t create accounts for anyone younger, and if we learn that an account belongs to someone under 18, we delete it and its data.
+              You must be 18 or older to create a Manvi Blood account. We don’t create accounts for anyone younger, and if we learn that an account belongs to someone under 18, we delete it and its data.
             </p>
           </section>
 
@@ -62,21 +62,21 @@ export const TermsPage: React.FC = () => {
           <section className="space-y-2">
             <h2 className="text-base font-bold text-ink-main">6. What Is Free and What Is Paid</h2>
             <p>
-              Searching for donors, posting blood requests, receiving alerts, responding and donating are free for everyone, always. BloodBridge never charges for blood or for access to donors in an emergency. The optional Family Circle subscription covers only extra features: sharing a savior (referral) link or family invite, keeping your family’s own donor list, and alerting those donors on your requests. Not subscribing never stops a request from reaching matching donors.
+              Searching for donors, posting blood requests, receiving alerts, responding and donating are free for everyone, always. Manvi Blood never charges for blood or for access to donors in an emergency. The optional Donor Circle subscription covers only extra features: sharing a savior (referral) link or family invite, keeping your own Donor Circle, and alerting those donors on your requests. Not subscribing never stops a request from reaching matching donors.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-base font-bold text-ink-main">7. Limitation of Liability</h2>
             <p>
-              BloodBridge makes every reasonable effort to verify emergency coordinator identities. However, clinical arrangements between donors and licensed healthcare centers remain the clinical responsibility of the certified medical facility.
+              Manvi Blood makes every reasonable effort to verify emergency coordinator identities. However, clinical arrangements between donors and licensed healthcare centers remain the clinical responsibility of the certified medical facility.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-base font-bold text-ink-main">8. Country of Service and Governing Law</h2>
             <p>
-              BloodBridge is currently available in {getDefaultCountry().name}. Your account, donor profile and searches belong to the country you choose at sign-up. Personal data of donors in {getDefaultCountry().name} is handled under the {getDefaultCountry().privacyLaw}, and these terms are governed by the laws of {getDefaultCountry().name}.
+              Manvi Blood is currently available in {getDefaultCountry().name}. Your account, donor profile and searches belong to the country you choose at sign-up. Personal data of donors in {getDefaultCountry().name} is handled under the {getDefaultCountry().privacyLaw}, and these terms are governed by the laws of {getDefaultCountry().name}.
             </p>
           </section>
 

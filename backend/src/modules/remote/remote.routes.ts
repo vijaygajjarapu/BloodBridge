@@ -39,7 +39,7 @@ router.post('/requests/:id/pledge', requireAuth, validate(pledgeSchema), wrap((r
 router.post('/requests/:id/donated', requireAuth, validate(donatedSchema), wrap((req) => remoteDonationService.markDonated(req.user!.userId, req.params.id, req.body.donationRef)));
 router.post('/requests/:id/cancel', requireAuth, wrap((req) => remoteDonationService.cancel(req.user!.userId, req.params.id)));
 
-// BloodBridge staff
+// Manvi Blood staff
 router.get('/admin/queue', requireAdmin, wrap(() => remoteDonationService.adminQueue()));
 router.post('/admin/:id/confirm', requireAdmin, validate(confirmSchema), wrap((req) => remoteDonationService.adminConfirm(req.user!.userId, req.params.id, req.body.ok)));
 router.get('/admin/banks', requireAdmin, wrap(() => remoteDonationService.adminListBanks()));

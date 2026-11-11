@@ -127,7 +127,7 @@ export class RemoteDonationService {
     return this.summary(requestId, userId);
   }
 
-  // ---------- BloodBridge staff (until blood banks get their own portal) ----------
+  // ---------- Manvi Blood staff (until blood banks get their own portal) ----------
 
   async adminQueue() {
     const rows = await prisma.remoteDonation.findMany({

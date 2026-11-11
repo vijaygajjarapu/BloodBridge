@@ -11,7 +11,7 @@ interface Props {
 
 /**
  * Shown instead of the savior (referral) link for people without an active subscription.
- * Pricing rule: only referrals and the Family Circle are paid. Donor search and blood requests are free for everyone.
+ * Pricing rule: only referrals and the Donor Circle are paid. Donor search and blood requests are free for everyone.
  */
 export const SubscribeToShareNotice: React.FC<Props> = ({ compact = false }) => (
   <Card className="border-amber-300 bg-amber-50/60 shadow-sm" id="subscribe-to-share">
@@ -22,10 +22,10 @@ export const SubscribeToShareNotice: React.FC<Props> = ({ compact = false }) => 
         </div>
         <div className="space-y-1">
           <h2 className={`${compact ? 'text-sm' : 'text-base'} font-bold text-ink-main`}>
-            Savior link is a Family Circle feature
+            Savior link is a Donor Circle feature
           </h2>
           <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-            Finding donors and posting blood requests are always free. With the Family Circle you can also invite the
+            Finding donors and posting blood requests are always free. With the Donor Circle you can also invite the
             people you trust, keep your own list of donors for your family, and have them alerted first when your family
             needs blood.
           </p>
@@ -40,7 +40,7 @@ export const SubscribeToShareNotice: React.FC<Props> = ({ compact = false }) => 
           </li>
           <li className="flex items-start gap-2 rounded-lg bg-white border border-line-border p-2.5">
             <HeartPulse className="w-4 h-4 text-brand-600 shrink-0" />
-            See who is ready to give your family’s blood groups
+            See who in your Donor Circle is ready to give
           </li>
           <li className="flex items-start gap-2 rounded-lg bg-white border border-line-border p-2.5">
             <ShieldAlert className="w-4 h-4 text-brand-600 shrink-0" />
@@ -52,7 +52,7 @@ export const SubscribeToShareNotice: React.FC<Props> = ({ compact = false }) => 
       <div className="flex flex-wrap items-center gap-3">
         <Link to="/app/subscribe">
           <Button variant="primary" size={compact ? 'sm' : 'md'} rightIcon={<ArrowRight className="w-4 h-4" />}>
-            Get Family Circle
+            Get Donor Circle
           </Button>
         </Link>
         <span className="text-[11px] text-ink-muted">Donors you already invited stay in your list.</span>

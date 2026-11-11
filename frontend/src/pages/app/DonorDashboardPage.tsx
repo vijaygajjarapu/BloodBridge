@@ -173,7 +173,7 @@ export const DonorDashboardPage: React.FC = () => {
             Welcome back{user?.name ? `, ${user.name}` : ''}!
           </h1>
           <p className="text-xs sm:text-sm text-ink-secondary mt-0.5">
-            Your savior circle is ready for emergency response. Review your referral registrations below.
+            Your Donor Circle is ready for emergency response. Review your referral registrations below.
           </p>
         </div>
 
@@ -243,7 +243,7 @@ export const DonorDashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* Family Safety Circle (donor list blurred until subscribed) */}
+      {/* Donor Circle (donor list blurred until subscribed) */}
       <FamilyCircleCard compact />
 
       {/* Main Grid: Referral Code + Recent Registrations */}
@@ -265,7 +265,7 @@ export const DonorDashboardPage: React.FC = () => {
 
             <CardContent className="p-5 space-y-4">
               <p className="text-xs text-ink-secondary leading-relaxed">
-                When contacts join using your link, they enter your savior circle. Hospital coordinators can then match their blood group during critical emergency shortages.
+                When contacts join using your link, they enter your Donor Circle. Hospital coordinators can then match their blood group during critical emergency shortages.
               </p>
 
               <div>

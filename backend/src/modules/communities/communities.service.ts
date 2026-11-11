@@ -210,7 +210,7 @@ export class CommunityService {
     }
     const url = `${config.frontendUrl}/app/communities/join/${code}`;
     const message =
-      `Join "${m.community.name}" on BloodBridge. If anyone in our group needs blood, the members who can donate get an alert at once. ` +
+      `Join "${m.community.name}" on Manvi Blood. If anyone in our group needs blood, the members who can donate get an alert at once. ` +
       `Your number stays hidden. It's free: ${url}`;
     return { code, url, whatsappUrl: `https://wa.me/?text=${encodeURIComponent(message)}`, message };
   }

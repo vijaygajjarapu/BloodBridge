@@ -1,5 +1,5 @@
 /**
- * Partner programmes (insurers, banks, colleges, big groups) sponsor Family Safety Circle,
+ * Partner programmes (insurers, banks, colleges, big groups) sponsor Donor Circle,
  * and WhatsApp groups join through an invite link. The end-to-end story:
  * a sponsored family sets up its circle, a relative pledges, a WhatsApp-group friend joins,
  * and when the family posts an emergency both are alerted first, wherever they live.
@@ -61,7 +61,7 @@ afterAll(async () => {
 });
 
 describe('Partner programmes', () => {
-  it('only BloodBridge staff create programmes', async () => {
+  it('only Manvi Blood staff create programmes', async () => {
     const no = await request(app).post(`${api}/partners/admin`).set(auth.family).send({ name: 'Partnertest Life', partnerType: 'term_insurer', seats: 2 });
     expect(no.status).toBe(403);
     const res = await request(app).post(`${api}/partners/admin`).set(adminAuth).send({ name: 'Partnertest Life', partnerType: 'term_insurer', seats: 2, monthsFree: 12 });
@@ -71,7 +71,7 @@ describe('Partner programmes', () => {
     expect(code).toMatch(/^PARTNERT-[0-9A-F]{4}$/);
   });
 
-  it('a policyholder sees who sponsors the code, redeems it once, and Family Safety Circle switches on', async () => {
+  it('a policyholder sees who sponsors the code, redeems it once, and Donor Circle switches on', async () => {
     const look = await request(app).get(`${api}/partners/code/${code.toLowerCase()}`).set(auth.family);
     expect(look.body).toMatchObject({ name: 'Partnertest Life', available: true, monthsFree: 12 });
     expect(look.body.seats).toBeUndefined();

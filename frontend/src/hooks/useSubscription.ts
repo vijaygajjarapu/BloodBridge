@@ -11,7 +11,7 @@ export function refreshSubscriptionStatus() {
 }
 
 /**
- * Whether the signed-in person has an active Family Safety Circle subscription.
+ * Whether the signed-in person has an active Donor Circle subscription.
  * Sharing the savior (referral) link is a subscriber feature. Demo mode and admins are always allowed.
  */
 export function useSubscription() {

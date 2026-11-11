@@ -11,7 +11,7 @@ import { errorMessage, getFieldErrors } from '../../utils/formErrors';
 const EMPTY = { name: '', partnerType: 'term_insurer' as PartnerType, code: '', seats: '1000', monthsFree: '12', endsAt: '', contactName: '', contactEmail: '' };
 
 /**
- * BloodBridge staff: partner programmes. An insurer, bank, college or large group sponsors Family Safety Circle
+ * Manvi Blood staff: partner programmes. An insurer, bank, college or large group sponsors Donor Circle
  * for its customers or members; they redeem the code at /app/subscribe?partner=CODE. The partner gets a counts-only report.
  */
 export const AdminPartnersPage: React.FC = () => {
@@ -78,7 +78,7 @@ export const AdminPartnersPage: React.FC = () => {
         <Handshake className="w-6 h-6 text-brand-600" /> Partner programmes
       </h1>
       <p className="text-sm text-ink-secondary max-w-3xl">
-        Insurers, term-insurance providers, banks, colleges and large groups sponsor Family Safety Circle for their customers or members. Give
+        Insurers, term-insurance providers, banks, colleges and large groups sponsor Donor Circle for their customers or members. Give
         the partner the code and link; each person redeems once. Partners see counts only, and small counts (below 3) are hidden.
       </p>
       {error && <ErrorBanner message={error} />}

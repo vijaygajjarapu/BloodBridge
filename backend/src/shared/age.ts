@@ -1,8 +1,8 @@
 import { AppError } from './types.js';
 
-/** BloodBridge is for adults only: no accounts for people under 18 (India's DPDP Act treats under-18s as children) */
+/** Manvi Blood is for adults only: no accounts for people under 18 (India's DPDP Act treats under-18s as children) */
 export const MIN_ACCOUNT_AGE = 18;
-export const UNDER_AGE_MESSAGE = 'BloodBridge is only for people aged 18 or older. You can join on your 18th birthday.';
+export const UNDER_AGE_MESSAGE = 'Manvi Blood is only for people aged 18 or older. You can join on your 18th birthday.';
 
 export function ageOn(dateOfBirth: Date, now = new Date()) {
   let age = now.getFullYear() - dateOfBirth.getFullYear();

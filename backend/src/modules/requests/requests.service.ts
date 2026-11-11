@@ -531,7 +531,7 @@ export class RequestService {
           notificationType: 'emergency_request',
           title: `${urgencyWord}${r.bloodGroup} blood needed in ${r.city}`,
           message: (isAlly
-            ? `A family you pledged to help needs ${r.unitsNeeded} unit(s) of ${r.bloodGroup} at ${place}. Can you donate?`
+            ? `Someone you pledged to help needs ${r.unitsNeeded} unit(s) of ${r.bloodGroup} at ${place}. Can you donate?`
             : c.source === 'colleague'
             ? `A colleague's family needs ${r.unitsNeeded} unit(s) of ${r.bloodGroup} at ${place}. Can you donate? (You can turn off company alerts on your profile.) Donating is always free: never pay anyone.`
             : c.source === 'community'
@@ -737,7 +737,7 @@ export class RequestService {
       shareNumberInAlerts: r.shareNumberInAlerts,
       colleaguesAlerted: parseIdList(r.alertOrgIds).length > 0,
       remote: await remoteDonationService.summary(r.id),
-      // Call a donor through BloodBridge (their number stays hidden)
+      // Call a donor through Manvi Blood (their number stays hidden)
       maskedCallAvailable: outreachService.status().maskedCalls,
       responses: r.responses.map((x) => ({
         id: x.id,

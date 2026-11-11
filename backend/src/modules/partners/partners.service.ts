@@ -1,11 +1,11 @@
 /**
  * Partner programmes: insurers, term-insurance providers, banks, colleges, employers and large groups
- * sponsor Family Safety Circle for their customers or members.
+ * sponsor Donor Circle for their customers or members.
  *
  * How it works:
- * - BloodBridge staff create a programme with a code (e.g. ACMELIFE-7KQ2), a number of seats and free months.
+ * - Manvi Blood staff create a programme with a code (e.g. ACMELIFE-7KQ2), a number of seats and free months.
  * - The partner shares the code with its customers (policy welcome kit, bank app banner, college notice, WhatsApp).
- * - A person redeems it once: Family Safety Circle switches on for them at no cost.
+ * - A person redeems it once: Donor Circle switches on for them at no cost.
  * - The partner gets a counts-only report (redeemed, families set up, donors pledged, emergencies helped).
  *   Small counts (< 3) are hidden, and no names or health details ever go to the partner.
  *
@@ -61,7 +61,7 @@ export class PartnerService {
     return { code: p.code, name: p.name, partnerType: p.partnerType, monthsFree: p.monthsFree, available: !reason, reason };
   }
 
-  /** Redeem a code: Family Safety Circle switches on (or is extended) at no cost to the person */
+  /** Redeem a code: Donor Circle switches on (or is extended) at no cost to the person */
   async redeem(userId: string, code: string) {
     const p = await prisma.partnerProgram.findUnique({ where: { code: normalise(code) } });
     if (!p) throw new AppError('We could not find this code. Please check it and try again.', 404, 'NOT_FOUND');
@@ -94,7 +94,7 @@ export class PartnerService {
         data: {
           recipientId: userId,
           notificationType: 'system',
-          title: `Family Safety Circle is on, sponsored by ${p.name}`,
+          title: `Donor Circle is on, sponsored by ${p.name}`,
           message: `Add your family members and invite relatives and friends to pledge. Covered until ${endsAt.toDateString()}.`,
           relatedEntity: '/app/family',
         },
@@ -116,7 +116,7 @@ export class PartnerService {
     return { name: r?.program.name || 'a partner', partnerType: r?.program.partnerType || 'other', endsAt: sub.endsAt!.toISOString() };
   }
 
-  // ---------- BloodBridge staff ----------
+  // ---------- Manvi Blood staff ----------
 
   async adminCreate(adminId: string, input: ProgramInput) {
     let code = input.code ? normalise(input.code) : makeCode(input.name);

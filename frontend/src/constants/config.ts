@@ -6,7 +6,7 @@ const isTest = import.meta.env.MODE === 'test';
 const validatedMode: AppMode = isTest ? 'demo' : (envMode === 'api' ? 'api' : 'demo');
 
 export const appConfig = {
-  name: 'BloodBridge',
+  name: 'Manvi Blood',
   tagline: 'Be a Donor. Be a Savior.',
   mode: validatedMode,
   isDemo: validatedMode === 'demo',

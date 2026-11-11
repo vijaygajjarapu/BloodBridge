@@ -72,7 +72,7 @@ export const AdminLoginPage: React.FC = () => {
           <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center ring-2 ring-amber-500/40">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">BloodBridge Admin</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">Manvi Blood Admin</h1>
           <p className="text-xs text-slate-400">Sign in to manage requests, donors and safety reviews</p>
         </div>
 

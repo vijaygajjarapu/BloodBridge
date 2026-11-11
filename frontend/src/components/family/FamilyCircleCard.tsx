@@ -12,7 +12,7 @@ import { RELATION_LABELS } from './relations';
 import { MaskedPhone, RevealNumbersButton } from '../ui/PhoneReveal';
 
 /**
- * Family Safety Circle: every family member with the donors who pledged that member's blood group.
+ * Donor Circle: every family member with the donors who pledged that member's blood group.
  * Without a subscription the server sends only counts, and this card shows a blurred preview.
  */
 export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
@@ -29,7 +29,7 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
     familyApi
       .circle()
       .then(setCircle)
-      .catch((e: { message?: string }) => setError(e?.message || 'Could not load your Family Safety Circle.'))
+      .catch((e: { message?: string }) => setError(e?.message || 'Could not load your Donor Circle.'))
       .finally(() => setLoading(false));
 
   useEffect(() => {
@@ -87,10 +87,10 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
           <div>
             <h2 className="text-base font-bold text-ink-main flex items-center gap-2">
               <HeartHandshake className="w-5 h-5 text-brand-500" />
-              Family Safety Circle
+              Donor Circle
             </h2>
             <p className="text-xs text-ink-secondary mt-0.5">
-              People ready to give blood to your family in an emergency, matched by blood group.
+              People who pledged to donate for you, matched to each person’s blood group.
             </p>
           </div>
           {circle && circle.totalDonors > 0 && (

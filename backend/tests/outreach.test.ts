@@ -134,7 +134,7 @@ describe('"Include my number in alerts"', () => {
 });
 
 describe('Masked calls and call answers', () => {
-  it('say clearly that calling through BloodBridge is not switched on yet', async () => {
+  it('say clearly that calling through Manvi Blood is not switched on yet', async () => {
     const r = await prisma.bloodRequest.findFirstOrThrow({ where: { requesterUserId: ids.family } });
     const res = await request(app).post(`${api}/outreach/requests/${r.id}/call-family`).set({ Authorization: `Bearer ${tokens.donor}` });
     expect(res.status).toBe(503);

@@ -13,7 +13,7 @@ export const AuthLayout: React.FC = () => {
             <Heart className="w-5 h-5 fill-current" />
           </div>
           <span className="text-xl font-extrabold tracking-tight text-ink-main">
-            Blood<span className="text-brand-500">Bridge</span>
+            Manvi <span className="text-brand-500">Blood</span>
           </span>
         </Link>
 
@@ -37,7 +37,7 @@ export const AuthLayout: React.FC = () => {
           <ShieldCheck className="w-3.5 h-3.5 text-status-success" />
           <span>Encrypted Connection &bull; Healthcare Privacy Standard</span>
         </div>
-        <p>© {new Date().getFullYear()} BloodBridge Platform. Be a Donor. Be a Savior.</p>
+        <p>© {new Date().getFullYear()} Manvi Blood Platform. Be a Donor. Be a Savior.</p>
       </footer>
     </div>
   );

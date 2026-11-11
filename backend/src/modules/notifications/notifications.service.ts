@@ -14,7 +14,7 @@ export class NotificationService {
         data: {
           recipientId: userId,
           notificationType: 'system',
-          title: 'Welcome to BloodBridge Network!',
+          title: 'Welcome to Manvi Blood Network!',
           message: 'Your voluntary savior profile is active. You can view matching donation requests and share your referral invitation to expand the emergency circle.',
           isRead: false,
         },

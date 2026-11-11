@@ -24,7 +24,7 @@ export const config = {
     user: process.env.SMTP_USER || '', // set in backend/.env (never commit real values)
     pass: process.env.SMTP_PASS || '',
     from: process.env.SMTP_FROM || process.env.SMTP_USER || '',
-    fromName: process.env.SMTP_FROM_NAME || 'BloodBridge',
+    fromName: process.env.SMTP_FROM_NAME || 'Manvi Blood',
   },
 
   // OTP Rules

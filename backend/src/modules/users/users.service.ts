@@ -74,7 +74,7 @@ export class UsersService {
     const phone = input.phone ? requirePhone(location?.country || current.country, input.phone) : undefined;
 
     // Date of birth: adults only. An account that never had a date of birth (Google or invite sign-up)
-    // and turns out to belong to someone under 18 is removed, because BloodBridge keeps no under-18 accounts.
+    // and turns out to belong to someone under 18 is removed, because Manvi Blood keeps no under-18 accounts.
     let dateOfBirth: Date | undefined;
     if (input.dateOfBirth) {
       try {
@@ -214,7 +214,7 @@ export class UsersService {
       downloadUrl: '',
       generatedAt: new Date().toISOString(),
       data: {
-        about: 'Your BloodBridge data. Keep this file private.',
+        about: 'Your Manvi Blood data. Keep this file private.',
         account: {
           name: user.fullName,
           username: user.username,

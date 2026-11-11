@@ -9,7 +9,7 @@ export interface DonorSignals {
   samePin: boolean;
   /** Donor lives in the hospital's city/town */
   sameCity: boolean;
-  /** Donor pledged to this family (Family Circle) */
+  /** Donor pledged to this family (Donor Circle) */
   isFamily: boolean;
   /** Donor invited the requester, or was invited by them */
   knowsRequester: boolean;
@@ -40,7 +40,7 @@ export function scoreDonor(s: DonorSignals, now = new Date()): { score: number; 
     reasons.push(reason);
   };
 
-  if (s.isFamily) add(40, 'Pledged to this family');
+  if (s.isFamily) add(40, 'Pledged to help this person');
   if (s.onCall) add(30, 'On call now');
   if (s.samePin) add(30, 'Lives in the hospital PIN area');
   else if (s.sameCity) add(15, 'Same city as the hospital');

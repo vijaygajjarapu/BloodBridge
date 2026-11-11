@@ -17,7 +17,7 @@ export const AboutPage: React.FC = () => {
           Bridging the Critical Gap in Emergency Blood Supply
         </h1>
         <p className="text-base text-ink-secondary leading-relaxed">
-          BloodBridge was founded on a simple observation: public blood donor lists fail during real emergencies because they are outdated, impersonal, and compromise donor privacy. We replaced that broken model with a verified, referral-based savior circle.
+          Manvi Blood was founded on a simple observation: public blood donor lists fail during real emergencies because they are outdated, impersonal, and compromise donor privacy. We replaced that broken model with a verified, referral-based Donor Circle.
         </p>
       </div>
 
@@ -49,7 +49,7 @@ export const AboutPage: React.FC = () => {
           </div>
           <h2 className="text-base font-bold text-ink-main mb-2">Zero Commercial Bias</h2>
           <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-            BloodBridge operates strictly as a humanitarian community initiative. We connect voluntary saviors with verified medical professionals without intermediaries.
+            Manvi Blood operates strictly as a humanitarian community initiative. We connect voluntary saviors with verified medical professionals without intermediaries.
           </p>
         </Card>
       </div>

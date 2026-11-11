@@ -14,7 +14,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          BloodBridge connects people who need blood with voluntary donors. In this policy, “we” means [Company legal name], [registered address],
+          Manvi Blood connects people who need blood with voluntary donors. In this policy, “we” means [Company legal name], [registered address],
           the Data Fiduciary responsible for your personal data.
         </p>
         <p>
@@ -46,7 +46,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <ul className="list-disc pl-5 space-y-1">
         <li>To send blood requests to matching donors near the hospital, and to show donor counts (never donor lists) in Find Donors.</li>
-        <li>To run the Family Circle you subscribe to, and the invite and savior links you share.</li>
+        <li>To run the Donor Circle you subscribe to, and the invite and savior links you share.</li>
         <li>To check that donors can safely donate before they are alerted (age, weight, time since last donation, reasons to wait).</li>
         <li>To detect fake or paid-blood requests and protect donors and families.</li>
         <li>To take payments, send receipts and renewal reminders, and meet legal and tax duties.</li>
@@ -59,7 +59,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <ul className="list-disc pl-5 space-y-1">
         <li>A donor sees the family’s mobile number only after accepting their request. Your own number is shared with a family only if you allow it.</li>
         <li>Public request pages never show the patient’s name, documents or phone numbers.</li>
-        <li>A family you pledged to sees only what you allowed (your number, alerts, availability). You can change or remove this at any time.</li>
+        <li>A person you pledged to sees only what you allowed (your number, alerts, availability). You can change or remove this at any time.</li>
         <li>Our safety team can see what is needed to review reported or suspicious requests.</li>
         <li>Service providers that run the app for us (hosting, email, SMS, payments) process data only on our instructions.</li>
         <li><strong>We never sell your data</strong> and never use it for advertising.</li>
@@ -112,7 +112,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: '9. Adults only (18+)',
     body: (
       <p>
-        BloodBridge is only for people aged 18 or older. We ask for your date of birth and don’t create accounts for anyone younger. If we learn
+        Manvi Blood is only for people aged 18 or older. We ask for your date of birth and don’t create accounts for anyone younger. If we learn
         that an account belongs to someone under 18, we delete it and its data.
       </p>
     ),
@@ -138,7 +138,7 @@ export const PrivacyPage: React.FC = () => {
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-ink-main tracking-tight">Privacy Policy</h1>
         <p className="text-sm text-ink-secondary max-w-2xl mx-auto">
-          How BloodBridge collects, uses and protects your personal data, written to follow India’s Digital Personal Data Protection Act, 2023.
+          How Manvi Blood collects, uses and protects your personal data, written to follow India’s Digital Personal Data Protection Act, 2023.
         </p>
       </div>
 

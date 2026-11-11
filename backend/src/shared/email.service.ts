@@ -33,16 +33,16 @@ class EmailService {
       this.initTransporter();
     }
 
-    const subject = `BloodConnect — Verify Your Email Address: ${otpCode}`;
+    const subject = `Manvi Blood — Verify Your Email Address: ${otpCode}`;
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; border: 1px solid #E2E8F0; border-radius: 12px; background-color: #FFFFFF;">
         <div style="text-align: center; margin-bottom: 28px;">
-          <h2 style="color: #B91C2C; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">BloodConnect</h2>
+          <h2 style="color: #B91C2C; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Manvi Blood</h2>
           <p style="color: #64748B; font-size: 13px; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Be a Donor. Be a Savior.</p>
         </div>
         <p style="color: #1E293B; font-size: 16px; margin-bottom: 12px;">Hello${username ? ` <strong>${username}</strong>` : ''},</p>
         <p style="color: #334155; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
-          Thank you for joining BloodConnect! To complete your registration and activate your account, please enter the single-use 6-digit verification code below:
+          Thank you for joining Manvi Blood! To complete your registration and activate your account, please enter the single-use 6-digit verification code below:
         </p>
         <div style="text-align: center; margin: 28px 0;">
           <span style="display: inline-block; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #B91C2C; background-color: #FEF2F2; padding: 14px 28px; border-radius: 10px; border: 2px dashed #F87171; font-family: monospace;">
@@ -59,7 +59,7 @@ class EmailService {
         </p>
         <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 24px 0;" />
         <p style="color: #94A3B8; font-size: 12px; text-align: center; margin: 0;">
-          BloodConnect Emergency Healthcare &amp; Voluntary Donor Network
+          Manvi Blood Emergency Healthcare &amp; Voluntary Donor Network
         </p>
       </div>
     `;
@@ -72,16 +72,16 @@ class EmailService {
       this.initTransporter();
     }
 
-    const subject = `BloodConnect — Your Login Security Code: ${otpCode}`;
+    const subject = `Manvi Blood — Your Login Security Code: ${otpCode}`;
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; border: 1px solid #E2E8F0; border-radius: 12px; background-color: #FFFFFF;">
         <div style="text-align: center; margin-bottom: 28px;">
-          <h2 style="color: #B91C2C; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">BloodConnect</h2>
+          <h2 style="color: #B91C2C; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Manvi Blood</h2>
           <p style="color: #64748B; font-size: 13px; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Two-Factor Login Security</p>
         </div>
         <p style="color: #1E293B; font-size: 16px; margin-bottom: 12px;">Hello,</p>
         <p style="color: #334155; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
-          We received a sign-in attempt for your BloodConnect account. Use the 6-digit login security code below to complete your authentication:
+          We received a sign-in attempt for your Manvi Blood account. Use the 6-digit login security code below to complete your authentication:
         </p>
         <div style="text-align: center; margin: 28px 0;">
           <span style="display: inline-block; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #B91C2C; background-color: #FEF2F2; padding: 14px 28px; border-radius: 10px; border: 2px dashed #F87171; font-family: monospace;">
@@ -90,7 +90,7 @@ class EmailService {
         </div>
         <div style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px;">
           <p style="color: #92400E; font-size: 13px; margin: 0; line-height: 1.5;">
-            🔒 <strong>Security Notice:</strong> This code is valid for <strong>5 minutes</strong>. Never share this code with anyone. BloodConnect staff will never ask for your code.
+            🔒 <strong>Security Notice:</strong> This code is valid for <strong>5 minutes</strong>. Never share this code with anyone. Manvi Blood staff will never ask for your code.
           </p>
         </div>
         <p style="color: #64748B; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
@@ -98,7 +98,7 @@ class EmailService {
         </p>
         <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 24px 0;" />
         <p style="color: #94A3B8; font-size: 12px; text-align: center; margin: 0;">
-          BloodConnect Emergency Healthcare &amp; Voluntary Donor Network
+          Manvi Blood Emergency Healthcare &amp; Voluntary Donor Network
         </p>
       </div>
     `;
@@ -149,12 +149,12 @@ class EmailService {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #E6E8EC; border-radius: 8px;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <h2 style="color: #B91C2C; margin: 0;">BloodBridge</h2>
+          <h2 style="color: #B91C2C; margin: 0;">Manvi Blood</h2>
           <p style="color: #69717D; font-size: 14px; margin-top: 4px;">Be a Donor. Be a Savior.</p>
         </div>
         <p style="color: #20252B; font-size: 16px;">Hello,</p>
         <p style="color: #20252B; font-size: 15px; line-height: 1.5;">
-          We received a request to reset the password for your BloodBridge account. Click the button below to choose a new password:
+          We received a request to reset the password for your Manvi Blood account. Click the button below to choose a new password:
         </p>
         <div style="text-align: center; margin: 28px 0;">
           <a href="${resetLink}" style="display: inline-block; background-color: #B91C2C; color: #FFFFFF; font-size: 15px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 6px;">
@@ -166,12 +166,12 @@ class EmailService {
         </p>
         <hr style="border: none; border-top: 1px solid #E6E8EC; margin: 24px 0;" />
         <p style="color: #9AA2AD; font-size: 12px; text-align: center; margin: 0;">
-          BloodBridge Emergency Healthcare & Donor Network
+          Manvi Blood Emergency Healthcare & Donor Network
         </p>
       </div>
     `;
 
-    return this.sendMail(toEmail, 'Reset Your BloodBridge Password', html);
+    return this.sendMail(toEmail, 'Reset Your Manvi Blood Password', html);
   }
 
   async sendPasswordChangedNotificationEmail(toEmail: string): Promise<boolean> {
@@ -182,12 +182,12 @@ class EmailService {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #E6E8EC; border-radius: 8px;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <h2 style="color: #B91C2C; margin: 0;">BloodBridge</h2>
+          <h2 style="color: #B91C2C; margin: 0;">Manvi Blood</h2>
           <p style="color: #69717D; font-size: 14px; margin-top: 4px;">Be a Donor. Be a Savior.</p>
         </div>
         <p style="color: #20252B; font-size: 16px;">Hello,</p>
         <p style="color: #20252B; font-size: 15px; line-height: 1.5;">
-          This is a security notification confirming that your BloodBridge account password has just been changed.
+          This is a security notification confirming that your Manvi Blood account password has just been changed.
         </p>
         <div style="background-color: #FEF3F2; border-left: 4px solid #B91C2C; padding: 14px 18px; margin: 20px 0; border-radius: 4px;">
           <p style="color: #B91C2C; font-size: 13px; font-weight: bold; margin: 0 0 4px 0;">Important Security Notice</p>
@@ -197,12 +197,12 @@ class EmailService {
         </div>
         <hr style="border: none; border-top: 1px solid #E6E8EC; margin: 24px 0;" />
         <p style="color: #9AA2AD; font-size: 12px; text-align: center; margin: 0;">
-          BloodBridge Emergency Healthcare & Donor Network
+          Manvi Blood Emergency Healthcare & Donor Network
         </p>
       </div>
     `;
 
-    return this.sendMail(toEmail, 'Security Alert: Your BloodBridge Password Has Changed', html);
+    return this.sendMail(toEmail, 'Security Alert: Your Manvi Blood Password Has Changed', html);
   }
 }
 

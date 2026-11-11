@@ -88,7 +88,7 @@ export interface BloodRequest {
   canRespond?: boolean;
   cannotRespondReason?: string | null;
   requesterPhone?: string | null;
-  /** Calls through BloodBridge are switched on (numbers stay hidden) */
+  /** Calls through Manvi Blood are switched on (numbers stay hidden) */
   maskedCallAvailable?: boolean;
   /** Requester chose to include their number in alerts */
   shareNumberInAlerts?: boolean;

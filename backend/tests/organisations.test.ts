@@ -79,7 +79,7 @@ describe('Registering and joining an organisation', () => {
     expect(res.status).toBe(400);
   });
 
-  it('HR registers; BloodBridge staff verify; the same domain cannot be registered twice', async () => {
+  it('HR registers; Manvi Blood staff verify; the same domain cannot be registered twice', async () => {
     const res = await request(app).post(`${api}/organisations/register`).set(auth.hr)
       .send({ name: 'Orgtest Infra Ltd', type: 'company', workEmail: 'hr@orgtest-infra.in', ...VIZAG });
     expect(res.status).toBe(201);

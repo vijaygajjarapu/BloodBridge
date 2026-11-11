@@ -237,7 +237,7 @@ router.delete(
   }),
 );
 
-// "I donated" (at a blood bank, camp or hospital, outside BloodBridge). Alerts pause until the donor can give again.
+// "I donated" (at a blood bank, camp or hospital, outside Manvi Blood). Alerts pause until the donor can give again.
 router.post(
   '/me/donations',
   requireAuth,

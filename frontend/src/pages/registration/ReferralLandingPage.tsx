@@ -75,7 +75,7 @@ export const ReferralLandingPage: React.FC = () => {
 
           <p className="text-xs sm:text-sm text-ink-secondary max-w-sm mx-auto leading-relaxed">
             {validation?.message ||
-              'This invitation code is not active. Because BloodBridge relies on trusted community introductions, a valid referral is required.'}
+              'This invitation code is not active. Because Manvi Blood relies on trusted community introductions, a valid referral is required.'}
           </p>
 
           <div className="space-y-3 pt-2">

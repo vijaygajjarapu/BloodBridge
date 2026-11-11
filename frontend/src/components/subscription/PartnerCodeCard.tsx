@@ -10,7 +10,7 @@ import { Button } from '../ui/Button';
 import { errorMessage } from '../../utils/formErrors';
 
 /**
- * "Have a code from your insurer, bank or college?" Redeem it and Family Safety Circle switches on at no cost.
+ * "Have a code from your insurer, bank or college?" Redeem it and Donor Circle switches on at no cost.
  * A link like /app/subscribe?partner=ACMELIFE-7KQ2 fills in the code.
  */
 export const PartnerCodeCard: React.FC<{ onRedeemed?: () => void }> = ({ onRedeemed }) => {

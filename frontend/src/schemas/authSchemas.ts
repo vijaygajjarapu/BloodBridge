@@ -40,7 +40,7 @@ export const signUpSchema = z
         const d = new Date(val);
         return !isNaN(d.getTime()) && d < new Date();
       }, 'Please enter a valid date of birth in the past.')
-      .refine((val) => isAdultDob(val), 'You must be 18 or older to join BloodBridge.'),
+      .refine((val) => isAdultDob(val), 'You must be 18 or older to join Manvi Blood.'),
     email: z.string().min(1, 'Email address is required.').email('Please enter a valid email address.'),
     password: z
       .string()

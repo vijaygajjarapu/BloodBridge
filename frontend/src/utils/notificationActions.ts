@@ -27,7 +27,7 @@ export function getNotificationAction(n: AppNotification): NotificationAction {
     case 'referral_success':
       return { kicker: 'Good news', tone: 'good', label: 'View your donors', to: '/app/donors' };
     case 'family_pledge':
-      return { kicker: 'Good news', tone: 'good', label: 'See your family’s donors', to: '/app/family' };
+      return { kicker: 'Good news', tone: 'good', label: 'See your Donor Circle', to: '/app/family' };
     case 'request_update': {
       const good = GOOD_UPDATE.test(`${n.title} ${n.message}`);
       return { kicker: good ? 'Good news' : 'Request update', tone: good ? 'good' : 'info', label: 'Open the request', to: url || '/app/requests' };

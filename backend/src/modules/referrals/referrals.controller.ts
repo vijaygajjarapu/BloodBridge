@@ -27,7 +27,7 @@ export class ReferralController {
       // Sharing the savior link is a subscriber feature (admins excepted)
       if (req.user!.role !== 'admin' && !(await subscriptionService.isActive(req.user!.userId))) {
         throw new AppError(
-          'Sharing your savior link is part of the Family Circle subscription. Finding donors and posting blood requests are always free.',
+          'Sharing your savior link is part of the Donor Circle subscription. Finding donors and posting blood requests are always free.',
           402,
           'SUBSCRIPTION_REQUIRED',
         );

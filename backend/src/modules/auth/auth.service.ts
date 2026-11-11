@@ -81,7 +81,7 @@ export class AuthService {
   }
 
   /** Creates a signed-in session: short-lived access token (idle timeout) + user details */
-  async issueSession(userId: string, message = 'Authentication successful. Welcome to BloodConnect!') {
+  async issueSession(userId: string, message = 'Authentication successful. Welcome to Manvi Blood!') {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new AppError('User account not found.', 404, 'NOT_FOUND');
@@ -693,7 +693,7 @@ export class AuthService {
 
     return {
       success: true,
-      message: 'Email verified successfully! Welcome to BloodConnect.',
+      message: 'Email verified successfully! Welcome to Manvi Blood.',
       user: {
         id: user.id,
         name: user.username || user.fullName || 'Savior',

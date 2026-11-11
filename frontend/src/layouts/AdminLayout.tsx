@@ -41,7 +41,7 @@ export const AdminLayout: React.FC = () => {
 
   const currentMeta = PAGE_TITLES[location.pathname] || {
     title: 'Administrative Console',
-    subtitle: 'BloodBridge Secure Operations',
+    subtitle: 'Manvi Blood Secure Operations',
   };
 
   return (

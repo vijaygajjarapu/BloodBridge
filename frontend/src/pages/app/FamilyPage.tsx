@@ -167,7 +167,7 @@ export const FamilyPage: React.FC = () => {
           <Users className="w-6 h-6 text-brand-500" /> My Family
         </h1>
         <p className="text-sm text-ink-secondary">
-          Add your family’s blood groups, then invite friends and relatives who are ready to donate if your family ever needs blood.
+          Add the people you may need blood for, then invite anyone willing to donate: relatives, friends, colleagues, neighbours. Everyone who pledges joins your Donor Circle.
         </p>
       </div>
 
@@ -286,7 +286,7 @@ export const FamilyPage: React.FC = () => {
       <Card>
         <CardHeader>
           <h2 className="text-base font-bold text-ink-main flex items-center gap-2">
-            <Share2 className="w-5 h-5 text-brand-500" /> Invite donors for your family
+            <Share2 className="w-5 h-5 text-brand-500" /> Invite people to your Donor Circle
           </h2>
         </CardHeader>
         <CardContent className="p-5 sm:p-6 space-y-4">

@@ -143,7 +143,7 @@ export class SubscriptionService {
           data: {
             recipientId: sub.userId,
             notificationType: 'system',
-            title: 'Your Family Safety Circle renewed',
+            title: 'Your Donor Circle renewed',
             message: `Your subscription renewed automatically for another ${config.subscription.periodMonths} months. You can turn off automatic renewal any time.`,
             relatedEntity: '/app/subscribe',
           },
@@ -170,8 +170,8 @@ export class SubscriptionService {
           data: {
             recipientId: sub.userId,
             notificationType: 'system',
-            title: 'Your Family Safety Circle renews soon',
-            message: `Your plan ends on ${sub.endsAt!.toDateString()}. Renew now to keep your family's donor list. Finding donors and posting requests stay free either way.`,
+            title: 'Your Donor Circle renews soon',
+            message: `Your plan ends on ${sub.endsAt!.toDateString()}. Renew now to keep your Donor Circle. Finding donors and posting requests stay free either way.`,
             relatedEntity: '/app/subscribe',
           },
         }),

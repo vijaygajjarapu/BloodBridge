@@ -40,7 +40,7 @@ router.get('/code/:code', requireAuth, wrap((req) => partnerService.lookup(req.p
 router.post('/redeem', requireAuth, validate(redeemSchema), wrap((req) => partnerService.redeem(req.user!.userId, req.body.code)));
 router.get('/mine', requireAuth, wrap((req) => partnerService.mySponsor(req.user!.userId)));
 
-// BloodBridge staff
+// Manvi Blood staff
 router.get('/admin', requireAuth, requireAdmin, wrap(() => partnerService.adminList()));
 router.post('/admin', requireAuth, requireAdmin, validate(createSchema), wrap((req) => partnerService.adminCreate(req.user!.userId, req.body), 201));
 router.patch('/admin/:id', requireAuth, requireAdmin, validate(updateSchema), wrap((req) => partnerService.adminUpdate(req.user!.userId, req.params.id, req.body)));

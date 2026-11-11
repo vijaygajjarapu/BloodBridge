@@ -33,7 +33,7 @@ export const LandingPage: React.FC = () => {
               </h1>
 
               <p className="text-base sm:text-lg text-ink-secondary max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                BloodBridge is an invite-driven, consent-first community platform connecting verified whole-blood donors with local emergency hospital teams during life-critical shortages.
+                Manvi Blood is an invite-driven, consent-first community platform connecting verified whole-blood donors with local emergency hospital teams during life-critical shortages.
               </p>
 
               {/* CTAs */}
@@ -86,7 +86,7 @@ export const LandingPage: React.FC = () => {
                         <Heart className="w-6 h-6 fill-current text-white" />
                       </div>
                       <div>
-                        <h2 className="text-sm font-bold">Savior Circle Invitation</h2>
+                        <h2 className="text-sm font-bold">Donor Circle Invitation</h2>
                         <p className="text-[11px] text-white/80">Example of what a friend’s invite looks like</p>
                       </div>
                     </div>
@@ -133,10 +133,10 @@ export const LandingPage: React.FC = () => {
             The Savior Protocol
           </h2>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-ink-main tracking-tight">
-            How BloodBridge Saves Lives
+            How Manvi Blood Saves Lives
           </h3>
           <p className="text-sm sm:text-base text-ink-secondary mt-3">
-            Traditional public directories suffer from fake entries and unresponsive contacts. BloodBridge is free for finding donors and posting requests. An optional Family Circle adds a trusted donor list for your own family.
+            Traditional public directories suffer from fake entries and unresponsive contacts. Manvi Blood is free for finding donors and posting requests. An optional Donor Circle adds a trusted donor list for your own family.
           </p>
         </div>
 
@@ -157,9 +157,9 @@ export const LandingPage: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-black text-lg mb-4">
               02
             </div>
-            <h4 className="text-lg font-bold text-ink-main mb-2">Build Your Family Circle (optional)</h4>
+            <h4 className="text-lg font-bold text-ink-main mb-2">Build Your Donor Circle (optional)</h4>
             <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-              With the Family Circle subscription, share your savior link and invite friends, family and colleagues to become your family’s own ready donors. Track who has joined through your link.
+              With the Donor Circle subscription, share your savior link and invite friends, family and colleagues to join your own Donor Circle. Track who has joined through your link.
             </p>
           </Card>
 

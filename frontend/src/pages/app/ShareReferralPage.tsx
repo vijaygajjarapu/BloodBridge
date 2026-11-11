@@ -28,9 +28,9 @@ export const ShareReferralPage: React.FC = () => {
   const referralUrl = `${origin}/join/${referralCode}`;
 
   const messageTemplates = {
-    standard: `I'm a registered blood donor on BloodBridge. Every blood donation can save up to 3 lives in emergency situations. Join my local savior circle here: ${referralUrl}`,
-    urgent: `Our local community needs more emergency-ready blood donors. Join our verified savior circle on BloodBridge so coordinators can reach out during critical shortages: ${referralUrl}`,
-    family: `Hey! I just enrolled as a community blood donor with BloodBridge. Your contact details remain private until you approve emergency contact. Join our family circle here: ${referralUrl}`,
+    standard: `I'm a registered blood donor on Manvi Blood. Every blood donation can save up to 3 lives in emergency situations. Join my local Donor Circle here: ${referralUrl}`,
+    urgent: `Our local community needs more emergency-ready blood donors. Join our verified Donor Circle on Manvi Blood so coordinators can reach out during critical shortages: ${referralUrl}`,
+    family: `Hey! I just enrolled as a community blood donor with Manvi Blood. Your contact details remain private until you approve emergency contact. Join my Donor Circle here: ${referralUrl}`,
   };
 
   const currentMessage = messageTemplates[activeTab];
@@ -55,7 +55,7 @@ export const ShareReferralPage: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join BloodBridge Savior Network',
+          title: 'Join Manvi Blood Savior Network',
           text: currentMessage,
           url: referralUrl,
         });
@@ -142,7 +142,7 @@ export const ShareReferralPage: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider">Invitation Preview</span>
           </div>
           <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded font-mono font-semibold">
-            Savior Circle
+            Donor Circle
           </span>
         </div>
 

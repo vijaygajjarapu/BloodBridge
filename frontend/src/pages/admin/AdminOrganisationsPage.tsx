@@ -11,7 +11,7 @@ import { errorMessage } from '../../utils/formErrors';
 type OrgRow = Organisation & { plan: string; inviteCode: string; members: number; createdAt: string };
 type Queue = Awaited<ReturnType<typeof remoteApi.adminQueue>>;
 
-/** BloodBridge staff: verify organisations, manage partner blood banks, confirm replacement donations */
+/** Manvi Blood staff: verify organisations, manage partner blood banks, confirm replacement donations */
 export const AdminOrganisationsPage: React.FC = () => {
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [banks, setBanks] = useState<PartnerBloodBank[]>([]);

@@ -1,5 +1,5 @@
 /**
- * Organisations v1: companies (and colleges, NGOs...) bring their people onto BloodBridge.
+ * Organisations v1: companies (and colleges, NGOs...) bring their people onto Manvi Blood.
  *
  * Rules
  * - ONE account per person. Joining a company adds a link (OrgMember) to the person's own account; leaving the
@@ -9,7 +9,7 @@
  *   Small counts (below 3) are hidden.
  * - Requests are always personal. Membership only means colleagues who allow it are alerted too, and the request
  *   can count in the company's impact report if the employee allows it.
- * - New organisations must be verified by BloodBridge staff before people can join.
+ * - New organisations must be verified by Manvi Blood staff before people can join.
  */
 import crypto from 'crypto';
 import { prisma } from '../../config/database.js';
@@ -115,7 +115,7 @@ export class OrganisationService {
 
   /**
    * Register a new organisation. The person becomes its first admin once their work email is checked.
-   * BloodBridge staff verify the organisation before others can join.
+   * Manvi Blood staff verify the organisation before others can join.
    */
   async register(userId: string, input: RegisterOrgInput) {
     const workEmail = input.workEmail.trim().toLowerCase();
@@ -133,7 +133,7 @@ export class OrganisationService {
     const all = await prisma.organization.findMany({ select: { emailDomains: true, name: true } });
     const clash = all.find((o) => parseDomains(o.emailDomains).some((d) => domains.includes(d)));
     if (clash) {
-      throw new AppError(`${clash.name} is already on BloodBridge. Ask your HR team for its invite code.`, 409, 'ALREADY_EXISTS');
+      throw new AppError(`${clash.name} is already on Manvi Blood. Ask your HR team for its invite code.`, 409, 'ALREADY_EXISTS');
     }
     await this.checkMembershipLimit(userId);
 
@@ -161,7 +161,7 @@ export class OrganisationService {
   async join(userId: string, inviteCode: string, workEmailRaw: string, employeeId?: string) {
     const o = await prisma.organization.findUnique({ where: { inviteCode: inviteCode.trim().toUpperCase() } });
     if (!o) throw new AppError('No organisation with this code. Check the code with your HR team.', 404, 'NOT_FOUND');
-    if (!o.verified) throw new AppError(`${o.name} is waiting for BloodBridge to verify it. Please try again in a day or two.`, 400, 'ORG_NOT_VERIFIED');
+    if (!o.verified) throw new AppError(`${o.name} is waiting for Manvi Blood to verify it. Please try again in a day or two.`, 400, 'ORG_NOT_VERIFIED');
     const workEmail = workEmailRaw.trim().toLowerCase();
     if (!parseDomains(o.emailDomains).includes(domainOf(workEmail))) {
       throw new AppError(`Use your ${o.name} work email (${parseDomains(o.emailDomains).map((d) => '@' + d).join(', ')}).`, 400, 'VALIDATION_FAILED', {
@@ -170,7 +170,7 @@ export class OrganisationService {
     }
     // The same work email can belong to only one person
     const taken = await prisma.orgMember.findFirst({ where: { workEmail, status: 'active', userId: { not: userId } } });
-    if (taken) throw new AppError('This work email is already linked to another BloodBridge account.', 409, 'ALREADY_EXISTS');
+    if (taken) throw new AppError('This work email is already linked to another Manvi Blood account.', 409, 'ALREADY_EXISTS');
 
     const existing = await prisma.orgMember.findUnique({ where: { orgId_userId: { orgId: o.id, userId } } });
     if (existing?.status === 'active') return this.mine(userId);
@@ -352,7 +352,7 @@ export class OrganisationService {
   /** Announcement or donation camp, sent to members who allow corporate alerts */
   async announce(userId: string, orgId: string, input: { kind: 'announcement' | 'camp'; title: string; body: string; campDate?: string; place?: string }) {
     const org = await this.requireOrgAdmin(userId, orgId);
-    if (!org.verified) throw new AppError('Your organisation must be verified by BloodBridge first.', 400, 'ORG_NOT_VERIFIED');
+    if (!org.verified) throw new AppError('Your organisation must be verified by Manvi Blood first.', 400, 'ORG_NOT_VERIFIED');
     const recent = await prisma.orgAnnouncement.count({ where: { orgId, createdAt: { gte: new Date(Date.now() - DAY) } } });
     if (recent >= 5) throw new AppError('You can send up to 5 announcements a day.', 429, 'TOO_MANY_REQUESTS');
     const recipients = await prisma.orgMember.findMany({
@@ -402,7 +402,7 @@ export class OrganisationService {
     });
   }
 
-  // ---------- BloodBridge staff ----------
+  // ---------- Manvi Blood staff ----------
 
   async adminList() {
     const orgs = await prisma.organization.findMany({
