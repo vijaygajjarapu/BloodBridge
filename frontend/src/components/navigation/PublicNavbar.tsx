@@ -26,7 +26,7 @@ export const PublicNavbar: React.FC = () => {
             </div>
             <div>
               <span className="text-xl font-extrabold tracking-tight text-ink-main block leading-none">
-                Blood<span className="text-brand-500">Bridge</span>
+                Blood<span className="text-brand-500">Nation</span>
               </span>
               <span className="text-[11px] font-medium text-ink-secondary tracking-wide hidden sm:block mt-1">
                 Be a Donor. Be a Savior.

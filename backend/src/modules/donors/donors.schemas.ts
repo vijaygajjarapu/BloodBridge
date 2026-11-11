@@ -7,7 +7,7 @@ export const donorRegistrationSchema = z.object({
   dateOfBirth: z.string({ required_error: 'Date of birth is required.' }).min(1, 'Date of birth is required.'),
   mobileNumber: z.string().optional(),
   phone: z.string().optional(),
-  // A real BloodBridge account is created, so email (for the verification code) and a password are required
+  // A real BloodNation account is created, so email (for the verification code) and a password are required
   email: z
     .string({ required_error: 'Email address is required.' })
     .trim()

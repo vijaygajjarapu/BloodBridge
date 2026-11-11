@@ -218,7 +218,7 @@ export const EditProfilePage: React.FC = () => {
               type="date"
               required
               max={maxAdultDob()}
-              helperText="BloodBridge is for people aged 18 or older. Also used for the donor eligibility check."
+              helperText="BloodNation is for people aged 18 or older. Also used for the donor eligibility check."
               error={errors.dateOfBirth?.message}
               {...register('dateOfBirth')}
             />

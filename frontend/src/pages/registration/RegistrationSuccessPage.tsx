@@ -40,7 +40,7 @@ export const RegistrationSuccessPage: React.FC = () => {
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Welcome to the Savior Circle!
+            Welcome to the Donor Circle!
           </h1>
           <p className="text-xs sm:text-sm text-white/90 max-w-sm mx-auto">
             {state?.result?.message || 'Your donor registration has been recorded successfully.'}

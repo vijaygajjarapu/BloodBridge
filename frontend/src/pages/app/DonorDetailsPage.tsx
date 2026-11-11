@@ -192,7 +192,7 @@ export const DonorDetailsPage: React.FC = () => {
                 <div className="flex items-center space-x-2 text-xs text-status-success font-medium">
                   <ShieldCheck className="w-4 h-4" />
                   <span>
-                    Donor granted active consent to share direct contact with savior circle members.
+                    Donor granted active consent to share direct contact with Donor Circle members.
                   </span>
                 </div>
               </div>

@@ -331,7 +331,7 @@ export const RegistrationReviewPage: React.FC = () => {
           {appConfig.isApi && (
             <div className="space-y-3 rounded-xl border border-line-border p-4">
               <div>
-                <h2 className="text-sm font-bold text-ink-main">Create your BloodBridge account</h2>
+                <h2 className="text-sm font-bold text-ink-main">Create your BloodNation account</h2>
                 <p className="text-xs text-ink-secondary">
                   You&apos;ll sign in with {data.email || 'your email'} or your mobile number and this password.
                 </p>
@@ -392,7 +392,7 @@ export const RegistrationReviewPage: React.FC = () => {
               rightIcon={<ArrowRight className="w-5 h-5" />}
               className="w-full sm:w-2/3 justify-center shadow-md font-bold text-base"
             >
-              {appConfig.isApi ? 'Create Account & Send Code' : 'Confirm & Join BloodBridge'}
+              {appConfig.isApi ? 'Create Account & Send Code' : 'Confirm & Join BloodNation'}
             </Button>
           </div>
         </CardContent>

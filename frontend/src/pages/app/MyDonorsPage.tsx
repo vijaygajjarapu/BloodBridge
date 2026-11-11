@@ -190,7 +190,7 @@ export const MyDonorsPage: React.FC = () => {
           description={
             search || selectedBloodGroup !== 'ALL' || selectedStatus !== 'ALL'
               ? 'No registered donors match your current filter criteria. Try clearing filters.'
-              : 'You have not registered any donors in your savior circle yet.'
+              : 'You have not registered any donors in your Donor Circle yet.'
           }
           actionText={
             search || selectedBloodGroup !== 'ALL' || selectedStatus !== 'ALL'

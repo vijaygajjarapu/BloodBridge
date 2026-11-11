@@ -155,7 +155,7 @@ export class MockDonorService implements DonorService {
 
     return {
       success: true,
-      message: 'Thank you for helping keep BloodBridge accurate. Our verification team will review this report.',
+      message: 'Thank you for helping keep BloodNation accurate. Our verification team will review this report.',
     };
   }
 }

@@ -137,7 +137,7 @@ describe('Phone privacy and donor eligibility', () => {
   });
 });
 
-describe('Family Circle subscription', () => {
+describe('Donor Circle subscription', () => {
   it('sharing a family invite needs a subscription', async () => {
     const res = await request(app).post(`${api}/family/invite`).set(auth(marcus));
     expect(res.status).toBe(402);

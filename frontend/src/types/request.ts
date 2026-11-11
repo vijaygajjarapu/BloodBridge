@@ -88,10 +88,15 @@ export interface BloodRequest {
   canRespond?: boolean;
   cannotRespondReason?: string | null;
   requesterPhone?: string | null;
-  /** Calls through BloodBridge are switched on (numbers stay hidden) */
+  /** Calls through BloodNation are switched on (numbers stay hidden) */
   maskedCallAvailable?: boolean;
   /** Requester chose to include their number in alerts */
   shareNumberInAlerts?: boolean;
+  /** "Donate here, save a life there": replacement donations for this request */
+  remote?: import('./organisation').RemoteSummary;
+  /** Shown to donors far from the hospital where a partner blood bank exists */
+  remoteOffered?: boolean;
+  colleaguesAlerted?: boolean;
   // admin view
   requesterName?: string;
   requesterEmail?: string;
@@ -117,6 +122,10 @@ export interface CreateRequestInput {
   alertCommunityIds?: string[];
   /** Include the requester's number in alerts (off by default) */
   shareNumberInAlerts?: boolean;
+  /** Requester's organisations whose colleagues are alerted (only offered to members) */
+  alertOrgIds?: string[];
+  /** Ask colleagues in other cities to donate at a partner blood bank (replacement) */
+  askRemoteReplacement?: boolean;
 }
 
 export interface DonorCounts {

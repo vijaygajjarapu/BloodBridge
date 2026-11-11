@@ -4,7 +4,7 @@
  * - SMS alert with a one-tap link (/q/<token>): the donor can answer "I can donate" / "Not this time" without signing in.
  *   Needs a DLT-approved SMS template (MSG91_ALERT_TEMPLATE_ID); without it, alerts stay in-app only.
  * - Automatic alert call for CRITICAL requests (press 1 = I can donate, 2 = not this time), only for donors who turned it on.
- * - Masked calls: donor <-> family through the BloodBridge number, so neither sees the other's number.
+ * - Masked calls: donor <-> family through the BloodNation number, so neither sees the other's number.
  * - Donor's choices: SMS on/off, calls on/off, quiet hours (India time), and whether critical requests may still come through.
  * Voice is OFF until a provider is configured (see voice.service.ts).
  */
@@ -41,6 +41,10 @@ export function inQuietHours(start: string | null | undefined, end: string | nul
 }
 
 export interface ReachPrefs {
+  /** Reachable for public requests near me */
+  reachRegular?: boolean;
+  /** Reachable for colleagues' requests and my organisation's camps */
+  reachCorporate?: boolean;
   alertBySms: boolean;
   alertByCall: boolean;
   quietHoursStart: string | null;
@@ -81,7 +85,8 @@ export class OutreachService {
   async getPrefs(userId: string) {
     const p = await prisma.donorProfile.findUnique({ where: { userId } });
     if (!p) throw new AppError('Add your blood group to your profile first.', 400, 'NO_DONOR_PROFILE');
-    return { ...this.prefsOf(p), available: this.status() };
+    const orgs = await prisma.orgMember.count({ where: { userId, status: 'active' } });
+    return { ...this.prefsOf(p), reachRegular: p.reachRegular, reachCorporate: p.reachCorporate, inOrganisation: orgs > 0, available: this.status() };
   }
 
   async updatePrefs(userId: string, input: Partial<ReachPrefs>) {
@@ -99,6 +104,8 @@ export class OutreachService {
       where: { userId },
       data: {
         ...(typeof input.alertBySms === 'boolean' && { alertBySms: input.alertBySms }),
+        ...(typeof input.reachRegular === 'boolean' && { reachRegular: input.reachRegular }),
+        ...(typeof input.reachCorporate === 'boolean' && { reachCorporate: input.reachCorporate }),
         ...(typeof input.alertByCall === 'boolean' && { alertByCall: input.alertByCall }),
         ...(typeof input.quietAllowCritical === 'boolean' && { quietAllowCritical: input.quietAllowCritical }),
         quietHoursStart: start,
@@ -239,11 +246,11 @@ export class OutreachService {
 
   private requireVoice() {
     if (!voiceService.isConfigured()) {
-      throw new AppError('Calling through BloodBridge is not switched on yet. Please call directly.', 503, 'VOICE_NOT_CONFIGURED');
+      throw new AppError('Calling through BloodNation is not switched on yet. Please call directly.', 503, 'VOICE_NOT_CONFIGURED');
     }
   }
 
-  /** Donor who accepted -> family. BloodBridge rings the donor first, then joins the family. */
+  /** Donor who accepted -> family. BloodNation rings the donor first, then joins the family. */
   async donorCallsFamily(userId: string, requestId: string) {
     this.requireVoice();
     const r = await prisma.bloodRequest.findUnique({ where: { id: requestId } });

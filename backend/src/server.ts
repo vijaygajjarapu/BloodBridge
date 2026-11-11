@@ -22,7 +22,7 @@ async function startServer() {
     const PORT = config.port;
     httpServer.listen(PORT, () => {
       logger.info(`=======================================================`);
-      logger.info(`  BloodConnect Full-Stack Healthcare Platform Server   `);
+      logger.info(`  BloodNation Server   `);
       logger.info(`  Tagline: Be a Donor. Be a Savior.                   `);
       logger.info(`  REST API:      http://localhost:${PORT}/api/v1       `);
       logger.info(`  Health Check:  http://localhost:${PORT}/health       `);

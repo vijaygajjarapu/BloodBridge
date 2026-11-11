@@ -23,6 +23,9 @@ import subscriptionRoutes from './modules/subscriptions/subscriptions.routes.js'
 import eligibilityRoutes from './modules/eligibility/eligibility.routes.js';
 import communityRoutes from './modules/communities/communities.routes.js';
 import outreachRoutes from './modules/outreach/outreach.routes.js';
+import organisationRoutes from './modules/organisations/organisations.routes.js';
+import remoteRoutes from './modules/remote/remote.routes.js';
+import partnerRoutes from './modules/partners/partners.routes.js';
 
 export const app = express();
 
@@ -75,7 +78,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    service: 'BloodBridge / BloodConnect Full-Stack Platform API',
+    service: 'BloodNation API',
     version: '1.0.0-prod',
     database: 'Prisma ORM (Online)',
   });
@@ -99,6 +102,9 @@ v1Router.use('/subscriptions', subscriptionRoutes);
 v1Router.use('/eligibility', eligibilityRoutes);
 v1Router.use('/communities', communityRoutes);
 v1Router.use('/outreach', outreachRoutes);
+v1Router.use('/organisations', organisationRoutes);
+v1Router.use('/remote-donations', remoteRoutes);
+v1Router.use('/partners', partnerRoutes);
 
 app.use('/api/v1', v1Router);
 

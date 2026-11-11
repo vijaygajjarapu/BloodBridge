@@ -48,7 +48,7 @@ router.post(
   wrap(async (req) => {
     if (req.user!.role !== 'admin' && !(await subscriptionService.isActive(req.user!.userId))) {
       throw new AppError(
-        'Sharing a family invite is part of the Family Circle subscription. Finding donors and posting blood requests are always free.',
+        'Sharing a family invite is part of the Donor Circle subscription. Finding donors and posting blood requests are always free.',
         402,
         'SUBSCRIPTION_REQUIRED',
       );
@@ -65,7 +65,7 @@ router.post('/invites/:code/pledge', requireAuth, validate(pledgeSchema), wrap((
 router.get('/my-pledges', requireAuth, wrap((req) => familyService.myPledges(req.user!.userId)));
 router.delete('/my-pledges/:ownerUserId', requireAuth, wrap((req) => familyService.withdrawFromFamily(req.user!.userId, req.params.ownerUserId)));
 
-// Family Safety Circle (owner dashboard; names hidden unless subscribed)
+// Donor Circle (owner dashboard; names hidden unless subscribed)
 router.get('/circle', requireAuth, wrap((req) => familyService.circle(req.user!.userId)));
 
 // Per-relationship permissions (donor side)

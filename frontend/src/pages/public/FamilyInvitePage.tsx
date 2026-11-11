@@ -91,7 +91,7 @@ export const FamilyInvitePage: React.FC = () => {
                 </div>
               ) : !isAuthenticated ? (
                 <div className="space-y-3 rounded-xl border border-line-border p-4">
-                  <p className="text-sm text-ink-main font-medium">Join BloodBridge (free) to pledge.</p>
+                  <p className="text-sm text-ink-main font-medium">Join BloodNation (free) to pledge.</p>
                   <ol className="text-xs text-ink-secondary list-decimal pl-4 space-y-1">
                     <li>Create your account and confirm the 6-digit code we email you.</li>
                     <li>Your dashboard opens with this family’s request: tick the blood groups you can give.</li>

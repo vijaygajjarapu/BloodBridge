@@ -14,7 +14,7 @@ export const WelcomePage: React.FC = () => {
 
         <div>
           <h1 className="text-2xl font-extrabold text-ink-main tracking-tight">
-            Welcome to BloodBridge
+            Welcome to BloodNation
           </h1>
           <p className="text-sm font-semibold text-brand-600 mt-1">
             Be a Donor. Be a Savior.
@@ -22,7 +22,7 @@ export const WelcomePage: React.FC = () => {
         </div>
 
         <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed max-w-sm mx-auto">
-          BloodBridge connects compassionate voluntary blood donors with verified emergency medical coordinators through a secure, referral-based savior circle.
+          BloodNation connects compassionate voluntary blood donors with verified emergency medical coordinators through a secure, referral-based Donor Circle.
         </p>
 
         <div className="grid grid-cols-2 gap-3 text-left py-2">

@@ -9,12 +9,14 @@ export interface DonorSignals {
   samePin: boolean;
   /** Donor lives in the hospital's city/town */
   sameCity: boolean;
-  /** Donor pledged to this family (Family Circle) */
+  /** Donor pledged to this family (Donor Circle) */
   isFamily: boolean;
   /** Donor invited the requester, or was invited by them */
   knowsRequester: boolean;
   /** Same community as the requester, or a community the requester chose to alert */
   community?: boolean;
+  /** Works at the same organisation as the requester (requester chose to alert colleagues) */
+  colleague?: boolean;
   /** How many blood request alerts this donor received before */
   alertsReceived: number;
   /** How many of those they accepted (or donated) */
@@ -38,11 +40,12 @@ export function scoreDonor(s: DonorSignals, now = new Date()): { score: number; 
     reasons.push(reason);
   };
 
-  if (s.isFamily) add(40, 'Pledged to this family');
+  if (s.isFamily) add(40, 'Pledged to help this person');
   if (s.onCall) add(30, 'On call now');
   if (s.samePin) add(30, 'Lives in the hospital PIN area');
   else if (s.sameCity) add(15, 'Same city as the hospital');
-  if (s.community) add(20, 'Same community');
+  if (s.colleague) add(20, 'Works with the family member');
+  else if (s.community) add(20, 'Same community');
   if (s.knowsRequester) add(15, 'Knows the family');
   if (s.verified) add(10, 'Blood group verified');
 

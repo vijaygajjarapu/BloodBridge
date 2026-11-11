@@ -10,7 +10,7 @@ import {
   Sliders,
   LogOut,
   X,
-  ShieldCheck, Siren } from 'lucide-react';
+  ShieldCheck, Siren, Briefcase, Handshake } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 export interface AdminSidebarProps {
@@ -28,6 +28,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ mobileOpen, onCloseM
     { label: 'Donor Database', to: '/admin/donors', icon: HeartHandshake },
     { label: 'Referrals Network', to: '/admin/referrals', icon: Share2 },
     { label: 'Blood Requests', to: '/admin/requests', icon: Siren },
+    { label: 'Organisations & Banks', to: '/admin/organisations', icon: Briefcase },
+    { label: 'Partner Programmes', to: '/admin/partners', icon: Handshake },
     { label: 'Consent Registry', to: '/admin/consents', icon: FileCheck2 },
     { label: 'Audit Trail', to: '/admin/audit-logs', icon: ScrollText },
     { label: 'Platform Settings', to: '/admin/settings', icon: Sliders },
@@ -48,7 +50,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ mobileOpen, onCloseM
           </div>
           <div>
             <span className="text-base font-extrabold tracking-tight text-white block leading-none">
-              Blood<span className="text-brand-400">Bridge</span>
+              Blood<span className="text-brand-400">Nation</span>
             </span>
             <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400 mt-1 block">
               Administration

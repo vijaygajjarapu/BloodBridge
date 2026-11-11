@@ -30,6 +30,25 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { FamilyCircleCard } from '../../components/family/FamilyCircleCard';
 import { PendingFamilyPledgeCard } from '../../components/family/PendingFamilyPledgeCard';
 
+/** Good-news / info banners are shown once per notification (remembered on this device) */
+const SEEN_KEY = (userId: string) => `bb.seenBanners.${userId}`;
+const BANNER_MAX_AGE_DAYS = 3;
+const readSeen = (userId: string): string[] => {
+  try {
+    const v = JSON.parse(localStorage.getItem(SEEN_KEY(userId)) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+};
+const rememberSeen = (userId: string, id: string) => {
+  try {
+    localStorage.setItem(SEEN_KEY(userId), JSON.stringify([id, ...readSeen(userId).filter((x) => x !== id)].slice(0, 200)));
+  } catch {
+    /* private mode: the banner may show again next visit */
+  }
+};
+
 export const DonorDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -56,10 +75,22 @@ export const DonorDashboardPage: React.FC = () => {
         if (isMounted) {
           setDonors(donorsRes.data);
           setReferralStats(statsRes);
-          // Show only something new: an unread blood request first, otherwise the latest unread update
+          // A blood request near you stays until you answer or close it.
+          // Other news (new donor joined, updates) shows once, only if it is recent, then lives in Notifications.
           const unread = notifsRes.filter((n) => !n.isRead);
           const urgent = unread.find((n) => n.type === 'emergency' || n.type === 'emergency_request');
-          setUrgentAlert(urgent || unread[0] || null);
+          if (urgent) {
+            setUrgentAlert(urgent);
+          } else {
+            const uid = user?.id || 'me';
+            const seen = new Set(readSeen(uid));
+            const fresh = unread.find((n) => {
+              const age = Date.now() - new Date(n.createdAt).getTime();
+              return !seen.has(n.id) && !(age > BANNER_MAX_AGE_DAYS * 86400000);
+            });
+            if (fresh) rememberSeen(uid, fresh.id);
+            setUrgentAlert(fresh || null);
+          }
         }
       } catch (err) {
         console.error('Failed to load dashboard data', err);
@@ -139,14 +170,19 @@ export const DonorDashboardPage: React.FC = () => {
             <span>Savior Community Member</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-main tracking-tight">
-            Welcome back, {user?.name || 'Marcus'}!
+            Welcome back{user?.name ? `, ${user.name}` : ''}!
           </h1>
           <p className="text-xs sm:text-sm text-ink-secondary mt-0.5">
-            Your savior circle is ready for emergency response. Review your referral registrations below.
+            Your Donor Circle is ready for emergency response. Review your referral registrations below.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link to="/app/donors">
+            <Button variant="outline" size="md" leftIcon={<Users className="w-4 h-4" />}>
+              My donors{referralStats?.successfulRegistrations ? ` (${referralStats.successfulRegistrations})` : ''}
+            </Button>
+          </Link>
           <Link to="/app/requests/new">
             <Button variant="danger" size="md" leftIcon={<Siren className="w-4 h-4" />}>
               Request blood
@@ -207,7 +243,7 @@ export const DonorDashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* Family Safety Circle (donor list blurred until subscribed) */}
+      {/* Donor Circle (donor list blurred until subscribed) */}
       <FamilyCircleCard compact />
 
       {/* Main Grid: Referral Code + Recent Registrations */}
@@ -229,7 +265,7 @@ export const DonorDashboardPage: React.FC = () => {
 
             <CardContent className="p-5 space-y-4">
               <p className="text-xs text-ink-secondary leading-relaxed">
-                When contacts join using your link, they enter your savior circle. Hospital coordinators can then match their blood group during critical emergency shortages.
+                When contacts join using your link, they enter your Donor Circle. Hospital coordinators can then match their blood group during critical emergency shortages.
               </p>
 
               <div>

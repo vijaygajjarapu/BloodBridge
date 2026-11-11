@@ -4,6 +4,7 @@ import { UserNavbar } from '../components/navigation/UserNavbar';
 import { UserBottomNav } from '../components/navigation/UserBottomNav';
 import { DemoBanner } from '../components/ui/DemoBanner';
 import { useNotifications } from '../hooks/useNotifications';
+import { LegalLine } from '../components/legal/LegalLine';
 
 export const UserLayout: React.FC = () => {
   const { unreadCount } = useNotifications();
@@ -14,6 +15,7 @@ export const UserLayout: React.FC = () => {
       <UserNavbar unreadCount={unreadCount} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 md:pb-12">
         <Outlet />
+        <LegalLine className="mt-10 pt-4 border-t border-line-border text-center" />
       </main>
       <UserBottomNav unreadCount={unreadCount} />
     </div>

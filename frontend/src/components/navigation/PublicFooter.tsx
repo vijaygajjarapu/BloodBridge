@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, ShieldCheck, PhoneCall, Mail, ExternalLink } from 'lucide-react';
 import { appConfig } from '../../constants/config';
 import { getDefaultCountry } from '../../constants/countries';
+import { LegalLine } from '../legal/LegalLine';
 
 export const PublicFooter: React.FC = () => {
   return (
@@ -16,7 +17,7 @@ export const PublicFooter: React.FC = () => {
                 <Heart className="w-5 h-5 fill-current" />
               </div>
               <span className="text-xl font-bold tracking-tight text-ink-main">
-                Blood<span className="text-brand-500">Bridge</span>
+                Blood<span className="text-brand-500">Nation</span>
               </span>
             </Link>
             <p className="text-xs text-ink-secondary leading-relaxed mb-4">
@@ -39,7 +40,7 @@ export const PublicFooter: React.FC = () => {
               </li>
               <li>
                 <Link to="/about" className="text-ink-secondary hover:text-brand-500 transition-colors">
-                  About BloodBridge
+                  About BloodNation
                 </Link>
               </li>
               <li>
@@ -120,9 +121,9 @@ export const PublicFooter: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-line-border pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-ink-secondary">
-          <p>© {new Date().getFullYear()} BloodBridge Initiative. All rights reserved. Built with pride for life-saving community impact.</p>
-          <div className="mt-2 sm:mt-0 flex items-center space-x-4">
+        <div className="border-t border-line-border pt-6 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-xs text-ink-secondary">
+          <LegalLine detailed />
+          <div className="flex items-center space-x-4 flex-shrink-0">
             <span>Policy Version {appConfig.currentPolicyVersion}</span>
             <span>•</span>
             <span className="text-brand-600 font-medium">Be a Donor. Be a Savior.</span>

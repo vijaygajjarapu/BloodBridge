@@ -84,7 +84,7 @@ export class HttpClient {
       // Fallback for network / offline errors
       const networkError: ApiError = {
         code: 'NETWORK_ERROR',
-        message: (err as Error)?.message || 'Failed to connect to the BloodBridge server. Please check your network connection.',
+        message: (err as Error)?.message || 'Failed to connect to the BloodNation server. Please check your network connection.',
         requestId,
       };
       throw networkError;

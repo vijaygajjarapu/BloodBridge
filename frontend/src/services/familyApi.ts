@@ -1,5 +1,5 @@
 /**
- * Family Safety Circle and subscription calls. These need the live backend (VITE_APP_MODE=api).
+ * Donor Circle and subscription calls. These need the live backend (VITE_APP_MODE=api).
  */
 import { apiClient } from './api/client';
 import type {

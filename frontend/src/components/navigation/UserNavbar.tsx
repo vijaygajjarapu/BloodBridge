@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   HeartHandshake,
@@ -13,7 +13,8 @@ import {
   Shield,
   HelpCircle,
   Menu,
-  X, Siren, Building2 } from 'lucide-react';
+  X, Siren, Building2, Briefcase } from 'lucide-react';
+import { orgApi } from '../../services/orgApi';
 import { useT } from '../../i18n/I18nProvider';
 import { LanguagePicker } from '../ui/LanguagePicker';
 import { useAuth } from '../../hooks/useAuth';
@@ -30,11 +31,17 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const t = useT();
+  // "My company" only appears for people who belong to an organisation
+  const [inOrg, setInOrg] = useState(false);
+  useEffect(() => {
+    orgApi.mine().then((rows) => setInOrg(rows.length > 0)).catch(() => setInOrg(false));
+  }, []);
   const navLinks = [
     { label: t('nav.dashboard'), href: '/app/dashboard', icon: LayoutDashboard },
     { label: t('nav.requests'), href: '/app/requests', icon: Siren },
     { label: t('nav.family'), href: '/app/family', icon: HeartHandshake },
     { label: t('nav.communities'), href: '/app/communities', icon: Building2 },
+    ...(inOrg ? [{ label: t('org.navLink'), href: '/app/organisations', icon: Briefcase }] : []),
     { label: t('nav.donors'), href: '/app/donors', icon: Users },
     { label: t('nav.referrals'), href: '/app/referrals', icon: Share2 },
     { label: t('nav.notifications'), href: '/app/notifications', icon: Bell, badge: effectiveUnread },
@@ -58,7 +65,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
               </div>
               <div>
                 <span className="text-lg font-extrabold tracking-tight text-ink-main block leading-none">
-                  Blood<span className="text-brand-500">Bridge</span>
+                  Blood<span className="text-brand-500">Nation</span>
                 </span>
                 <span className="text-[10px] font-semibold text-brand-600 uppercase tracking-wider">
                   Donor Portal
@@ -185,7 +192,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={handleConfirmLogout}
-        title="Log Out of BloodBridge"
+        title="Log Out of BloodNation"
         message="Are you sure you wish to log out? Your session token will be cleared from this device."
         confirmText="Log Out"
         isDestructive

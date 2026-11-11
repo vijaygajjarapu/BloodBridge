@@ -45,7 +45,7 @@ export interface DonorRegistrationInput {
   dateOfBirth: string;
   phone: string;
   email?: string;
-  /** Password for the new BloodBridge account */
+  /** Password for the new BloodNation account */
   password?: string;
   bloodGroup: BloodGroup;
   country: string;

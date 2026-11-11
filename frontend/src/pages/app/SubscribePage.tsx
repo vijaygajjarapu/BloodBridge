@@ -11,6 +11,8 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { errorMessage, errorTitle } from '../../utils/formErrors';
+import { PartnerCodeCard } from '../../components/subscription/PartnerCodeCard';
+import { partnerApi } from '../../services/partnerApi';
 
 declare global {
   interface Window {
@@ -25,7 +27,7 @@ declare global {
  * checkout (no in-app purchase); we point people to the website instead.
  */
 function isInsideMobileApp(): boolean {
-  return Boolean(window.Capacitor?.isNativePlatform?.()) || /BloodBridgeApp/i.test(navigator.userAgent);
+  return Boolean(window.Capacitor?.isNativePlatform?.()) || /BloodBridgeApp|BloodNationApp/i.test(navigator.userAgent);
 }
 
 function loadRazorpay(): Promise<void> {
@@ -48,6 +50,11 @@ export const SubscribePage: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
   const [success, setSuccess] = useState(false);
+  const [sponsor, setSponsor] = useState<{ name: string; endsAt: string } | null>(null);
+
+  useEffect(() => {
+    if (!appConfig.isDemo) partnerApi.mine().then(setSponsor).catch(() => undefined);
+  }, [mine?.active]);
 
   useEffect(() => {
     if (appConfig.isDemo) {
@@ -81,7 +88,7 @@ export const SubscribePage: React.FC = () => {
         // Razorpay Subscriptions (renews automatically every year) or a one-time order
         ...(order.mode === 'subscription' ? { subscription_id: order.subscriptionId } : { order_id: order.orderId, amount: order.amountPaise, currency: order.currency }),
         name: appConfig.name,
-        description: order.mode === 'subscription' ? 'Family Safety Circle – renews every year' : 'Family Safety Circle – 1 year',
+        description: order.mode === 'subscription' ? 'Donor Circle – renews every year' : 'Donor Circle – 1 year',
         prefill: { name: order.name, email: order.email, contact: order.phone },
         theme: { color: '#B91C2C' },
         handler: async (resp: { razorpay_order_id?: string; razorpay_subscription_id?: string; razorpay_payment_id: string; razorpay_signature: string }) => {
@@ -123,7 +130,7 @@ export const SubscribePage: React.FC = () => {
   // Automatic yearly renewal (on by default; turning it off keeps access until the end date)
   const [renewBusy, setRenewBusy] = useState(false);
   const toggleAutoRenew = async (enabled: boolean) => {
-    if (!enabled && !window.confirm('Turn off automatic renewal? Your plan stays active until the end date, then your family’s donor list will be locked. Finding donors and posting requests stay free.')) return;
+    if (!enabled && !window.confirm('Turn off automatic renewal? Your plan stays active until the end date, then your Donor Circle will be locked. Finding donors and posting requests stay free.')) return;
     setRenewBusy(true);
     setError(null);
     try {
@@ -156,7 +163,7 @@ export const SubscribePage: React.FC = () => {
         <div className="p-6 bg-gradient-to-r from-brand-500 to-brand-600 text-white">
           <ShieldCheck className="w-8 h-8 mb-2" />
           <h1 className="text-xl font-bold">Keep your family safe</h1>
-          <p className="text-sm text-white/90">Family Safety Circle subscription</p>
+          <p className="text-sm text-white/90">Donor Circle subscription</p>
           <p className="mt-3 text-3xl font-black">
             {price} <span className="text-base font-semibold text-white/90">/ {period}</span>
           </p>
@@ -179,13 +186,13 @@ export const SubscribePage: React.FC = () => {
             </ul>
           </div>
 
-          <p className="text-sm font-bold text-ink-main">What the Family Circle adds</p>
+          <p className="text-sm font-bold text-ink-main">What the Donor Circle adds</p>
           <ul className="space-y-2.5 text-sm text-ink-main">
             <li className="flex gap-2">
               <Users className="w-5 h-5 text-brand-500 flex-shrink-0" /> Share your savior link and family invite to build your own donor list
             </li>
             <li className="flex gap-2">
-              <Bell className="w-5 h-5 text-brand-500 flex-shrink-0" /> Your family’s donors are alerted on your requests, wherever they live
+              <Bell className="w-5 h-5 text-brand-500 flex-shrink-0" /> People who pledged to you are alerted on your requests, wherever they live
             </li>
             <li className="flex gap-2">
               <Users className="w-5 h-5 text-brand-500 flex-shrink-0" /> See who is ready to donate for each family member
@@ -197,9 +204,19 @@ export const SubscribePage: React.FC = () => {
               <Bell className="w-5 h-5 text-brand-500 flex-shrink-0" /> Get notified when someone joins your circle
             </li>
           </ul>
-          <p className="text-xs text-ink-secondary">Donating blood is always free. You only pay for referrals and your family’s own donor list.</p>
+          <p className="text-xs text-ink-secondary">Donating blood is always free. You only pay for referrals and your own Donor Circle.</p>
 
           {error && <ErrorBanner title={error.title} message={error.message} />}
+
+          {sponsor && (
+            <p className="text-sm text-ink-main rounded-xl bg-emerald-50 border border-emerald-200 p-3" id="sponsored-by">
+              Sponsored by <strong>{sponsor.name}</strong> until {formatDate(sponsor.endsAt)}. No payment needed.
+            </p>
+          )}
+          {/* Also offered to people who already pay: sponsored months start after their paid period */}
+          {!appConfig.isDemo && !loading && !sponsor && !success && (
+            <PartnerCodeCard onRedeemed={() => subscriptionApi.mine().then(setMine).catch(() => undefined)} />
+          )}
 
           {mine?.active && !success && (
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800 space-y-3" id="subscription-status">
@@ -211,6 +228,7 @@ export const SubscribePage: React.FC = () => {
                     : `Automatic renewal is on: we’ll remind you a week before ${formatDate(mine.renewsOn)} to renew in one tap.`
                   : 'Automatic renewal is off, so it will end on that date.'}
               </p>
+              {mine.provider !== 'partner' && (
               <label className="flex items-center gap-2 text-sm text-ink-main">
                 <input
                   type="checkbox"
@@ -221,6 +239,7 @@ export const SubscribePage: React.FC = () => {
                 />
                 Renew automatically every {period}
               </label>
+              )}
               {plan?.devSimulation && mine.provider === 'dev_simulated' && (
                 <Button size="sm" variant="ghost" onClick={devRenewNow} isLoading={renewBusy} leftIcon={<FlaskConical className="w-4 h-4" />}>
                   Test: end my plan now and run renewal
@@ -236,7 +255,7 @@ export const SubscribePage: React.FC = () => {
               <p className="text-base font-bold text-ink-main">You’re subscribed!</p>
               <p className="text-sm text-ink-secondary">Active until {formatDate(mine.endsAt)}.</p>
               <Button variant="primary" onClick={() => navigate('/app/family')}>
-                See your family’s donors
+                See your Donor Circle
               </Button>
             </div>
           ) : isInsideMobileApp() ? (

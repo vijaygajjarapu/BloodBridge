@@ -204,7 +204,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif_02',
     title: 'New Donor Joined via Your Link!',
-    message: 'Kavya Reddy just registered as an A- donor using your referral link SAVIOR-MV2026. Thank you for expanding the savior circle!',
+    message: 'Kavya Reddy just registered as an A- donor using your referral link SAVIOR-MV2026. Thank you for expanding the Donor Circle!',
     type: 'referral',
     isRead: false,
     createdAt: '2026-04-08T14:15:00Z',
@@ -213,7 +213,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif_03',
     title: 'Annual Consent & Privacy Refresh',
-    message: 'BloodBridge has updated its contact sharing transparency guidelines. Review your preferences anytime in Privacy Settings.',
+    message: 'BloodNation has updated its contact sharing transparency guidelines. Review your preferences anytime in Privacy Settings.',
     type: 'system',
     isRead: true,
     createdAt: '2026-03-30T10:00:00Z',
@@ -248,7 +248,7 @@ export const INITIAL_CONSENT_PREFERENCES: UserConsentPreferences = {
     {
       id: 'csh_02',
       action: 'updated',
-      purpose: 'Re-affirmed consent under BloodBridge transparent disclosure charter.',
+      purpose: 'Re-affirmed consent under BloodNation transparent disclosure charter.',
       timestamp: '2026-03-15T12:00:00Z',
       policyVersion: 'v2.4-2026',
       ipAddressMasked: '172.56.***.***',
@@ -408,7 +408,7 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
 ];
 
 export const INITIAL_ORG_SETTINGS: OrganizationSettings = {
-  orgName: 'BloodBridge Community Network',
+  orgName: 'BloodNation Community Network',
   supportEmail: 'support@bloodbridge.org',
   supportPhone: '',
   emergencyHelpline: '',
@@ -427,7 +427,7 @@ export const INITIAL_FAQS = [
   {
     category: 'Referrals',
     question: 'How does the referral registration system work?',
-    answer: 'BloodBridge uses a trusted invitation model. Existing donors and verified coordinators share unique savior codes to invite friends and community members. This ensures authentic, responsive donors during emergency blood shortages.',
+    answer: 'BloodNation uses a trusted invitation model. Existing donors and verified coordinators share unique savior codes to invite friends and community members. This ensures authentic, responsive donors during emergency blood shortages.',
   },
   {
     category: 'Privacy',

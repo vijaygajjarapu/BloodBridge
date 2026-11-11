@@ -23,6 +23,7 @@ import { EligibilityCard } from '../../components/donor/EligibilityCard';
 import { OnCallCard } from '../../components/donor/OnCallCard';
 import { DonationsCard } from '../../components/donor/DonationsCard';
 import { ReachPrefsCard } from '../../components/donor/ReachPrefsCard';
+import { OrgJoinHint } from '../../components/donor/OrgJoinHint';
 
 export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -192,6 +193,7 @@ export const ProfilePage: React.FC = () => {
       <DonationsCard />
       <OnCallCard />
       <ReachPrefsCard />
+      <OrgJoinHint />
     </div>
   );
 };

@@ -13,7 +13,7 @@ describe('Smart matching: who is contacted first', () => {
     const family = scoreDonor({ ...base, isFamily: true }, NOW).score;
     const nearbyAndActive = scoreDonor({ ...base, samePin: true, lastActiveAt: NOW }, NOW).score;
     expect(family).toBeGreaterThanOrEqual(nearbyAndActive - 10);
-    expect(scoreDonor({ ...base, isFamily: true }, NOW).reasons).toContain('Pledged to this family');
+    expect(scoreDonor({ ...base, isFamily: true }, NOW).reasons).toContain('Pledged to help this person');
   });
 
   it('reliable donors rank above donors who never answer', () => {

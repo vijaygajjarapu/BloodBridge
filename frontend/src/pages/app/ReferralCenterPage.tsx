@@ -59,7 +59,7 @@ export const ReferralCenterPage: React.FC = () => {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
   const referralUrl = `${origin}/join/${referralCode}`;
 
-  const invitationMessage = `I'm a verified blood donor on BloodBridge. Every single donation can save up to 3 lives. Join my Savior circle here: ${referralUrl}`;
+  const invitationMessage = `I'm a verified blood donor on BloodNation. Every single donation can save up to 3 lives. Join my Donor Circle here: ${referralUrl}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(referralUrl);
@@ -71,7 +71,7 @@ export const ReferralCenterPage: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join BloodBridge Savior Network',
+          title: 'Join BloodNation Savior Network',
           text: invitationMessage,
           url: referralUrl,
         });

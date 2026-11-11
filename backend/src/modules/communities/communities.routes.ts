@@ -39,6 +39,7 @@ const prefsSchema = z.object({
 });
 
 const confirmSchema = z.object({ stillHere: z.boolean() });
+const joinCodeSchema = z.object({ alertFromMembers: z.boolean().optional() });
 
 router.get('/mine', requireAuth, wrap((req) => communityService.mine(req.user!.userId)));
 
@@ -79,6 +80,11 @@ router.get(
     });
   }),
 );
+
+// Invite links for groups (WhatsApp groups, associations, clubs)
+router.get('/by-code/:code', requireAuth, wrap((req) => communityService.byInviteCode(req.params.code, req.user!.userId)));
+router.post('/join-code/:code', requireAuth, validate(joinCodeSchema), wrap((req) => communityService.joinByInviteCode(req.user!.userId, req.params.code, req.body.alertFromMembers)));
+router.post('/:id/invite', requireAuth, wrap((req) => communityService.inviteLink(req.user!.userId, req.params.id)));
 
 router.post('/', requireAuth, validate(createSchema), wrap((req) => communityService.create(req.user!.userId, req.body), 201));
 router.post('/:id/join', requireAuth, wrap((req) => communityService.join(req.user!.userId, req.params.id)));

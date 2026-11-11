@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, ShieldCheck, Plus, LogOut, BellOff, Bell, MapPin, CheckCircle2, Search } from 'lucide-react';
+import { Building2, ShieldCheck, Plus, LogOut, BellOff, Bell, MapPin, CheckCircle2, Search, Link2, Copy, MessageCircle } from 'lucide-react';
 import { communityApi } from '../../services/communityApi';
-import type { CommunitySearchResult, CommunityType, MyCommunity } from '../../types/community';
+import type { CommunitySearchResult, CommunityType, MyCommunity, GroupInvite } from '../../types/community';
 import { COMMUNITY_TYPE_LABELS } from '../../types/community';
 import { useAuth } from '../../hooks/useAuth';
 import { getPreferredCountryCode, countryOrDefault } from '../../constants/countries';
@@ -42,6 +42,32 @@ export const CommunitiesPage: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string | undefined>>({});
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  // Invite links (for WhatsApp groups, associations, clubs), per community
+  const [invites, setInvites] = useState<Record<string, GroupInvite>>({});
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const getInvite = async (id: string) => {
+    setBusy(`invite-${id}`);
+    setError(null);
+    try {
+      const inv = await communityApi.invite(id);
+      setInvites((x) => ({ ...x, [id]: inv }));
+    } catch (e) {
+      setError(errorMessage(e, 'Could not create the invite link.'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const copy = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(id);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setError('Copy did not work here. Select the link and copy it.');
+    }
+  };
 
   useEffect(() => {
     communityApi.mine().then(setMine).catch((e) => setError(errorMessage(e, 'Could not load your communities.')));
@@ -127,8 +153,8 @@ export const CommunitiesPage: React.FC = () => {
           <Building2 className="w-7 h-7 text-brand-600" /> Communities
         </h1>
         <p className="text-xs sm:text-sm text-ink-secondary">
-          Free for everyone. Add the places you belong to (your gated community, apartment, college, office, place of worship or club) so
-          neighbours can reach you fast in an emergency.
+          Free for everyone. Add the places and groups you belong to (your gated community, apartment, college, office, place of worship, club,
+          association or family WhatsApp group) so the people who know you can reach you fast in an emergency.
         </p>
       </div>
 
@@ -190,6 +216,16 @@ export const CommunitiesPage: React.FC = () => {
                     <Button
                       size="sm"
                       variant="ghost"
+                      aria-label={`Invite people to ${m.name}`}
+                      isLoading={busy === `invite-${m.id}`}
+                      onClick={() => getInvite(m.id)}
+                      leftIcon={<Link2 className="w-4 h-4" />}
+                    >
+                      Invite
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       aria-label={p.muted ? `Unmute ${m.name}` : `Mute ${m.name}`}
                       isLoading={busy === `mute-${m.id}`}
                       onClick={() => run(`mute-${m.id}`, () => communityApi.updatePrefs(m.id, { muted: !p.muted }))}
@@ -209,6 +245,27 @@ export const CommunitiesPage: React.FC = () => {
                     </Button>
                   </div>
                 </div>
+                {invites[m.id] && (
+                  <div className="rounded-lg bg-gray-50 border border-line-border p-3 space-y-2" id={`invite-${m.id}`}>
+                    <p className="text-xs text-ink-secondary">
+                      Share this link in your WhatsApp group or notice board. Anyone who opens it can join in one tap; they choose whether to get alerts.
+                    </p>
+                    <p className="text-xs font-mono break-all text-ink-main">{invites[m.id].url}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={invites[m.id].whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold px-3 py-2"
+                      >
+                        <MessageCircle className="w-4 h-4" /> Share on WhatsApp
+                      </a>
+                      <Button size="sm" variant="outline" onClick={() => copy(m.id, invites[m.id].message)} leftIcon={<Copy className="w-4 h-4" />}>
+                        {copied === m.id ? 'Copied' : 'Copy message'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <Toggle
                   id={`near-${m.id}`}
                   checked={p.alertNearby && !p.isAlumni}
@@ -223,7 +280,7 @@ export const CommunitiesPage: React.FC = () => {
                   disabled={p.muted || busy !== null}
                   onChange={(v) => run(`members-${m.id}`, () => communityApi.updatePrefs(m.id, { alertFromMembers: v }))}
                   label="Alert me when a fellow member needs blood, at any hospital"
-                  hint="Off by default. Good for close-knit groups."
+                  hint="Off by default for places; on for WhatsApp groups and associations you join by link."
                 />
                 <Toggle
                   id={`alumni-${m.id}`}

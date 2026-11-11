@@ -45,6 +45,9 @@ model User {
   requestCandidacies RequestCandidate[] @relation("RequestCandidateDonor")
   communityMemberships CommunityMember[]
   donationRecords      DonationRecord[]
+  orgMemberships       OrgMember[]
+  remoteDonations      RemoteDonation[]
+  partnerRedemptions   PartnerRedemption[]
   communitiesCreated   Community[]       @relation("CommunityCreator")
 
   @@index([email])
@@ -89,6 +92,9 @@ model DonorProfile {
   pauseReason         String?   // private, only the donor sees it
   // Last donation date we already sent "You can donate again" for (so it is sent once)
   canDonateAgainNotifiedFor DateTime?
+  // Who may reach me: regular (public requests near me) and corporate (colleagues / my company's camps)
+  reachRegular        Boolean   @default(true)
+  reachCorporate      Boolean   @default(true)
   isProfileCompleted  Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -374,6 +380,8 @@ model BloodRequest {
   lastManualWaveAt   DateTime? // requester pressed "Alert more donors now"
   alertCommunityIds  String?   // JSON list of communities near the hospital the requester chose to alert too
   shareNumberInAlerts Boolean  @default(false) // requester chose to show their number in alerts (before a donor accepts)
+  alertOrgIds        String?   // JSON list of the requester's organisations whose colleagues are alerted too
+  askRemoteReplacement Boolean @default(false) // also ask colleagues in other cities to donate at a partner blood bank (replacement)
   riskScore          Int       @default(0) // automatic fraud checks (0 = no warning signs)
   riskFlags          String?   // JSON list of the warning signs found
   documentStatus     String    @default("none") // none, checking, passed, warnings, failed
@@ -500,7 +508,8 @@ model Community {
   id              String   @id @default(uuid())
   name            String
   nameKey         String   // lower-case name without spaces/punctuation, used to stop duplicates
-  type            String   @default("other") // gated, villa, apartment, college, company, worship, club, other
+  type            String   @default("other") // gated, villa, apartment, college, company, worship, club, whatsapp, association, other
+  inviteCode      String?  // (indexed, unique by generation) shareable link for groups (e.g. a WhatsApp group): /app/communities/join/<code>
   country         String   @default("IN")
   state           String
   district        String
@@ -516,6 +525,7 @@ model Community {
   members   CommunityMember[]
 
   @@unique([country, state, district, nameKey])
+  @@index([inviteCode])
   @@index([country, state, district])
   @@index([pinCode])
 }
@@ -574,4 +584,146 @@ model DonationRecord {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+}
+
+/// An organisation (company, college, NGO...) that registers its people. Verified by BloodBridge staff before members can join.
+model Organization {
+  id           String   @id @default(uuid())
+  name         String
+  type         String   @default("company") // company, college, ngo, hospital_group, other
+  emailDomains String   // JSON list, e.g. ["infosys.com"]: work emails that prove someone belongs here
+  inviteCode   String   @unique
+  city         String
+  state        String
+  district     String
+  country      String   @default("IN")
+  verified     Boolean  @default(false) // checked by BloodBridge staff
+  plan         String   @default("pilot") // pilot, paid
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members       OrgMember[]
+  announcements OrgAnnouncement[]
+
+  @@index([verified])
+}
+
+/// A person's link to an organisation. It sits on their ONE personal account; leaving ends the link, never the account.
+model OrgMember {
+  id                  String    @id @default(uuid())
+  orgId               String
+  userId              String
+  role                String    @default("member") // member, admin
+  workEmail           String
+  workEmailVerifiedAt DateTime?
+  employeeId          String?
+  status              String    @default("pending_email") // pending_email, active, left
+  countInImpact       Boolean   @default(true) // count my requests in the company's impact report
+  joinedAt            DateTime  @default(now())
+  leftAt              DateTime?
+  codeHash            String?   // work-email check code (hashed)
+  codeExpiresAt       DateTime?
+  codeAttempts        Int       @default(0)
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId, status])
+  @@index([orgId, status])
+  @@index([workEmail])
+}
+
+/// Announcements and donation camps an organisation admin sends to members
+model OrgAnnouncement {
+  id        String    @id @default(uuid())
+  orgId     String
+  authorId  String?
+  kind      String    @default("announcement") // announcement, camp
+  title     String
+  body      String
+  campDate  DateTime?
+  place     String?
+  sentTo    Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+}
+
+/// Licensed blood banks that accept "donate here, replace there" donations
+model PartnerBloodBank {
+  id        String   @id @default(uuid())
+  name      String
+  licenceNo String?
+  address   String?
+  city      String
+  district  String
+  state     String
+  country   String   @default("IN")
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  remoteDonations RemoteDonation[]
+
+  @@index([country, state, district, active])
+}
+
+/// "Donate here, save a life there": a donor gives at a partner blood bank in their own city as a replacement for a request elsewhere
+model RemoteDonation {
+  id            String    @id @default(uuid())
+  requestId     String
+  donorUserId   String
+  bloodBankId   String
+  status        String    @default("pledged") // pledged, donated (donor says so), confirmed (blood bank / staff confirmed), cancelled
+  donationRef   String?   // blood bank slip / donor card number
+  pledgedAt     DateTime  @default(now())
+  donatedAt     DateTime?
+  confirmedAt   DateTime?
+  confirmedById String?
+
+  donor    User             @relation(fields: [donorUserId], references: [id], onDelete: Cascade)
+  bloodBank PartnerBloodBank @relation(fields: [bloodBankId], references: [id], onDelete: Restrict)
+
+  @@unique([requestId, donorUserId])
+  @@index([requestId, status])
+}
+
+/// Partner programme: an insurer, term-insurance provider, bank, college or large group sponsors
+/// Family Safety Circle for its customers / members. People redeem the programme's code; the partner pays BloodBridge.
+model PartnerProgram {
+  id           String    @id @default(uuid())
+  name         String    // shown to people: "Sponsored by <name>"
+  partnerType  String    // insurer, term_insurer, bank, college, employer, group, ngo, other
+  code         String    @unique // what customers type, e.g. ACMELIFE-7KQ2
+  seats        Int       // how many people can redeem
+  monthsFree   Int       @default(12)
+  startsAt     DateTime  @default(now())
+  endsAt       DateTime? // last day the code can be redeemed
+  active       Boolean   @default(true)
+  contactName  String?
+  contactEmail String?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  redemptions PartnerRedemption[]
+}
+
+/// One person who redeemed a partner code (one per person per programme)
+model PartnerRedemption {
+  id             String   @id @default(uuid())
+  programId      String
+  userId         String
+  subscriptionId String?
+  redeemedAt     DateTime @default(now())
+
+  program PartnerProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, userId])
+  @@index([userId])
 }

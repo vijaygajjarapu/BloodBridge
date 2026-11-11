@@ -31,6 +31,8 @@ import { NeverPayNotice, RequestDocumentsPanel, ReportRequestButton, DocumentRes
 import { formatDate } from '../../../constants/countries';
 import { useT } from '../../../i18n/I18nProvider';
 import { outreachApi } from '../../../services/outreachApi';
+import { RemoteDonationCard, RemoteCreditsCard } from '../../../components/requests/RemoteDonationCard';
+import { useAuth } from '../../../hooks/useAuth';
 import { errorMessage as callErrorMessage } from '../../../utils/formErrors';
 import { MatchingProgress } from '../../../components/requests/MatchingProgress';
 import { errorMessage, errorTitle } from '../../../utils/formErrors';
@@ -46,6 +48,7 @@ const STATUS_HELP: Partial<Record<RequestStatus, string>> = {
 export const RequestDetailPage: React.FC = () => {
   const { id = '' } = useParams();
   const t = useT();
+  const { user: me } = useAuth();
   const location = useLocation();
   const navState = location.state as { justCreated?: boolean; savedDonorsAlerted?: number; docUploadFailed?: boolean } | null;
   const justCreated = Boolean(navState?.justCreated);
@@ -53,7 +56,7 @@ export const RequestDetailPage: React.FC = () => {
   const [r, setR] = useState<BloodRequest | null>(null);
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  // Calls through BloodBridge (numbers stay hidden): which call is starting, and what to tell the person
+  // Calls through BloodNation (numbers stay hidden): which call is starting, and what to tell the person
   const [calling, setCalling] = useState<string | null>(null);
   const [callNote, setCallNote] = useState<{ key: string; text: string; ok: boolean } | null>(null);
   const maskedCall = async (key: string, fn: () => Promise<{ message: string }>) => {
@@ -193,6 +196,12 @@ export const RequestDetailPage: React.FC = () => {
               onAlertMore={() => run(() => requestApi.alertMore(r.id))}
             />
           )}
+          {r.remote && <RemoteCreditsCard requestId={r.id} summary={r.remote} />}
+          <div className="flex justify-end">
+            <Link to={`/app/requests/${r.id}/flyer`}>
+              <Button size="sm" variant="outline">{t('flyer.open')}</Button>
+            </Link>
+          </div>
 
           <Card>
             <CardHeader>
@@ -314,6 +323,9 @@ export const RequestDetailPage: React.FC = () => {
 
       {/* ---------- Donor view ---------- */}
       {!r.isRequester && <NeverPayNotice />}
+      {!r.isRequester && (r.remoteOffered || r.remote?.mine) && (
+        <RemoteDonationCard requestId={r.id} initial={r.remote} myState={(me as { state?: string } | null)?.state} myDistrict={(me as { district?: string } | null)?.district} />
+      )}
       {!r.isRequester && (
         <Card>
           <CardContent className="p-5 sm:p-6 space-y-4">

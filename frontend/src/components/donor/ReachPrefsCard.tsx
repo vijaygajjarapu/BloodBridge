@@ -20,7 +20,7 @@ export const ReachPrefsCard: React.FC = () => {
 
   if (!p) return null;
 
-  const save = async (changes: Partial<Omit<ReachPrefs, 'available'>>) => {
+  const save = async (changes: Partial<Omit<ReachPrefs, 'available' | 'inOrganisation'>>) => {
     setSaving(true);
     setMsg(null);
     try {
@@ -48,6 +48,18 @@ export const ReachPrefsCard: React.FC = () => {
         </div>
 
         <label className="flex items-start gap-3 min-h-[44px] cursor-pointer">
+          <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand-600" checked={p.reachRegular} disabled={saving}
+            onChange={(e) => save({ reachRegular: e.target.checked })} />
+          <span className="text-sm text-ink-main">{t('reach.regular')}</span>
+        </label>
+        {p.inOrganisation && (
+          <label className="flex items-start gap-3 min-h-[44px] cursor-pointer">
+            <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand-600" checked={p.reachCorporate} disabled={saving}
+              onChange={(e) => save({ reachCorporate: e.target.checked })} />
+            <span className="text-sm text-ink-main">{t('reach.corporate')}</span>
+          </label>
+        )}
+        <label className="flex items-start gap-3 min-h-[44px] cursor-pointer border-t border-line-border pt-3">
           <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand-600" checked={p.alertBySms} disabled={saving}
             onChange={(e) => save({ alertBySms: e.target.checked })} />
           <span className="text-sm text-ink-main">

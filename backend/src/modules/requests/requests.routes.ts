@@ -42,6 +42,10 @@ const createSchema = z.object({
   alertCommunityIds: z.array(z.string().max(64)).max(10).optional(),
   /** Show my number in the alerts (before a donor accepts). Off by default. */
   shareNumberInAlerts: z.boolean().optional(),
+  /** Alert colleagues at my organisation(s) */
+  alertOrgIds: z.array(z.string().max(64)).max(3).optional(),
+  /** Also ask colleagues in other cities to donate at a partner blood bank (replacement) */
+  askRemoteReplacement: z.boolean().optional(),
 });
 
 const respondSchema = z.object({

@@ -45,6 +45,12 @@ import { PrivacySettingsPage } from '../pages/app/PrivacySettingsPage';
 import { HelpSupportPage } from '../pages/app/HelpSupportPage';
 import { FamilyPage } from '../pages/app/FamilyPage';
 import { CommunitiesPage } from '../pages/app/CommunitiesPage';
+import { OrganisationsPage } from '../pages/app/OrganisationsPage';
+import { OrgAdminPage } from '../pages/app/OrgAdminPage';
+import { RequestFlyerPage } from '../pages/app/requests/RequestFlyerPage';
+import { AdminOrganisationsPage } from '../pages/admin/AdminOrganisationsPage';
+import { AdminPartnersPage } from '../pages/admin/AdminPartnersPage';
+import { GroupJoinPage } from '../pages/app/GroupJoinPage';
 import { SubscribePage } from '../pages/app/SubscribePage';
 import { FamilyInvitePage } from '../pages/public/FamilyInvitePage';
 import { PublicRequestPage } from '../pages/public/PublicRequestPage';
@@ -131,6 +137,10 @@ export const router = createBrowserRouter([
       { path: 'help', element: <HelpSupportPage /> },
       { path: 'family', element: <FamilyPage /> },
       { path: 'communities', element: <CommunitiesPage /> },
+      { path: 'communities/join/:code', element: <GroupJoinPage /> },
+      { path: 'organisations', element: <OrganisationsPage /> },
+      { path: 'organisations/:id/admin', element: <OrgAdminPage /> },
+      { path: 'requests/:id/flyer', element: <RequestFlyerPage /> },
       { path: 'requests', element: <RequestsPage /> },
       { path: 'requests/new', element: <NewRequestPage /> },
       { path: 'requests/:id', element: <RequestDetailPage /> },
@@ -160,6 +170,8 @@ export const router = createBrowserRouter([
       { path: 'referrals', element: <AdminReferralsPage /> },
       { path: 'consents', element: <AdminConsentsPage /> },
       { path: 'requests', element: <AdminRequestsPage /> },
+      { path: 'organisations', element: <AdminOrganisationsPage /> },
+      { path: 'partners', element: <AdminPartnersPage /> },
       { path: 'audit-logs', element: <AdminAuditLogsPage /> },
       { path: 'settings', element: <AdminSettingsPage /> },
     ],
