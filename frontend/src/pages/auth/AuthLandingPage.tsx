@@ -386,7 +386,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
         email: challengeEmail,
         code: otpCode.trim(),
       });
-      setSuccessNotice('Login verified! Redirecting to Manvi Blood dashboard...');
+      setSuccessNotice('Login verified! Redirecting to BloodNation dashboard...');
       setTimeout(() => {
         if (session.user.role === 'admin') {
           navigate('/admin/dashboard', { replace: true });
@@ -415,7 +415,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
         email: challengeEmail,
         code: otpCode.trim(),
       });
-      setSuccessNotice('Email verified successfully! Welcome to Manvi Blood.');
+      setSuccessNotice('Email verified successfully! Welcome to BloodNation.');
       setTimeout(() => {
         if (session.user.role === 'admin') {
           navigate('/admin/dashboard', { replace: true });
@@ -606,7 +606,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
         <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm mx-auto flex items-center justify-center mb-3 shadow-inner ring-1 ring-white/30">
           <Heart className="w-6 h-6 fill-white text-white animate-pulse" />
         </div>
-        <h1 className="text-2xl font-black tracking-tight text-white">Manvi Blood</h1>
+        <h1 className="text-2xl font-black tracking-tight text-white">BloodNation</h1>
         <p className="text-xs text-rose-100 font-medium mt-1">
           Secure Savior &amp; Donor Authentication
         </p>
@@ -1004,7 +1004,7 @@ export const AuthLandingPage: React.FC<AuthLandingPageProps> = ({ initialTab = '
                       ) : (
                         <span className="inline-flex items-center text-red-700 bg-red-50 px-2 py-0.5 rounded-md font-medium border border-red-200">
                           <AlertCircle className="w-3.5 h-3.5 mr-1 text-red-600" />
-                          Manvi Blood is for people aged 18 or older. You can join on your 18th birthday.
+                          BloodNation is for people aged 18 or older. You can join on your 18th birthday.
                         </span>
                       )}
                     </div>

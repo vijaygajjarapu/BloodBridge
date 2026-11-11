@@ -146,7 +146,7 @@ export const DonorRegistrationPage: React.FC = () => {
                 type="date"
                 required
                 max={maxAdultDob()}
-                helperText="You must be 18 or older to join Manvi Blood."
+                helperText="You must be 18 or older to join BloodNation."
                 error={errors.dateOfBirth?.message}
                 {...register('dateOfBirth')}
               />
@@ -167,7 +167,7 @@ export const DonorRegistrationPage: React.FC = () => {
                   required
                   autoComplete="email"
                   placeholder="priya@example.com"
-                  helperText="We'll send a 6-digit code here to confirm your Manvi Blood account."
+                  helperText="We'll send a 6-digit code here to confirm your BloodNation account."
                   error={errors.email?.message}
                   {...register('email')}
                 />
@@ -235,7 +235,7 @@ export const DonorRegistrationPage: React.FC = () => {
                     Scope of Emergency Contact Sharing
                   </h3>
                   <p className="text-xs text-brand-800 leading-relaxed mt-1">
-                    By granting contact consent below, you permit <strong>verified emergency healthcare dispatchers</strong> and Manvi Blood hospital partners to view your direct phone number <em>only</em> when a patient requires a matching {watch('bloodGroup')} transfusion within your region. Your number is never sold or made visible to public web searches.
+                    By granting contact consent below, you permit <strong>verified emergency healthcare dispatchers</strong> and BloodNation hospital partners to view your direct phone number <em>only</em> when a patient requires a matching {watch('bloodGroup')} transfusion within your region. Your number is never sold or made visible to public web searches.
                   </p>
                 </div>
               </div>
@@ -258,7 +258,7 @@ export const DonorRegistrationPage: React.FC = () => {
                   <span>
                     I have reviewed and acknowledge the{' '}
                     <Link to="/privacy" target="_blank" className="text-brand-600 underline font-semibold">
-                      Manvi Blood Privacy Charter
+                      BloodNation Privacy Charter
                     </Link>
                     .
                   </span>

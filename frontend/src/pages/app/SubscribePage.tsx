@@ -27,7 +27,7 @@ declare global {
  * checkout (no in-app purchase); we point people to the website instead.
  */
 function isInsideMobileApp(): boolean {
-  return Boolean(window.Capacitor?.isNativePlatform?.()) || /Manvi BloodApp|ManviBloodApp/i.test(navigator.userAgent);
+  return Boolean(window.Capacitor?.isNativePlatform?.()) || /BloodBridgeApp|BloodNationApp/i.test(navigator.userAgent);
 }
 
 function loadRazorpay(): Promise<void> {

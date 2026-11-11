@@ -61,7 +61,7 @@ afterAll(async () => {
 });
 
 describe('Partner programmes', () => {
-  it('only Manvi Blood staff create programmes', async () => {
+  it('only BloodNation staff create programmes', async () => {
     const no = await request(app).post(`${api}/partners/admin`).set(auth.family).send({ name: 'Partnertest Life', partnerType: 'term_insurer', seats: 2 });
     expect(no.status).toBe(403);
     const res = await request(app).post(`${api}/partners/admin`).set(adminAuth).send({ name: 'Partnertest Life', partnerType: 'term_insurer', seats: 2, monthsFree: 12 });

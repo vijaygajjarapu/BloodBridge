@@ -3,7 +3,7 @@
  * sponsor Donor Circle for their customers or members.
  *
  * How it works:
- * - Manvi Blood staff create a programme with a code (e.g. ACMELIFE-7KQ2), a number of seats and free months.
+ * - BloodNation staff create a programme with a code (e.g. ACMELIFE-7KQ2), a number of seats and free months.
  * - The partner shares the code with its customers (policy welcome kit, bank app banner, college notice, WhatsApp).
  * - A person redeems it once: Donor Circle switches on for them at no cost.
  * - The partner gets a counts-only report (redeemed, families set up, donors pledged, emergencies helped).
@@ -116,7 +116,7 @@ export class PartnerService {
     return { name: r?.program.name || 'a partner', partnerType: r?.program.partnerType || 'other', endsAt: sub.endsAt!.toISOString() };
   }
 
-  // ---------- Manvi Blood staff ----------
+  // ---------- BloodNation staff ----------
 
   async adminCreate(adminId: string, input: ProgramInput) {
     let code = input.code ? normalise(input.code) : makeCode(input.name);

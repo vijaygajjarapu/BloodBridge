@@ -39,7 +39,7 @@ export const RequestFlyerPage: React.FC = () => {
       {/* The flyer itself (A5-ish card, prints on one page) */}
       <article id="flyer" className="bg-white rounded-2xl border-4 border-brand-600 p-8 sm:p-10 space-y-6 text-center shadow-lg print:shadow-none">
         <div className="flex items-center justify-center gap-2 text-brand-700 font-extrabold text-lg">
-          <Droplet className="w-6 h-6 fill-current" /> Manvi Blood
+          <Droplet className="w-6 h-6 fill-current" /> BloodNation
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-ink-main leading-tight">{t('flyer.title', { city: r.city })}</h1>
         <div className="inline-flex items-center justify-center w-28 h-28 rounded-full bg-brand-600 text-white text-4xl font-black mx-auto">{r.bloodGroup}</div>

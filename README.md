@@ -1,6 +1,8 @@
-# Manvi Blood — “Be a Donor. Be a Savior.”
+# BloodNation — “Be a Donor. Be a Savior.”
 
-> **Brand:** Manvi Blood (formerly BloodBridge). App store name: **Manvi Blood: Your Donor Circle**. The core idea is your own circle of people who pledged to donate blood for you (relatives, friends, colleagues, group members, anyone willing), alerted first in an emergency. Folder and repository names still say BloodBridge.
+> **Brand:** BloodNation (formerly BloodBridge). App store name: **BloodNation: Your Donor Circle**. The core idea is your own circle of people who pledged to donate blood for you (relatives, friends, colleagues, group members, anyone willing), alerted first in an emergency. Folder and repository names still say BloodBridge.
+>
+> **Legal entity:** BloodNation is a platform owned and operated by **Manjusha Health Tech Pvt Ltd**. Every screen shows this line at the bottom. Once the company is registered, fill `VITE_COMPANY_CIN`, `VITE_COMPANY_REGISTERED_OFFICE`, `VITE_COMPANY_PHONE`, `VITE_COMPANY_EMAIL` and `VITE_COMPANY_GRIEVANCE_OFFICER` in `frontend/.env` (Rule 26, Companies (Incorporation) Rules 2014 asks for these on the home page).
 
 [![Full-Stack Production Ready](https://img.shields.io/badge/status-production--ready-brightgreen.svg)](#)
 [![Database](https://img.shields.io/badge/database-PostgreSQL%2016-blue.svg)](#)
@@ -8,7 +10,7 @@
 [![Frontend Tests](https://img.shields.io/badge/frontend%20tests-22%2F22%20passing-success.svg)](#)
 [![Zero-Cost Target](https://img.shields.io/badge/cost-%E2%82%B90%20local%20dev-orange.svg)](#)
 
-Manvi Blood is a mission-critical, full-stack blood donation and community healthcare emergency network built with **React 19, TypeScript, Tailwind CSS, Node.js, Express, Socket.IO, Prisma ORM, and PostgreSQL 16**.
+BloodNation is a mission-critical, full-stack blood donation and community healthcare emergency network built with **React 19, TypeScript, Tailwind CSS, Node.js, Express, Socket.IO, Prisma ORM, and PostgreSQL 16**.
 
 ---
 
@@ -256,7 +258,7 @@ npm test --workspace=backend
 
 ## 🎯 Smart matching (ranked donors, waves, live progress)
 
-Instead of alerting every matching donor at once, Manvi Blood ranks them and contacts them in waves.
+Instead of alerting every matching donor at once, BloodNation ranks them and contacts them in waves.
 
 - **Who first** (`backend\src\modules\requests\matching.ts`): family donors (Donor Circle), donors in the hospital's PIN code area, same city, people who know the family (savior links), donors who usually say yes, who have donated before, and who were active recently. Only donors who are compatible, available and eligible today are considered.
 - **Waves**: wave 1 = all family donors + top 5, wave 2 = next 10, then 20 at a time. The next wave goes out after 10 / 20 / 60 minutes (critical / urgent / planned) unless enough donors have accepted. If half of a wave says "can't today", the next wave comes within 3 minutes. A withdrawal triggers the next wave straight away.
@@ -278,14 +280,14 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 
 - **One account per person.** Joining a company adds a link to the person's own account (`OrgMember`). Leaving the job ends the link, never the account or its donation history.
 - **Proof of working there:** a code sent to a work email on the organisation's domains (Gmail, Yahoo, Outlook... are refused). One work email belongs to one person. Up to 3 organisations per person.
-- **HR / CSR registers the organisation** (Profile → “Join with your work email” → Register). Manvi Blood staff verify it in **Admin → Organisations & Banks** before employees can join with the invite code or invite link.
+- **HR / CSR registers the organisation** (Profile → “Join with your work email” → Register). BloodNation staff verify it in **Admin → Organisations & Banks** before employees can join with the invite code or invite link.
 - **Org admin dashboard** (`/app/organisations/:id/admin`): counts only — members, donors, “could donate now”, donors by blood group (below 3 shows “fewer than 3”), requests and helps in 90 days. Member list shows names and work emails only. Admins send announcements and donation camps (5 a day) and remove people who left.
 - **Emergencies need no approval:** an employee posts a request themselves; if they are a member, “Also alert my colleagues at X” appears (hidden for everyone else). Colleagues in the hospital's state are added to the waves.
 - **Who can reach me** (Profile → How we reach you): “public requests near me” and, for members only, “my colleagues' requests and company camps”. Each can be switched off.
 
 ## 🔁 Donate here, save a life there (replacement donations)
 
-- A donor far from the hospital (another district) sees “Can't reach the hospital? Donate in your city” when a **partner blood bank** exists in their state. They pledge, donate, enter the slip number; Manvi Blood staff confirm it with the blood bank; the family sees the confirmed credit (bank + slip number) to show at the hospital's blood bank. Any blood group can be a replacement.
+- A donor far from the hospital (another district) sees “Can't reach the hospital? Donate in your city” when a **partner blood bank** exists in their state. They pledge, donate, enter the slip number; BloodNation staff confirm it with the blood bank; the family sees the confirmed credit (bank + slip number) to show at the hospital's blood bank. Any blood group can be a replacement.
 - Requesters in an organisation can tick “Ask colleagues in other cities to donate at a partner blood bank”.
 - **Flyer:** on a request, “Make a flyer” opens a printable “Donate here, save a life in <city>” page (no patient name or phone, only the public link).
 - **Honest limit:** a credit only works where blood banks have agreed to honour it (same chain or a partnership). That agreement is business work outside the app. Blood is never sold.
@@ -293,10 +295,10 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 
 ## 🤝 Partner programmes and group invite links
 
-- **Partner programmes (insurers, term-insurance providers, banks, colleges, large groups):** Manvi Blood staff create a programme in **Admin → Partner Programmes** (name, kind, seats, free months, optional last day). The partner shares the code or the link `/app/subscribe?partner=CODE`. A person redeems once and Donor Circle switches on at no cost (starts after any paid period they already have). One sponsored period at a time. The partner report is counts only (codes used, families set up, donors pledged, emergencies posted / fulfilled), with numbers below 3 hidden.
+- **Partner programmes (insurers, term-insurance providers, banks, colleges, large groups):** BloodNation staff create a programme in **Admin → Partner Programmes** (name, kind, seats, free months, optional last day). The partner shares the code or the link `/app/subscribe?partner=CODE`. A person redeems once and Donor Circle switches on at no cost (starts after any paid period they already have). One sponsored period at a time. The partner report is counts only (codes used, families set up, donors pledged, emergencies posted / fulfilled), with numbers below 3 hidden.
 - **WhatsApp groups, associations, clubs:** new community kinds “WhatsApp / family group” and “Association / union / alumni”. Any member taps **Invite** to get a link and a ready-made WhatsApp message. People who open `/app/communities/join/<code>` join in one tap and choose “Alert me when a group member needs blood” (ticked by default for these groups). When a member posts a request, the group's donors are added to the first waves wherever they live. Nobody in the group sees anyone's number or blood group.
 - After pulling this change run **3 - Restart Backend** once (new database tables).
-- Manual test cases for every feature (100 cases): the shared "Manvi Blood – Manual Test Cases" doc; export it to Word or PDF from the doc's menu and keep a copy in `docs/`.
+- Manual test cases for every feature (100 cases): the shared "BloodNation – Manual Test Cases" doc; export it to Word or PDF from the doc's menu and keep a copy in `docs/`.
 
 ## 🩸 After a donation, and pausing alerts
 
@@ -313,7 +315,7 @@ A community is just a tag a donor adds to themselves: a gated or villa community
 - **“Include my number in alerts”** (Request blood, off by default, with a warning): donors who miss the alert can call the family straight back. Off = donors see the number only after accepting.
 - **Donor choices** (Profile → “How we reach you in an emergency”): SMS on/off, automatic call for critical requests on/off, quiet hours (India time), and whether critical requests may still come through during quiet hours. In-app alerts always arrive.
 - **One-tap link** in alert SMS: `/q/<code>` opens a page where the donor answers “Yes, I can donate” / “Not this time” without signing in. Each link belongs to one donor and one request.
-- **Calls through Manvi Blood (masked):** a donor who accepted can call the family, and the family can call a donor who kept their number private. Manvi Blood rings the caller first and then joins the other person; both see only the Manvi Blood number. Max 3 calls per hour per donor and request.
+- **Calls through BloodNation (masked):** a donor who accepted can call the family, and the family can call a donor who kept their number private. BloodNation rings the caller first and then joins the other person; both see only the BloodNation number. Max 3 calls per hour per donor and request.
 - **Automatic alert calls** for critical requests: the call reads the alert; press 1 = I can donate, 2 = not this time.
 - **All of this is OFF until you set it up** in `backend\.env` (see `.env.example`): `MSG91_ALERT_TEMPLATE_ID` for alert SMS (a DLT-approved template), and `VOICE_PROVIDER=exotel` with the Exotel keys for calls. Until then, buttons and options show “not switched on yet”, and nothing is sent. Check the Exotel request fields against Exotel's current documentation before going live.
 - Every SMS / call attempt is logged (without message text) for limits and support, and removed when the person deletes their account.
@@ -336,7 +338,7 @@ The app can be shown in **English, हिन्दी (Hindi), తెలుగ�
 
 ## 🔞 Adults only (18+)
 
-Manvi Blood keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).
+BloodNation keeps **no accounts for people under 18** (India's DPDP Act treats under-18s as children and requires verified parental consent, which we don't collect).
 
 - Sign-up and invite-link registration ask for a date of birth and refuse anyone under 18 before anything is stored.
 - Google sign-ups must add a date of birth on the profile page. If an account that never had a date of birth turns out to be under 18, it is deleted straight away (same as Delete Account).

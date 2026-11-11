@@ -78,7 +78,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    service: 'Manvi Blood Platform API',
+    service: 'BloodNation API',
     version: '1.0.0-prod',
     database: 'Prisma ORM (Online)',
   });

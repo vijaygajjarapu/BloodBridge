@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
+  // Legal entity that owns and operates BloodNation (shown in email footers)
+  companyLegalName: process.env.COMPANY_LEGAL_NAME || 'Manjusha Health Tech Pvt Ltd',
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '5000', 10),
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -24,7 +26,7 @@ export const config = {
     user: process.env.SMTP_USER || '', // set in backend/.env (never commit real values)
     pass: process.env.SMTP_PASS || '',
     from: process.env.SMTP_FROM || process.env.SMTP_USER || '',
-    fromName: process.env.SMTP_FROM_NAME || 'Manvi Blood',
+    fromName: process.env.SMTP_FROM_NAME || 'BloodNation',
   },
 
   // OTP Rules

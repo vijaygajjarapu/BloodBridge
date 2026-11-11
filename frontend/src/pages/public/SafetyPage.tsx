@@ -7,7 +7,7 @@ export const SafetyPage: React.FC = () => (
   <div className="max-w-3xl mx-auto py-10 px-4 space-y-6">
     <div>
       <h1 className="text-3xl font-extrabold text-ink-main">Fraud &amp; Safety Policy</h1>
-      <p className="text-sm text-ink-secondary mt-1">How Manvi Blood keeps blood requests genuine, and what to do if something feels wrong.</p>
+      <p className="text-sm text-ink-secondary mt-1">How BloodNation keeps blood requests genuine, and what to do if something feels wrong.</p>
     </div>
 
     <Card className="border-amber-300 bg-amber-50/60">
@@ -15,7 +15,7 @@ export const SafetyPage: React.FC = () => (
         <ShieldAlert className="w-6 h-6 text-amber-700 shrink-0" />
         <div className="text-sm text-amber-900 space-y-1">
           <p className="font-bold">Donating blood is always free.</p>
-          <p>Nobody on Manvi Blood (not a family, an “agent”, a “coordinator” or our team) will ever ask you to pay, share bank or UPI details, or send a “processing fee” to donate or receive blood. If anyone does, it is a scam: stop, and report the request.</p>
+          <p>Nobody on BloodNation (not a family, an “agent”, a “coordinator” or our team) will ever ask you to pay, share bank or UPI details, or send a “processing fee” to donate or receive blood. If anyone does, it is a scam: stop, and report the request.</p>
         </div>
       </CardContent>
     </Card>
@@ -27,7 +27,7 @@ export const SafetyPage: React.FC = () => (
         { icon: <FileCheck2 className="w-5 h-5 text-brand-600" />, title: 'Patient document checks', text: 'Requesters can upload the hospital’s blood requisition form or doctor’s note. We check that the file was not used in another request, look for signs of photo-editing apps, and read the text to match the hospital, patient name, blood group and a recent date. Software cannot prove a stamp or signature is real, so for doubtful requests our team calls the hospital’s blood bank.' },
         { icon: <Flag className="w-5 h-5 text-brand-600" />, title: 'Donor reports', text: 'Every request has a “Report this request” button. A request reported by 3 donors is paused automatically until our team reviews it. Reports about money are treated as the most serious.' },
         { icon: <PhoneOff className="w-5 h-5 text-brand-600" />, title: 'Private numbers', text: 'Donors’ numbers are never shown publicly. A donor sees the family’s number only after accepting, and shares their own number only if they choose to.' },
-        { icon: <Ban className="w-5 h-5 text-brand-600" />, title: 'Consequences', text: 'Accounts found misusing Manvi Blood are suspended. Their open requests are cancelled at once, and donors who accepted are told not to go.' },
+        { icon: <Ban className="w-5 h-5 text-brand-600" />, title: 'Consequences', text: 'Accounts found misusing BloodNation are suspended. Their open requests are cancelled at once, and donors who accepted are told not to go.' },
       ].map((x) => (
         <Card key={x.title}>
           <CardContent className="p-4 flex gap-3">

@@ -1,6 +1,6 @@
-/** Manvi Blood is for adults only (18+). Matches backend/src/shared/age.ts */
+/** BloodNation is for adults only (18+). Matches backend/src/shared/age.ts */
 export const MIN_ACCOUNT_AGE = 18;
-export const UNDER_AGE_MESSAGE = 'Manvi Blood is only for people aged 18 or older. You can join on your 18th birthday.';
+export const UNDER_AGE_MESSAGE = 'BloodNation is only for people aged 18 or older. You can join on your 18th birthday.';
 
 /** Age in whole years, or null when the date isn't valid */
 export function ageFromDob(value: string | undefined | null): number | null {

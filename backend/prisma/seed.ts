@@ -4,7 +4,7 @@ import { hashPassword } from '../src/shared/password.js';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding Manvi Blood database (India sample data)...');
+  console.log('Seeding BloodNation database (India sample data)...');
 
   // 0. Remove the old US sample donors from earlier seeds (accounts people created themselves are kept)
   await prisma.user.deleteMany({
@@ -28,7 +28,7 @@ async function main() {
     update: { supportHelpline: '', emergencyUrgentLine: '' },
     create: {
       id: 'default',
-      name: 'Manvi Blood',
+      name: 'BloodNation',
       supportHelpline: '',
       supportEmail: 'support@bloodbridge.org',
       emergencyUrgentLine: '',
@@ -216,7 +216,7 @@ async function main() {
   await prisma.notification.deleteMany({
     where: {
       recipientId: marcusUser.id,
-      title: { in: ['Elena Rostova Joined Your Network', 'Priya Sharma Joined Your Network', 'Welcome to Manvi Blood', 'Welcome to BloodBridge'] },
+      title: { in: ['Elena Rostova Joined Your Network', 'Priya Sharma Joined Your Network', 'Welcome to BloodNation', 'Welcome to BloodBridge'] },
     },
   });
   for (const notif of [
@@ -230,7 +230,7 @@ async function main() {
     {
       recipientId: marcusUser.id,
       notificationType: 'system',
-      title: 'Welcome to Manvi Blood',
+      title: 'Welcome to BloodNation',
       message: 'Thank you for stepping up to be a savior. Share your referral code to expand the donor circle.',
       isRead: true,
     },

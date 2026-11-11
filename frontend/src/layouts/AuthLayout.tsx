@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { Heart, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { DemoBanner } from '../components/ui/DemoBanner';
+import { LegalLine } from '../components/legal/LegalLine';
 
 export const AuthLayout: React.FC = () => {
   return (
@@ -13,7 +14,7 @@ export const AuthLayout: React.FC = () => {
             <Heart className="w-5 h-5 fill-current" />
           </div>
           <span className="text-xl font-extrabold tracking-tight text-ink-main">
-            Manvi <span className="text-brand-500">Blood</span>
+            Blood<span className="text-brand-500">Nation</span>
           </span>
         </Link>
 
@@ -37,7 +38,7 @@ export const AuthLayout: React.FC = () => {
           <ShieldCheck className="w-3.5 h-3.5 text-status-success" />
           <span>Encrypted Connection &bull; Healthcare Privacy Standard</span>
         </div>
-        <p>© {new Date().getFullYear()} Manvi Blood Platform. Be a Donor. Be a Savior.</p>
+        <LegalLine />
       </footer>
     </div>
   );

@@ -161,7 +161,7 @@ export const ResetPasswordPage: React.FC = () => {
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-ink-main">Password Successfully Changed!</h3>
               <p className="text-xs text-ink-secondary max-w-sm mx-auto leading-relaxed">
-                Your Manvi Blood account password has been updated. All previous sessions have been securely terminated.
+                Your BloodNation account password has been updated. All previous sessions have been securely terminated.
               </p>
             </div>
 

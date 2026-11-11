@@ -131,7 +131,7 @@ export const SettingsPage: React.FC = () => {
       <Card className="border-red-200">
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="font-bold text-sm text-status-error block">Sign Out of Manvi Blood</span>
+            <span className="font-bold text-sm text-status-error block">Sign Out of BloodNation</span>
             <p className="text-xs text-ink-secondary mt-0.5">
               Clear your active session token from this browser device.
             </p>
@@ -153,7 +153,7 @@ export const SettingsPage: React.FC = () => {
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={handleConfirmLogout}
         title="Confirm Log Out"
-        message="Are you sure you want to log out of your Manvi Blood account?"
+        message="Are you sure you want to log out of your BloodNation account?"
         confirmText="Log Out"
         isDestructive
       />

@@ -25,7 +25,7 @@ import {
 
 const router = Router();
 
-// Manvi Blood Core Auth Endpoints
+// BloodNation Core Auth Endpoints
 router.post('/signup', authLimiter, validate(signupSchema), authController.signup);
 router.post('/signup-referral', authLimiter, validate(signupReferralSchema), authController.signupWithReferral);
 router.post('/referral-signup', authLimiter, validate(signupReferralSchema), authController.signupWithReferral);

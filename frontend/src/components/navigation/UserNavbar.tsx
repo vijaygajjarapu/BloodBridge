@@ -65,7 +65,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
               </div>
               <div>
                 <span className="text-lg font-extrabold tracking-tight text-ink-main block leading-none">
-                  Manvi <span className="text-brand-500">Blood</span>
+                  Blood<span className="text-brand-500">Nation</span>
                 </span>
                 <span className="text-[10px] font-semibold text-brand-600 uppercase tracking-wider">
                   Donor Portal
@@ -192,7 +192,7 @@ export const UserNavbar: React.FC<{ unreadCount?: number }> = ({ unreadCount }) 
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={handleConfirmLogout}
-        title="Log Out of Manvi Blood"
+        title="Log Out of BloodNation"
         message="Are you sure you wish to log out? Your session token will be cleared from this device."
         confirmText="Log Out"
         isDestructive

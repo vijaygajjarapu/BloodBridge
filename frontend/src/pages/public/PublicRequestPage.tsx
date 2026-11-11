@@ -69,7 +69,7 @@ export const PublicRequestPage: React.FC = () => {
               <p className="text-sm text-ink-secondary bg-gray-50 rounded-lg p-3">This request is no longer active. Thank you for checking.</p>
             ) : !r.viewer.signedIn ? (
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-ink-main">Can you donate? Sign in or join Manvi Blood (free) to respond.</p>
+                <p className="text-sm font-semibold text-ink-main">Can you donate? Sign in or join BloodNation (free) to respond.</p>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="primary" onClick={() => goSignIn('signup')}>Join to respond</Button>
                   <Button variant="outline" onClick={() => goSignIn('signin')}>I have an account</Button>

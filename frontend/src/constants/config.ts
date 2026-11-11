@@ -6,7 +6,7 @@ const isTest = import.meta.env.MODE === 'test';
 const validatedMode: AppMode = isTest ? 'demo' : (envMode === 'api' ? 'api' : 'demo');
 
 export const appConfig = {
-  name: 'Manvi Blood',
+  name: 'BloodNation',
   tagline: 'Be a Donor. Be a Savior.',
   mode: validatedMode,
   isDemo: validatedMode === 'demo',
@@ -23,4 +23,16 @@ export const appConfig = {
   defaultCountry: getDefaultCountry().code,
   supportEmail: 'support@bloodbridge.org',
   currentPolicyVersion: 'v2.4-2026',
+  storeName: 'BloodNation: Your Donor Circle',
+  // Legal entity behind the brand. Rule 26, Companies (Incorporation) Rules 2014: a company website shows its
+  // name, registered office, CIN, phone, email and a grievance contact on the home page. Fill the VITE_COMPANY_*
+  // values in frontend/.env once the company is registered; empty values are simply not shown.
+  company: {
+    legalName: import.meta.env.VITE_COMPANY_LEGAL_NAME || 'Manjusha Health Tech Pvt Ltd',
+    cin: import.meta.env.VITE_COMPANY_CIN || '',
+    registeredOffice: import.meta.env.VITE_COMPANY_REGISTERED_OFFICE || '',
+    phone: import.meta.env.VITE_COMPANY_PHONE || '',
+    email: import.meta.env.VITE_COMPANY_EMAIL || '',
+    grievanceOfficer: import.meta.env.VITE_COMPANY_GRIEVANCE_OFFICER || '',
+  },
 };

@@ -14,7 +14,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          Manvi Blood connects people who need blood with voluntary donors. In this policy, “we” means [Company legal name], [registered address],
+          BloodNation connects people who need blood with voluntary donors. In this policy, “we” means {appConfig.company.legalName}, which owns and operates BloodNation, [registered address],
           the Data Fiduciary responsible for your personal data.
         </p>
         <p>
@@ -112,7 +112,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: '9. Adults only (18+)',
     body: (
       <p>
-        Manvi Blood is only for people aged 18 or older. We ask for your date of birth and don’t create accounts for anyone younger. If we learn
+        BloodNation is only for people aged 18 or older. We ask for your date of birth and don’t create accounts for anyone younger. If we learn
         that an account belongs to someone under 18, we delete it and its data.
       </p>
     ),
@@ -138,7 +138,7 @@ export const PrivacyPage: React.FC = () => {
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-ink-main tracking-tight">Privacy Policy</h1>
         <p className="text-sm text-ink-secondary max-w-2xl mx-auto">
-          How Manvi Blood collects, uses and protects your personal data, written to follow India’s Digital Personal Data Protection Act, 2023.
+          How BloodNation collects, uses and protects your personal data, written to follow India’s Digital Personal Data Protection Act, 2023.
         </p>
       </div>
 

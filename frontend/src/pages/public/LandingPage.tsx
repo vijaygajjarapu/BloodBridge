@@ -33,7 +33,7 @@ export const LandingPage: React.FC = () => {
               </h1>
 
               <p className="text-base sm:text-lg text-ink-secondary max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Manvi Blood is an invite-driven, consent-first community platform connecting verified whole-blood donors with local emergency hospital teams during life-critical shortages.
+                BloodNation is an invite-driven, consent-first community platform connecting verified whole-blood donors with local emergency hospital teams during life-critical shortages.
               </p>
 
               {/* CTAs */}
@@ -133,10 +133,10 @@ export const LandingPage: React.FC = () => {
             The Savior Protocol
           </h2>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-ink-main tracking-tight">
-            How Manvi Blood Saves Lives
+            How BloodNation Saves Lives
           </h3>
           <p className="text-sm sm:text-base text-ink-secondary mt-3">
-            Traditional public directories suffer from fake entries and unresponsive contacts. Manvi Blood is free for finding donors and posting requests. An optional Donor Circle adds a trusted donor list for your own family.
+            Traditional public directories suffer from fake entries and unresponsive contacts. BloodNation is free for finding donors and posting requests. An optional Donor Circle adds a trusted donor list for your own family.
           </p>
         </div>
 

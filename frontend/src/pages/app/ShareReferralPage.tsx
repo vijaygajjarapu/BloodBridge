@@ -28,9 +28,9 @@ export const ShareReferralPage: React.FC = () => {
   const referralUrl = `${origin}/join/${referralCode}`;
 
   const messageTemplates = {
-    standard: `I'm a registered blood donor on Manvi Blood. Every blood donation can save up to 3 lives in emergency situations. Join my local Donor Circle here: ${referralUrl}`,
-    urgent: `Our local community needs more emergency-ready blood donors. Join our verified Donor Circle on Manvi Blood so coordinators can reach out during critical shortages: ${referralUrl}`,
-    family: `Hey! I just enrolled as a community blood donor with Manvi Blood. Your contact details remain private until you approve emergency contact. Join my Donor Circle here: ${referralUrl}`,
+    standard: `I'm a registered blood donor on BloodNation. Every blood donation can save up to 3 lives in emergency situations. Join my local Donor Circle here: ${referralUrl}`,
+    urgent: `Our local community needs more emergency-ready blood donors. Join our verified Donor Circle on BloodNation so coordinators can reach out during critical shortages: ${referralUrl}`,
+    family: `Hey! I just enrolled as a community blood donor with BloodNation. Your contact details remain private until you approve emergency contact. Join my Donor Circle here: ${referralUrl}`,
   };
 
   const currentMessage = messageTemplates[activeTab];
@@ -55,7 +55,7 @@ export const ShareReferralPage: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join Manvi Blood Savior Network',
+          title: 'Join BloodNation Savior Network',
           text: currentMessage,
           url: referralUrl,
         });

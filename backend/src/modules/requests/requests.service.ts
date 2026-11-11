@@ -737,7 +737,7 @@ export class RequestService {
       shareNumberInAlerts: r.shareNumberInAlerts,
       colleaguesAlerted: parseIdList(r.alertOrgIds).length > 0,
       remote: await remoteDonationService.summary(r.id),
-      // Call a donor through Manvi Blood (their number stays hidden)
+      // Call a donor through BloodNation (their number stays hidden)
       maskedCallAvailable: outreachService.status().maskedCalls,
       responses: r.responses.map((x) => ({
         id: x.id,

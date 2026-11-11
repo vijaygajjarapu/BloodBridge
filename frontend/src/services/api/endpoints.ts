@@ -1,5 +1,5 @@
 export const ENDPOINTS = {
-  // Manvi Blood Auth
+  // BloodNation Auth
   SIGNIN: '/auth/signin',
   SIGNUP: '/auth/signup',
   SIGNUP_REFERRAL: '/auth/signup-referral',

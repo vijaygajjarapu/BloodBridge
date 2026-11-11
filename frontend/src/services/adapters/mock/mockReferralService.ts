@@ -56,7 +56,7 @@ export class MockReferralService implements ReferralService {
       code: normalized,
       referrerName: 'Marcus Vance',
       canDiscloseReferrer: true,
-      message: 'Verified Manvi Blood community invitation.',
+      message: 'Verified BloodNation community invitation.',
     };
   }
 

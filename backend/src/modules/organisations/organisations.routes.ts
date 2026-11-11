@@ -65,7 +65,7 @@ router.get('/:id/members', requireAuth, wrap((req) => organisationService.member
 router.patch('/:id/members/:memberId', requireAuth, validate(memberSchema), wrap((req) => organisationService.updateMember(req.user!.userId, req.params.id, req.params.memberId, req.body)));
 router.post('/:id/announcements', requireAuth, validate(announceSchema), wrap((req) => organisationService.announce(req.user!.userId, req.params.id, req.body), 201));
 
-// Manvi Blood staff
+// BloodNation staff
 router.get('/admin/all', requireAdmin, wrap(() => organisationService.adminList()));
 router.patch('/admin/:id', requireAdmin, validate(adminUpdateSchema), wrap((req) => organisationService.adminUpdate(req.user!.userId, req.params.id, req.body)));
 

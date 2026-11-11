@@ -50,7 +50,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ mobileOpen, onCloseM
           </div>
           <div>
             <span className="text-base font-extrabold tracking-tight text-white block leading-none">
-              Manvi <span className="text-brand-400">Blood</span>
+              Blood<span className="text-brand-400">Nation</span>
             </span>
             <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400 mt-1 block">
               Administration

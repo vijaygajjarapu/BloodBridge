@@ -75,7 +75,7 @@ export const OrgAdminPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-ink-main">{d.org.name}</h1>
           <p className="text-xs text-ink-secondary">
-            {d.org.city}, {d.org.state} · work emails: {d.org.emailDomains.map((x) => '@' + x).join(', ')} · {d.org.verified ? 'Verified' : 'Waiting for Manvi Blood to verify'} · {d.org.plan === 'paid' ? 'Paid plan' : 'Pilot'}
+            {d.org.city}, {d.org.state} · work emails: {d.org.emailDomains.map((x) => '@' + x).join(', ')} · {d.org.verified ? 'Verified' : 'Waiting for BloodNation to verify'} · {d.org.plan === 'paid' ? 'Paid plan' : 'Pilot'}
           </p>
         </div>
         <div className="rounded-xl border border-line-border p-3 text-xs">
@@ -88,7 +88,7 @@ export const OrgAdminPage: React.FC = () => {
 
       <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-ink-secondary flex items-start gap-2">
         <ShieldCheck className="w-4 h-4 text-status-success shrink-0" />
-        You see counts only. Manvi Blood never shows which employee has which blood group, who can donate, or anyone's health reasons. Numbers below 3 show as "fewer than 3".
+        You see counts only. BloodNation never shows which employee has which blood group, who can donate, or anyone's health reasons. Numbers below 3 show as "fewer than 3".
       </div>
       {error && <ErrorBanner message={error} />}
       {notice && <p className="text-sm text-status-success font-semibold" role="status">{notice}</p>}
@@ -173,7 +173,7 @@ export const OrgAdminPage: React.FC = () => {
                         </Button>
                       )}
                       <Button size="sm" variant="ghost" leftIcon={<UserMinus className="w-4 h-4" />} isLoading={busy === `rm-${m.id}`}
-                        onClick={() => { if (window.confirm(`Remove ${m.name} (left the organisation)? Their personal Manvi Blood account stays.`)) run(`rm-${m.id}`, () => orgApi.updateMember(id, m.id, { remove: true })); }}>
+                        onClick={() => { if (window.confirm(`Remove ${m.name} (left the organisation)? Their personal BloodNation account stays.`)) run(`rm-${m.id}`, () => orgApi.updateMember(id, m.id, { remove: true })); }}>
                         Left
                       </Button>
                     </td>

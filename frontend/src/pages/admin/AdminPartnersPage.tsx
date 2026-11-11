@@ -11,7 +11,7 @@ import { errorMessage, getFieldErrors } from '../../utils/formErrors';
 const EMPTY = { name: '', partnerType: 'term_insurer' as PartnerType, code: '', seats: '1000', monthsFree: '12', endsAt: '', contactName: '', contactEmail: '' };
 
 /**
- * Manvi Blood staff: partner programmes. An insurer, bank, college or large group sponsors Donor Circle
+ * BloodNation staff: partner programmes. An insurer, bank, college or large group sponsors Donor Circle
  * for its customers or members; they redeem the code at /app/subscribe?partner=CODE. The partner gets a counts-only report.
  */
 export const AdminPartnersPage: React.FC = () => {

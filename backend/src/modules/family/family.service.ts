@@ -11,7 +11,7 @@ export const RELATIONS = ['self', 'spouse', 'son', 'daughter', 'father', 'mother
 const BLOOD_ORDER = [...BLOOD_GROUPS];
 
 function firstName(name?: string | null): string {
-  return (name || '').trim().split(/\s+/)[0] || 'A Manvi Blood member';
+  return (name || '').trim().split(/\s+/)[0] || 'A BloodNation member';
 }
 
 function availabilityOf(profile?: { isAvailable: boolean; lastDonationDate: Date | null; sex?: string | null; pausedUntil?: Date | null } | null): 'available' | 'recently_donated' | 'unavailable' | null {

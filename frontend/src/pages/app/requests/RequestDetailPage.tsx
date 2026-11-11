@@ -56,7 +56,7 @@ export const RequestDetailPage: React.FC = () => {
   const [r, setR] = useState<BloodRequest | null>(null);
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  // Calls through Manvi Blood (numbers stay hidden): which call is starting, and what to tell the person
+  // Calls through BloodNation (numbers stay hidden): which call is starting, and what to tell the person
   const [calling, setCalling] = useState<string | null>(null);
   const [callNote, setCallNote] = useState<{ key: string; text: string; ok: boolean } | null>(null);
   const maskedCall = async (key: string, fn: () => Promise<{ message: string }>) => {

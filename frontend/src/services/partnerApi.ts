@@ -60,7 +60,7 @@ export const partnerApi = {
   lookup: (code: string) => apiClient.get<PartnerCodeInfo>(`/partners/code/${encodeURIComponent(code.trim())}`),
   redeem: (code: string) => apiClient.post<{ success: boolean; sponsoredBy: string; startsAt: string; endsAt: string }>('/partners/redeem', { code }),
   mine: () => apiClient.get<{ name: string; partnerType: PartnerType; endsAt: string } | null>('/partners/mine'),
-  // Manvi Blood staff
+  // BloodNation staff
   adminList: () => apiClient.get<PartnerProgram[]>('/partners/admin'),
   adminCreate: (input: { name: string; partnerType: PartnerType; code?: string; seats: number; monthsFree?: number; endsAt?: string | null; contactName?: string; contactEmail?: string }) =>
     apiClient.post<PartnerProgram>('/partners/admin', input),

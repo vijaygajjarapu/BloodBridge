@@ -34,7 +34,7 @@ export const donorRegistrationSchema = z
     dateOfBirth: z
       .string()
       .min(1, 'Please enter your date of birth.')
-      .refine((val) => isAdultDob(val), 'You must be 18 or older to join Manvi Blood.'),
+      .refine((val) => isAdultDob(val), 'You must be 18 or older to join BloodNation.'),
     country: z.string().min(2, 'Please choose your country.'),
     phone: z.string().min(1, 'Please enter your mobile number.'),
     email: z.string().trim().min(1, 'Please enter your email address. We send a code to it to confirm your account.').email('Please enter a valid email address.'),
@@ -50,7 +50,7 @@ export const donorRegistrationSchema = z
       message: 'Explicit contact-sharing consent is required so emergency coordinators can contact you.',
     }),
     privacyAcknowledged: z.boolean().refine((val) => val === true, {
-      message: 'You must review and acknowledge the Manvi Blood data privacy policy.',
+      message: 'You must review and acknowledge the BloodNation data privacy policy.',
     }),
     termsAccepted: z.boolean().refine((val) => val === true, {
       message: 'You must accept the Savior donor participation terms.',
@@ -70,7 +70,7 @@ export const updateDonorProfileSchema = z
     dateOfBirth: z
       .string()
       .min(1, 'Please enter your date of birth.')
-      .refine((val) => isAdultDob(val), 'You must be 18 or older to use Manvi Blood.'),
+      .refine((val) => isAdultDob(val), 'You must be 18 or older to use BloodNation.'),
     email: z.string().email('Please enter a valid email address.').optional().or(z.literal('')),
     phone: z.string().min(1, 'Please enter your mobile number.'),
     bloodGroup: z.enum(['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+']),

@@ -273,10 +273,10 @@ export class DonorService {
       if (phoneOwner) fieldErrors.phone = 'This mobile number is already registered. Please sign in, or use a different number.';
       if (emailOwner) fieldErrors.email = 'This email address is already registered. Please sign in, or use a different email.';
       const message = phoneOwner && emailOwner
-        ? 'This mobile number and email address are already registered with Manvi Blood.'
+        ? 'This mobile number and email address are already registered with BloodNation.'
         : phoneOwner
-          ? 'This mobile number is already registered with Manvi Blood.'
-          : 'This email address is already registered with Manvi Blood.';
+          ? 'This mobile number is already registered with BloodNation.'
+          : 'This email address is already registered with BloodNation.';
       throw new AppError(message, 409, 'CONFLICT', fieldErrors);
     }
 
