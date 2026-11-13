@@ -3,7 +3,7 @@ import { refreshSubscriptionStatus } from '../../hooks/useSubscription';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShieldCheck, CheckCircle2, Users, Phone, Bell, Globe, Loader2, FlaskConical } from 'lucide-react';
 import { subscriptionApi } from '../../services/familyApi';
-import type { MySubscription, SubscriptionPlan } from '../../types/family';
+import type { MySubscription, SubscriptionPlan, UnlockOptionId } from '../../types/family';
 import { useAuth } from '../../hooks/useAuth';
 import { appConfig } from '../../constants/config';
 import { formatDate } from '../../constants/countries';
@@ -51,6 +51,9 @@ export const SubscribePage: React.FC = () => {
   const [error, setError] = useState<{ title?: string; message: string } | null>(null);
   const [success, setSuccess] = useState(false);
   const [sponsor, setSponsor] = useState<{ name: string; endsAt: string } | null>(null);
+  // Locked after a company stopped paying: which unlock option to pay for
+  const [unlockOption, setUnlockOption] = useState<UnlockOptionId>('prorated');
+  const chosenOption = mine?.unlock ? unlockOption : undefined;
 
   useEffect(() => {
     if (!appConfig.isDemo) partnerApi.mine().then(setSponsor).catch(() => undefined);
@@ -82,13 +85,13 @@ export const SubscribePage: React.FC = () => {
     setPaying(true);
     try {
       await loadRazorpay();
-      const order = await subscriptionApi.createOrder();
+      const order = await subscriptionApi.createOrder(chosenOption);
       const checkout = new window.Razorpay!({
         key: order.keyId,
         // Razorpay Subscriptions (renews automatically every year) or a one-time order
         ...(order.mode === 'subscription' ? { subscription_id: order.subscriptionId } : { order_id: order.orderId, amount: order.amountPaise, currency: order.currency }),
         name: appConfig.name,
-        description: order.mode === 'subscription' ? 'Donor Circle – renews every year' : 'Donor Circle – 1 year',
+        description: order.mode === 'subscription' ? 'Donor Circle – renews every year' : chosenOption ? 'Donor Circle – unlock' : 'Donor Circle – 1 year',
         prefill: { name: order.name, email: order.email, contact: order.phone },
         theme: { color: '#B91C2C' },
         handler: async (resp: { razorpay_order_id?: string; razorpay_subscription_id?: string; razorpay_payment_id: string; razorpay_signature: string }) => {
@@ -120,7 +123,7 @@ export const SubscribePage: React.FC = () => {
     setError(null);
     setPaying(true);
     try {
-      finish(await subscriptionApi.devSimulate());
+      finish(await subscriptionApi.devSimulate(chosenOption));
     } catch (e) {
       setError({ title: errorTitle(e), message: errorMessage(e) });
       setPaying(false);
@@ -223,8 +226,8 @@ export const SubscribePage: React.FC = () => {
             >
               {mine.company.kind === 'company' ? (
                 <>
-                  <p className="font-bold">Paid by {mine.company.orgName}</p>
-                  <p>Your Donor Circle is free while you work there. No payment needed.</p>
+                  <p className="font-bold">Welcome to Corporate Donor Circle</p>
+                  <p>{mine.company.orgName} pays for your Donor Circle while you work there. No payment needed.</p>
                   <p className="text-xs">
                     If you leave, it stays free for 30 days. If you join another company on BloodNation that pays for its people, it simply
                     continues. Your family and donors always stay yours.
@@ -237,23 +240,40 @@ export const SubscribePage: React.FC = () => {
                     Your Donor Circle stays free until <strong>{formatDate(mine.company.until)}</strong>. Renew before then to keep your
                     family’s donors unlocked. Nothing is deleted if it locks.
                   </p>
-                  <p className="text-xs">
-                    Joining another company on BloodNation that pays for its people? If you renew now, the unused days are refunded when the
-                    new company starts paying.
-                  </p>
+                  <p className="text-xs">Joining another company on BloodNation that pays for its people continues it free.</p>
                 </>
               )}
             </div>
           )}
-          {mine?.lastRefund && mine.lastRefund.amountInr > 0 && !success && (
-            <p className="text-xs text-ink-secondary" id="last-refund">
-              Refund of ₹{mine.lastRefund.amountInr.toFixed(2)} for unused days of your own plan ({formatDate(mine.lastRefund.at)}):{' '}
-              {mine.lastRefund.status === 'processed'
-                ? 'sent to your original payment method (5 to 7 working days).'
-                : mine.lastRefund.status === 'simulated'
-                  ? 'simulated (local testing).'
-                  : 'our team will process it.'}
-            </p>
+          {/* Locked after the company stopped paying: two ways to unlock (everyone in the circle is kept) */}
+          {mine?.unlock && !success && (
+            <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-4 space-y-3" id="unlock-options">
+              <p className="text-sm font-bold text-ink-main">Unlock your Donor Circle</p>
+              <p className="text-xs text-ink-secondary">
+                {mine.unlock.orgName} stopped paying and the free period ended on {formatDate(mine.unlock.lockedSince)}. Your family and every
+                donor in your circle are kept and show again after you pay.
+              </p>
+              {mine.unlock.options.map((o) => (
+                <label
+                  key={o.id}
+                  className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer bg-white ${unlockOption === o.id ? 'border-brand-500' : 'border-line-border'}`}
+                >
+                  <input
+                    type="radio"
+                    name="unlock-option"
+                    className="mt-1 accent-brand-600"
+                    checked={unlockOption === o.id}
+                    onChange={() => setUnlockOption(o.id)}
+                  />
+                  <span className="text-sm text-ink-main">
+                    <strong>₹{o.amountInr.toFixed(2)}</strong>{' '}
+                    {o.id === 'prorated'
+                      ? `: the ${o.lockedDays} locked day${o.lockedDays === 1 ? '' : 's'} pro rata + 1 year. Active until ${formatDate(o.endsAt)}.`
+                      : `: ₹${o.baseInr} + ${o.gstPercent}% GST. Active until ${formatDate(o.endsAt)} (your yearly date from when you first joined or paid).`}
+                  </span>
+                </label>
+              ))}
+            </div>
           )}
 
           {/* Also offered to people who already pay: sponsored months start after their paid period */}
@@ -317,7 +337,7 @@ export const SubscribePage: React.FC = () => {
               <div className="space-y-3">
                 {plan.paymentsConfigured ? (
                   <Button variant="primary" size="lg" className="w-full justify-center" isLoading={paying} onClick={pay}>
-                    Pay {price} securely
+                    Pay {mine?.unlock ? `₹${(mine.unlock.options.find((o) => o.id === unlockOption)?.amountInr ?? 0).toFixed(2)}` : price} securely
                   </Button>
                 ) : (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">

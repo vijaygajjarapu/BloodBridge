@@ -9,6 +9,7 @@ import { AppError } from '../../shared/types.js';
 import { config } from '../../config/index.js';
 import { logger } from '../../shared/logger.js';
 import { emitToUser, emitAdminEvent } from '../../sockets/socket.server.js';
+import { organisationService } from '../organisations/organisations.service.js';
 import type { LoginInput, RegisterInput, VerifyOtpInput, ForgotPasswordInput, ResetPasswordInput } from './auth.schemas.js';
 
 /** "priya.sharma@gmail.com" -> "pr•••••••••@gmail.com" (shown when someone signs in with their phone) */
@@ -668,6 +669,9 @@ export class AuthService {
     if (!user) {
       throw new AppError('User account not found.', 404, 'NOT_FOUND');
     }
+
+    // Signed up with an official email: link to that company right away (corporate + personal on one account)
+    await organisationService.autoLinkByEmail(user.id, user.email).catch((e) => logger.error(`Auto-link to company failed: ${e?.message}`));
 
     const accessToken = signAccessToken({
       userId: user.id,

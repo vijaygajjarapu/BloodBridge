@@ -13,6 +13,7 @@ import type {
   SubscriptionPlan,
   PaymentOrder,
   PledgePermissions,
+  UnlockOptionId,
 } from '../types/family';
 
 export const familyApi = {
@@ -39,12 +40,12 @@ export const familyApi = {
 export const subscriptionApi = {
   plan: () => apiClient.get<SubscriptionPlan>('/subscriptions/plan'),
   mine: () => apiClient.get<MySubscription>('/subscriptions/me'),
-  createOrder: () => apiClient.post<PaymentOrder>('/subscriptions/order'),
+  createOrder: (option?: UnlockOptionId) => apiClient.post<PaymentOrder>('/subscriptions/order', option ? { option } : {}),
   verify: (orderId: string, paymentId: string, signature: string) =>
     apiClient.post<MySubscription>('/subscriptions/verify', { orderId, paymentId, signature }),
   verifySubscription: (subscriptionId: string, paymentId: string, signature: string) =>
     apiClient.post<MySubscription>('/subscriptions/verify', { subscriptionId, paymentId, signature }),
   setAutoRenew: (enabled: boolean) => apiClient.post<MySubscription>('/subscriptions/auto-renew', { enabled }),
-  devSimulate: () => apiClient.post<MySubscription>('/subscriptions/dev-simulate'),
+  devSimulate: (option?: UnlockOptionId) => apiClient.post<MySubscription>('/subscriptions/dev-simulate', option ? { option } : {}),
   devExpire: () => apiClient.post<{ renewed: number; mine: MySubscription }>('/subscriptions/dev-expire'),
 };

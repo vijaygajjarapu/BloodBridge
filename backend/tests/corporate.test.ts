@@ -73,30 +73,44 @@ afterAll(async () => {
 });
 
 describe('While working at a paying company', () => {
-  it('a personal plan bought earlier ends when the company covers them, with a pro-rata refund', async () => {
-    const startsAt = new Date(Date.now() - 73 * DAY); // ~20% of a year used
+  it('already paying personally, then the company covers them: "Welcome to Corporate Donor Circle", nothing refunded', async () => {
+    const startsAt = new Date(Date.now() - 300 * DAY);
     await prisma.subscription.create({
-      data: { userId: ids.emp, amountPaise: 20000, status: 'active', provider: 'dev_simulated', startsAt, endsAt: new Date(startsAt.getTime() + 365 * DAY) },
+      data: { userId: ids.emp, amountPaise: 20000, status: 'active', provider: 'dev_simulated', startsAt, endsAt: new Date(startsAt.getTime() + 365 * DAY), autoRenew: true },
     });
     // Joins Acme: work email checked
-    await prisma.orgMember.create({
-      data: { orgId: org.acme, userId: ids.emp, status: 'pending_email', workEmail: 'emp@acme.corptest.in', employeeId: 'EMP7', codeHash: 'x', codeExpiresAt: new Date(Date.now() + 600000) },
-    });
     const { hashToken } = await import('../src/shared/password.js');
-    await prisma.orgMember.updateMany({ where: { userId: ids.emp, orgId: org.acme }, data: { codeHash: hashToken('123456') } });
+    await prisma.orgMember.create({
+      data: { orgId: org.acme, userId: ids.emp, status: 'pending_email', workEmail: 'emp@acme.corptest.in', employeeId: 'EMP7', codeHash: hashToken('123456'), codeExpiresAt: new Date(Date.now() + 600000) },
+    });
     const v = await request(app).post(`${api}/organisations/${org.acme}/verify-email`).set(auth.emp).send({ code: '123456' });
     expect(v.status).toBe(200);
 
     const sub = await prisma.subscription.findFirstOrThrow({ where: { userId: ids.emp } });
-    expect(sub.endedReason).toBe('company_coverage');
-    expect(sub.refundStatus).toBe('simulated');
-    expect(sub.refundPaise).toBeGreaterThan(15500); // about 80% of ₹200
-    expect(sub.refundPaise).toBeLessThan(16500);
+    expect(sub.status).toBe('active'); // kept on record, not ended
+    expect(sub.refundPaise).toBeNull(); // nothing refunded
+    expect(sub.autoRenew).toBe(false); // not charged again while the company pays
+    expect(await prisma.notification.count({ where: { recipientId: ids.emp, title: 'Welcome to Corporate Donor Circle' } })).toBe(1);
 
     const mine = await request(app).get(`${api}/subscriptions/me`).set(auth.emp);
     expect(mine.body.active).toBe(true);
     expect(mine.body.company).toMatchObject({ kind: 'company', orgName: 'Corp acme Ltd' });
-    expect(mine.body.lastRefund.amountInr).toBeGreaterThan(155);
+
+    // Their own plan runs out while they still work there
+    await prisma.subscription.update({ where: { id: sub.id }, data: { endsAt: new Date(Date.now() - DAY) } });
+  });
+
+  it('signing up with an official email links them to that company once the email is verified', async () => {
+    const { organisationService } = await import('../src/modules/organisations/organisations.service.js');
+    // A free email is never proof of working somewhere
+    expect(await organisationService.autoLinkByEmail(ids.emp, 'someone@gmail.com')).toEqual([]);
+    const u2 = await prisma.user.create({
+      data: { email: `${TAG}.newjoiner@acme.corptest.in`, phone: '+919555000010', fullName: 'Corp newjoiner', isEmailVerified: true, dateOfBirth: new Date('1991-01-01') },
+    });
+    const linked2 = await organisationService.autoLinkByEmail(u2.id, u2.email);
+    expect(linked2).toEqual([org.acme]);
+    expect((await subscriptionService.companyCoverage(u2.id))?.kind).toBe('company');
+    expect(await prisma.notification.count({ where: { recipientId: u2.id, title: 'Welcome to Corporate Donor Circle' } })).toBe(1);
   });
 
   it('a pilot (unpaid) company does not cover anyone', async () => {
@@ -160,6 +174,26 @@ describe('Leaving the company', () => {
     expect(await prisma.notification.count({ where: { recipientId: ids.emp, title: 'Your Donor Circle is locked' } })).toBe(1);
     expect(await subscriptionService.isActive(ids.emp)).toBe(false);
     expect(await prisma.familyMember.count({ where: { ownerUserId: ids.emp } })).toBe(1);
+  });
+
+  it('locked: two ways to unlock (locked days pro rata + 1 year, or ₹120 + GST to the yearly date)', async () => {
+    const m = await prisma.orgMember.findFirstOrThrow({ where: { userId: ids.emp, orgId: org.acme } });
+    await prisma.orgMember.update({ where: { id: m.id }, data: { coverageEndsAt: new Date(Date.now() - 73 * DAY - 3600_000) } });
+    const q = await subscriptionService.unlockQuote(ids.emp);
+    expect(q?.lockedDays).toBe(73);
+    const prorated = q!.options.find((o) => o.id === 'prorated')!;
+    expect(prorated.amountPaise).toBe(24000); // 73/365 of ₹200 = ₹40, + ₹200
+    expect(Math.round((new Date(prorated.endsAt).getTime() - Date.now()) / DAY)).toBeGreaterThanOrEqual(364);
+    const anniversary = q!.options.find((o) => o.id === 'anniversary')!;
+    expect(anniversary.amountPaise).toBe(14160); // ₹120 + 18% GST
+    // Their yearly date: first paid 300 days ago, so about 65 days from now
+    const daysToAnniversary = Math.round((new Date(anniversary.endsAt).getTime() - Date.now()) / DAY);
+    expect(daysToAnniversary).toBeGreaterThanOrEqual(64);
+    expect(daysToAnniversary).toBeLessThanOrEqual(66);
+
+    const mine = await request(app).get(`${api}/subscriptions/me`).set(auth.emp);
+    expect(mine.body.active).toBe(false);
+    expect(mine.body.unlock.options).toHaveLength(2);
   });
 
   it('joining another paying company continues it at once', async () => {

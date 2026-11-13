@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Users, CheckCircle2, Clock, Lock } from 'lucide-react';
+import { Building2, Users, CheckCircle2, Clock, Lock, Sparkles, Smartphone } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 import { subscriptionApi } from '../../services/familyApi';
 import { orgApi } from '../../services/orgApi';
 import type { MySubscription } from '../../types/family';
@@ -16,6 +17,7 @@ export function coverageLine(mine: MySubscription | null): { tone: 'ok' | 'warn'
   if (c?.kind === 'company') return { tone: 'ok', text: `Free: paid by ${c.orgName} while you work there.` };
   if (mine.endsAt && mine.active) return { tone: 'ok', text: `Active until ${formatDate(mine.endsAt)} (your own plan).` };
   if (c?.kind === 'grace') return { tone: 'warn', text: `${c.orgName} paid until you left. Free until ${formatDate(c.until)}, then renew to keep it.` };
+  if (mine.unlock) return { tone: 'off', text: `Locked since ${formatDate(mine.unlock.lockedSince)}. Your family and donors are kept: unlock to see them again.` };
   return { tone: 'off', text: 'Not active. Finding donors and posting requests stay free.' };
 }
 
@@ -25,6 +27,7 @@ export function coverageLine(mine: MySubscription | null): { tone: 'ok' | 'warn'
  * - Personal: your family and your Donor Circle. Free while a paying company covers you.
  */
 export const PlanSections: React.FC = () => {
+  const { user } = useAuth();
   const [mine, setMine] = useState<MySubscription | null>(null);
   const [orgs, setOrgs] = useState<MyOrganisation[]>([]);
 
@@ -39,7 +42,26 @@ export const PlanSections: React.FC = () => {
   const Icon = line.tone === 'ok' ? CheckCircle2 : line.tone === 'warn' ? Clock : Lock;
   const color = line.tone === 'ok' ? 'text-emerald-700' : line.tone === 'warn' ? 'text-amber-700' : 'text-ink-secondary';
 
+  // Signed in with the work email: after leaving, that address stops working, so sign in with the mobile number
+  const loginIsWorkEmail = !!user?.email && orgs.some((o) => o.membership.workEmail.toLowerCase() === user.email!.toLowerCase());
+
   return (
+    <div className="space-y-3">
+    {mine?.company?.kind === 'company' && (
+      <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-900 flex items-start gap-2" id="corporate-welcome">
+        <Sparkles className="w-5 h-5 flex-shrink-0" />
+        <span>
+          <strong>Welcome to Corporate Donor Circle.</strong> {mine.company.orgName} pays for your Donor Circle while you work there.
+        </span>
+      </div>
+    )}
+    {loginIsWorkEmail && (
+      <p className="text-xs text-ink-secondary flex items-start gap-1.5" id="mobile-login-note">
+        <Smartphone className="w-4 h-4 flex-shrink-0" />
+        You signed up with your work email. Use your mobile number{user?.phone ? ` (${user.phone})` : ''} to sign in: your work email stops
+        working when you leave the company, but your account, family and donors stay yours.
+      </p>
+    )}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" id="plan-sections">
       <Card>
         <CardContent className="p-4 space-y-2">
@@ -77,11 +99,12 @@ export const PlanSections: React.FC = () => {
           </p>
           {mine?.company?.kind !== 'company' && !(mine?.endsAt && mine?.active) && (
             <Link to="/app/subscribe" className="text-xs font-semibold text-brand-600">
-              {mine?.company?.kind === 'grace' ? 'Renew now' : 'Subscribe'} →
+              {mine?.company?.kind === 'grace' ? 'Renew now' : mine?.unlock ? 'Unlock' : 'Subscribe'} →
             </Link>
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 };

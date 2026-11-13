@@ -145,11 +145,23 @@ export type CompanyCoverage =
   | { kind: 'company'; orgId: string; orgName: string; since: string }
   | { kind: 'grace'; orgId: string; orgName: string; exitDate: string; until: string };
 
+export type UnlockOptionId = 'prorated' | 'anniversary';
+
+export interface UnlockQuote {
+  orgName: string;
+  lockedSince: string;
+  lockedDays: number;
+  options: (
+    | { id: 'prorated'; amountPaise: number; amountInr: number; endsAt: string; lockedDays: number }
+    | { id: 'anniversary'; amountPaise: number; amountInr: number; endsAt: string; baseInr: number; gstPercent: number }
+  )[];
+}
+
 export interface MySubscription {
   active: boolean;
   company?: CompanyCoverage | null;
-  /** Last personal plan ended because a company started paying (pro-rata refund) */
-  lastRefund?: { amountInr: number; status: string | null; at: string } | null;
+  /** Locked after the company stopped paying: the two ways to unlock */
+  unlock?: UnlockQuote | null;
   startsAt: string | null;
   endsAt: string | null;
   provider: string | null;

@@ -336,7 +336,7 @@ model BloodPledge {
 model Subscription {
   id                String    @id @default(uuid())
   userId            String
-  plan              String    @default("family_yearly")
+  plan              String    @default("family_yearly") // family_yearly, unlock_prorated, unlock_anniversary
   amountPaise       Int       // 200 rupees = 20000 paise
   currency          String    @default("INR")
   status            String    @default("created") // "created", "active", "failed"
@@ -345,10 +345,10 @@ model Subscription {
   providerPaymentId String?
   providerSubscriptionId String? // Razorpay Subscriptions id when automatic renewal is charged by Razorpay
   autoRenew         Boolean   @default(true) // renews every year until the person turns it off
-  // Ended early because a paying company now covers the person: unused days refunded pro rata
-  endedReason       String?   // company_coverage
+  // Reserved (refunds were dropped: a person covered by a company keeps their own plan on record, nothing refunded)
+  endedReason       String?
   refundPaise       Int?
-  refundStatus      String?   // simulated, processed, failed, manual
+  refundStatus      String?
   refundId          String?
   cancelledAt       DateTime? // when automatic renewal was turned off
   renewalReminderAt DateTime? // when the "renews soon" reminder was sent

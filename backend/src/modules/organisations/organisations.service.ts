@@ -202,10 +202,10 @@ export class OrganisationService {
       where: { id: m.id },
       data: { status: 'active', workEmailVerifiedAt: new Date(), codeHash: null, codeExpiresAt: null, codeAttempts: 0, coverageEndsAt: null, exitSource: null },
     });
-    // A company that pays for its people: their own paid plan ends today, unused days refunded
+    // A company that pays for its people: "Welcome to Corporate Donor Circle" (nothing refunded)
     const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, verified: true, plan: true } });
     if (org?.verified && org.plan === 'paid') {
-      await subscriptionService.endPersonalPlansForCompany(userId, org.name).catch(() => undefined);
+      await subscriptionService.welcomeCorporate(userId, orgId, org.name).catch(() => undefined);
     }
     return this.mine(userId);
   }
@@ -226,6 +226,35 @@ export class OrganisationService {
     }
     await this.recordExit(m.id, new Date(), 'self');
     return this.mine(userId);
+  }
+
+  /**
+   * Signed up with an official email: once that email is verified, they belong to the company whose domain it is
+   * (verified organisations only). Same as joining with the invite code and checking the work email.
+   */
+  async autoLinkByEmail(userId: string, email: string) {
+    const domain = domainOf(email);
+    if (!domain || FREE_MAIL.has(domain)) return [];
+    const orgs = await prisma.organization.findMany({ where: { verified: true, emailDomains: { contains: `"${domain}"` } } });
+    const linked: string[] = [];
+    for (const o of orgs) {
+      if (!parseDomains(o.emailDomains).includes(domain)) continue;
+      const existing = await prisma.orgMember.findUnique({ where: { orgId_userId: { orgId: o.id, userId } } });
+      if (existing?.status === 'active') continue;
+      // The same work email can belong to only one person
+      const taken = await prisma.orgMember.findFirst({ where: { workEmail: email.toLowerCase(), status: 'active', userId: { not: userId } } });
+      if (taken) continue;
+      if (!existing) {
+        const n = await prisma.orgMember.count({ where: { userId, status: { in: ['active', 'pending_email'] } } });
+        if (n >= MAX_ORGS_PER_PERSON) break;
+      }
+      const data = { workEmail: email.toLowerCase(), status: 'active', workEmailVerifiedAt: new Date(), leftAt: null, coverageEndsAt: null, exitSource: null };
+      if (existing) await prisma.orgMember.update({ where: { id: existing.id }, data });
+      else await prisma.orgMember.create({ data: { orgId: o.id, userId, ...data } });
+      if (o.plan === 'paid') await subscriptionService.welcomeCorporate(userId, o.id, o.name).catch(() => undefined);
+      linked.push(o.id);
+    }
+    return linked;
   }
 
   /**
@@ -503,10 +532,10 @@ export class OrganisationService {
     await prisma.auditLog
       .create({ data: { actorId: adminId, action: 'ORG_UPDATED', entityType: 'Organization', entityId: orgId, details: JSON.stringify(change) } })
       .catch(() => undefined);
-    // The company now pays for its people: members' own paid plans end today, unused days refunded
+    // The company now pays for its people: welcome every active member (nothing refunded)
     if (o.verified && o.plan === 'paid' && (change.plan === 'paid' || change.verified === true)) {
       const members = await prisma.orgMember.findMany({ where: { orgId, status: 'active' }, select: { userId: true } });
-      for (const mm of members) await subscriptionService.endPersonalPlansForCompany(mm.userId, o.name).catch(() => undefined);
+      for (const mm of members) await subscriptionService.welcomeCorporate(mm.userId, orgId, o.name).catch(() => undefined);
     }
     return publicOrg(o);
   }

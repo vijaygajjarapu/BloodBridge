@@ -85,61 +85,32 @@ export class SubscriptionService {
   }
 
   /**
-   * A paying company now covers this person (joined it, or it started paying).
-   * Any plan they paid for themselves ends today and the unused days are refunded pro rata.
-   * Partner (sponsored) periods are not touched: nobody paid for them.
+   * A paying company now covers this person (joined it, or it started paying): "Welcome to Corporate Donor Circle".
+   * Nothing is refunded. Their own plan stays on record (it still counts after they leave, if it hasn't ended);
+   * automatic renewal is switched off so they aren't charged while the company pays. Told once per company.
    */
-  async endPersonalPlansForCompany(userId: string, orgName: string) {
+  async welcomeCorporate(userId: string, orgId: string, orgName: string) {
+    const key = `/app/family#corporate-${orgId}`;
+    if (await prisma.notification.count({ where: { recipientId: userId, relatedEntity: key } })) return;
     const now = new Date();
-    const subs = await prisma.subscription.findMany({
-      where: { userId, status: 'active', endsAt: { gt: now }, provider: { in: ['razorpay', 'dev_simulated'] } },
-    });
-    const results: { subscriptionId: string; refundPaise: number; refundStatus: string }[] = [];
-    for (const sub of subs) {
-      const start = (sub.startsAt && sub.startsAt < now ? sub.startsAt : now).getTime();
-      const end = sub.endsAt!.getTime();
-      const unusedFrom = Math.max(now.getTime(), start);
-      const total = Math.max(end - start, 1);
-      const refundPaise = Math.max(0, Math.floor((sub.amountPaise * (end - unusedFrom)) / total));
-
-      // Stop automatic renewal with the payment provider, then refund the unused part
+    const own = await prisma.subscription.findMany({ where: { userId, status: 'active', endsAt: { gt: now }, autoRenew: true } });
+    for (const sub of own) {
       if (sub.providerSubscriptionId && this.paymentsConfigured()) {
-        await this.razorpay(`/subscriptions/${sub.providerSubscriptionId}/cancel`, { cancel_at_cycle_end: 0 }).catch(() => null);
+        await this.razorpay(`/subscriptions/${sub.providerSubscriptionId}/cancel`, { cancel_at_cycle_end: 1 }).catch(() => null);
       }
-      let refundStatus = 'simulated';
-      let refundId: string | null = null;
-      if (sub.provider === 'razorpay') {
-        if (refundPaise > 0 && sub.providerPaymentId && this.paymentsConfigured()) {
-          const res = await this.razorpay(`/payments/${sub.providerPaymentId}/refund`, { amount: refundPaise, notes: { reason: `Covered by ${orgName}` } }).catch(() => null);
-          refundId = res?.id || null;
-          refundStatus = refundId ? 'processed' : 'failed';
-        } else {
-          refundStatus = refundPaise > 0 ? 'manual' : 'processed';
-        }
-      }
-      await prisma.subscription.update({
-        where: { id: sub.id },
-        data: { endsAt: now, autoRenew: false, cancelledAt: now, endedReason: 'company_coverage', refundPaise, refundStatus, refundId },
-      });
-      await prisma.auditLog.create({
-        data: { actorId: userId, action: 'SUBSCRIPTION_ENDED_COMPANY_COVERAGE', entityType: 'Subscription', entityId: sub.id, details: JSON.stringify({ orgName, refundPaise, refundStatus }) },
-      });
-      const rupees = (refundPaise / 100).toFixed(2);
-      await prisma.notification.create({
-        data: {
-          recipientId: userId,
-          notificationType: 'system',
-          title: `${orgName} now pays for your Donor Circle`,
-          message:
-            refundPaise > 0
-              ? `Your own plan ended today. ₹${rupees} for the unused days ${refundStatus === 'failed' || refundStatus === 'manual' ? 'will be refunded; our team will process it' : 'is being refunded to your original payment method (usually 5 to 7 working days)'}. Your Donor Circle and everyone in it stay as they are.`
-              : `Your own plan ended today. Your Donor Circle and everyone in it stay as they are.`,
-          relatedEntity: '/app/subscribe',
-        },
-      });
-      results.push({ subscriptionId: sub.id, refundPaise, refundStatus });
+      await prisma.subscription.update({ where: { id: sub.id }, data: { autoRenew: false, cancelledAt: now } });
     }
-    return results;
+    await prisma.notification.create({
+      data: {
+        recipientId: userId,
+        notificationType: 'system',
+        title: 'Welcome to Corporate Donor Circle',
+        message: `${orgName} now pays for your Donor Circle while you work there. Your family and donors stay as they are.${
+          own.length ? ' Your own plan is not refunded; automatic renewal is switched off so you are not charged again.' : ''
+        }`,
+        relatedEntity: key,
+      },
+    });
   }
 
   private async razorpay(path: string, body: unknown): Promise<any> {
@@ -154,6 +125,65 @@ export class SubscriptionService {
       throw new Error(`Razorpay ${res.status}`);
     }
     return res.json();
+  }
+
+  /**
+   * Locked after a company stopped paying (the 30-day free period ended, no plan of their own):
+   * two ways to unlock. Everyone in the Donor Circle is kept and shows again after paying.
+   * 1. "prorated": the locked days pro rata + 1 year, ending 1 year from today
+   * 2. "anniversary": ₹120 + GST, ending on the next anniversary of when they first joined / paid
+   */
+  async unlockQuote(userId: string, now = new Date()) {
+    if (await this.getActive(userId)) return null;
+    if (await this.companyCoverage(userId, now)) return null;
+    const ended = await prisma.orgMember.findFirst({
+      where: { userId, status: 'left', coverageEndsAt: { lte: now } },
+      include: { org: { select: { name: true } } },
+      orderBy: { coverageEndsAt: 'desc' },
+    });
+    if (!ended) return null;
+    const lockedSince = ended.coverageEndsAt!;
+    const lockedDays = Math.max(0, Math.floor((now.getTime() - lockedSince.getTime()) / DAY));
+    const yearPaise = config.subscription.amountInr * 100;
+    const proratedPaise = Math.round((yearPaise * lockedDays) / 365) + yearPaise;
+    const proratedEnds = new Date(now);
+    proratedEnds.setMonth(proratedEnds.getMonth() + config.subscription.periodMonths);
+
+    const basePaise = config.subscription.unlockAmountInr * 100;
+    const anniversaryPaise = Math.round(basePaise * (1 + config.subscription.gstPercent / 100));
+    const anniversaryEnds = await this.nextAnniversary(userId, now);
+
+    return {
+      orgName: ended.org.name,
+      lockedSince: lockedSince.toISOString(),
+      lockedDays,
+      options: [
+        { id: 'prorated' as const, amountPaise: proratedPaise, amountInr: proratedPaise / 100, endsAt: proratedEnds.toISOString(), lockedDays },
+        {
+          id: 'anniversary' as const,
+          amountPaise: anniversaryPaise,
+          amountInr: anniversaryPaise / 100,
+          baseInr: config.subscription.unlockAmountInr,
+          gstPercent: config.subscription.gstPercent,
+          endsAt: anniversaryEnds.toISOString(),
+        },
+      ],
+    };
+  }
+
+  /** The next anniversary (after today) of when the person first paid, or joined the app if they never paid */
+  private async nextAnniversary(userId: string, now = new Date()) {
+    const first = await prisma.subscription.findFirst({
+      where: { userId, startsAt: { not: null }, status: 'active' },
+      orderBy: { startsAt: 'asc' },
+      select: { startsAt: true },
+    });
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } });
+    const anchor = first?.startsAt || user?.createdAt || now;
+    const d = new Date(anchor);
+    d.setFullYear(now.getFullYear());
+    while (d <= now) d.setFullYear(d.getFullYear() + 1);
+    return d;
   }
 
   /** You can't buy a personal plan while your company pays for it */
@@ -176,18 +206,13 @@ export class SubscriptionService {
     // reminder: one-time payments; we remind before the end date and they renew in one tap
     const renewalMode = active?.providerSubscriptionId || active?.provider === 'dev_simulated' ? 'automatic' : 'reminder';
     const company = await this.companyCoverage(userId);
-    const lastRefund = await prisma.subscription.findFirst({
-      where: { userId, endedReason: 'company_coverage' },
-      orderBy: { updatedAt: 'desc' },
-      select: { refundPaise: true, refundStatus: true, updatedAt: true },
-    });
+    const unlock = active || company ? null : await this.unlockQuote(userId);
     return {
       active: Boolean(active) || Boolean(company),
       // Corporate: paid by the company (or the 30-day grace after leaving it)
       company,
-      lastRefund: lastRefund
-        ? { amountInr: (lastRefund.refundPaise || 0) / 100, status: lastRefund.refundStatus, at: lastRefund.updatedAt.toISOString() }
-        : null,
+      // Locked after the company stopped paying: the two ways to unlock
+      unlock,
       startsAt: active?.startsAt?.toISOString() || null,
       endsAt: active?.endsAt?.toISOString() || null,
       provider: active?.provider || null,
@@ -269,7 +294,7 @@ export class SubscriptionService {
       await prisma.$transaction([
         prisma.subscription.update({ where: { id: sub.id }, data: { autoRenew: false } }),
         prisma.subscription.create({
-          data: { userId: sub.userId, amountPaise: sub.amountPaise, status: 'active', provider: 'dev_simulated', startsAt, endsAt, autoRenew: true },
+          data: { userId: sub.userId, amountPaise: config.subscription.amountInr * 100, status: 'active', provider: 'dev_simulated', startsAt, endsAt, autoRenew: true },
         }),
         prisma.notification.create({
           data: {
@@ -420,7 +445,23 @@ export class SubscriptionService {
   }
 
   /** New paid period starts today, or when the current one ends (renewing early adds a full year) */
-  private async periodFor(userId: string) {
+  /** Price and period for what the person chose: the yearly plan, or one of the two unlock options */
+  private async priceFor(userId: string, option?: 'prorated' | 'anniversary') {
+    if (!option) return { plan: 'family_yearly', amountPaise: config.subscription.amountInr * 100 };
+    const quote = await this.unlockQuote(userId);
+    const o = quote?.options.find((x) => x.id === option);
+    if (!o) throw new AppError('This unlock option is not available for your account.', 400, 'VALIDATION_FAILED');
+    return { plan: `unlock_${option}`, amountPaise: o.amountPaise };
+  }
+
+  private async periodFor(userId: string, plan = 'family_yearly') {
+    if (plan === 'unlock_prorated' || plan === 'unlock_anniversary') {
+      const quote = await this.unlockQuote(userId);
+      const o = quote?.options.find((x) => `unlock_${x.id}` === plan);
+      const startsAt = new Date();
+      const endsAt = o ? new Date(o.endsAt) : new Date(startsAt.getTime() + 365 * DAY);
+      return { startsAt, endsAt };
+    }
     const active = await this.getActive(userId);
     const startsAt = active?.endsAt && active.endsAt > new Date() ? active.endsAt : new Date();
     const endsAt = new Date(startsAt);
@@ -429,7 +470,7 @@ export class SubscriptionService {
   }
 
   /** Step 1: create a Razorpay order the website opens in Razorpay Checkout */
-  async createOrder(userId: string) {
+  async createOrder(userId: string, option?: 'prorated' | 'anniversary') {
     await this.refuseIfCompanyPays(userId);
     if (!this.paymentsConfigured()) {
       throw new AppError('Online payment is not set up yet. Please try again later.', 503, 'PAYMENTS_NOT_CONFIGURED');
@@ -437,15 +478,15 @@ export class SubscriptionService {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError('Account not found.', 404, 'NOT_FOUND');
 
-    const amountPaise = config.subscription.amountInr * 100;
+    const { plan, amountPaise } = await this.priceFor(userId, option);
     const sub = await prisma.subscription.create({
-      data: { userId, amountPaise, currency: 'INR', status: 'created', provider: 'razorpay' },
+      data: { userId, plan, amountPaise, currency: 'INR', status: 'created', provider: 'razorpay' },
     });
 
     const auth = Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64');
 
-    // Automatic yearly renewal through Razorpay Subscriptions (needs RAZORPAY_PLAN_ID)
-    if (this.recurringConfigured()) {
+    // Automatic yearly renewal through Razorpay Subscriptions (needs RAZORPAY_PLAN_ID); unlock payments are one-time
+    if (this.recurringConfigured() && !option) {
       const res = await fetch('https://api.razorpay.com/v1/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
@@ -483,7 +524,7 @@ export class SubscriptionService {
         amount: amountPaise,
         currency: 'INR',
         receipt: sub.id.slice(0, 40),
-        notes: { userId, plan: 'family_yearly' },
+        notes: { userId, plan },
       }),
     });
     const order: any = await res.json().catch(() => ({}));
@@ -534,7 +575,7 @@ export class SubscriptionService {
       throw new AppError('Payment could not be verified. If money was deducted, it will be refunded by your bank.', 400, 'PAYMENT_INVALID');
     }
 
-    const { startsAt, endsAt } = await this.periodFor(userId);
+    const { startsAt, endsAt } = await this.periodFor(userId, sub.plan);
     await prisma.subscription.update({
       where: { id: sub.id },
       data: { status: 'active', providerPaymentId: input.paymentId, startsAt, endsAt },
@@ -587,16 +628,18 @@ export class SubscriptionService {
   }
 
   /** Local testing only (development machine, no Razorpay keys): activate without paying */
-  async simulate(userId: string) {
+  async simulate(userId: string, option?: 'prorated' | 'anniversary') {
     if (!this.devSimulationAllowed()) {
       throw new AppError('Not available.', 404, 'NOT_FOUND');
     }
     await this.refuseIfCompanyPays(userId);
-    const { startsAt, endsAt } = await this.periodFor(userId);
+    const { plan, amountPaise } = await this.priceFor(userId, option);
+    const { startsAt, endsAt } = await this.periodFor(userId, plan);
     await prisma.subscription.create({
       data: {
         userId,
-        amountPaise: config.subscription.amountInr * 100,
+        plan,
+        amountPaise,
         status: 'active',
         provider: 'dev_simulated',
         startsAt,

@@ -6,6 +6,12 @@ import { subscriptionService } from './subscriptions.service.js';
 
 const router = Router();
 
+/** Unlock after a company stopped paying: "prorated" (locked days + 1 year) or "anniversary" (₹120 + GST) */
+const unlockOption = (body: unknown): 'prorated' | 'anniversary' | undefined => {
+  const o = (body as { option?: unknown } | undefined)?.option;
+  return o === 'prorated' || o === 'anniversary' ? o : undefined;
+};
+
 const verifySchema = z.object({
   orderId: z.string().min(1).optional(),
   subscriptionId: z.string().min(1).optional(),
@@ -26,7 +32,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
 
 router.post('/order', requireAuth, async (req, res, next) => {
   try {
-    res.status(201).json(await subscriptionService.createOrder(req.user!.userId));
+    res.status(201).json(await subscriptionService.createOrder(req.user!.userId, unlockOption(req.body)));
   } catch (e) {
     next(e);
   }
@@ -42,7 +48,7 @@ router.post('/verify', requireAuth, validate(verifySchema), async (req, res, nex
 
 router.post('/dev-simulate', requireAuth, async (req, res, next) => {
   try {
-    res.json(await subscriptionService.simulate(req.user!.userId));
+    res.json(await subscriptionService.simulate(req.user!.userId, unlockOption(req.body)));
   } catch (e) {
     next(e);
   }

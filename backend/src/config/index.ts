@@ -74,6 +74,9 @@ export const config = {
   subscription: {
     amountInr: parseInt(process.env.SUBSCRIPTION_AMOUNT_INR || '200', 10),
     periodMonths: parseInt(process.env.SUBSCRIPTION_PERIOD_MONTHS || '12', 10),
+    // Unlock after a company stopped paying, option 2: this amount + GST, ending on the next anniversary
+    unlockAmountInr: parseInt(process.env.UNLOCK_AMOUNT_INR || '120', 10),
+    gstPercent: parseFloat(process.env.GST_PERCENT || '18'),
   },
 
   // Razorpay payment gateway (test keys start with rzp_test_)
