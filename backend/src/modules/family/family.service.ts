@@ -340,6 +340,7 @@ export class FamilyService {
         city: x.m.owner.donorProfile?.city || null,
         yourFamily: false,
         via: x.via,
+        relation: x.m.relation,
       })),
       ...rows.map(({ m, phone }) => ({
         id: m.id,
@@ -677,6 +678,7 @@ export class FamilyService {
                 familyMemberId: x.m.id,
                 source: 'pledger_family' as const,
                 via: x.via,
+                relation: x.m.relation,
                 name: x.m.name,
                 donorBloodGroup: x.m.bloodGroup,
                 phone: x.phone,

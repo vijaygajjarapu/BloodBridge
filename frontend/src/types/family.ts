@@ -64,6 +64,8 @@ export interface CircleDonor {
   source?: 'pledge' | 'family' | 'pledger_family';
   /** For "pledger_family": the first name of the person who pledged to you (it's their family member) */
   via?: string;
+  /** For "pledger_family": how they are related to that person, e.g. "brother" */
+  relation?: FamilyRelation;
   familyMemberId?: string;
   donorBloodGroup?: BloodGroup;
   name: string;

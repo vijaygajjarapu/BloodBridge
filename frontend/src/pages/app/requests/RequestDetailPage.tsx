@@ -35,6 +35,7 @@ import { RemoteDonationCard, RemoteCreditsCard } from '../../../components/reque
 import { useAuth } from '../../../hooks/useAuth';
 import { errorMessage as callErrorMessage } from '../../../utils/formErrors';
 import { MatchingProgress } from '../../../components/requests/MatchingProgress';
+import { relationTo } from '../../../components/family/relations';
 import { errorMessage, errorTitle } from '../../../utils/formErrors';
 
 const STATUS_HELP: Partial<Record<RequestStatus, string>> = {
@@ -301,7 +302,7 @@ export const RequestDetailPage: React.FC = () => {
                       <div>
                         <p className="text-sm font-bold text-ink-main">{d.name}</p>
                         <p className="text-xs text-ink-secondary">
-                          {d.yourFamily ? 'Your family' : d.via ? `${d.via}'s family (pledged to you)` : d.city || 'Near the hospital'}
+                          {d.yourFamily ? 'Your family' : d.via ? relationTo(d.via, d.relation) : d.city || 'Near the hospital'}
                         </p>
                       </div>
                     </div>

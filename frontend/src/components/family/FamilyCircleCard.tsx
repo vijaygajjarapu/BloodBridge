@@ -8,7 +8,7 @@ import { Button } from '../ui/Button';
 import { BloodGroupBadge } from '../ui/Badge';
 import { appConfig } from '../../constants/config';
 import { formatDate } from '../../constants/countries';
-import { RELATION_LABELS } from './relations';
+import { RELATION_LABELS, relationTo } from './relations';
 import { MaskedPhone, RevealNumbersButton } from '../ui/PhoneReveal';
 
 /**
@@ -199,9 +199,9 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
                             {d.source === 'pledger_family' && (
                               <span
                                 className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700"
-                                title={`${d.via}'s family member, who agreed to help families ${d.via} pledged to`}
+                                title={`${d.name} agreed to donate for families that ${d.via} pledged to help`}
                               >
-                                via {d.via}{d.donorBloodGroup ? ` · ${d.donorBloodGroup}` : ''}
+                                {relationTo(d.via || 'Donor', d.relation)}{d.donorBloodGroup ? ` · ${d.donorBloodGroup}` : ''}
                               </span>
                             )}
                             {d.availability && (

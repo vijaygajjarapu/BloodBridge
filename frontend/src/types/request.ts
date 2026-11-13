@@ -115,6 +115,8 @@ export interface FamilyMemberDonorMatch {
   yourFamily: boolean;
   /** Family member of someone who pledged to the requester (first name of that person) */
   via?: string;
+  /** How they are related to that person, e.g. "brother" */
+  relation?: import('./family').FamilyRelation;
 }
 
 export interface CreateRequestInput {
