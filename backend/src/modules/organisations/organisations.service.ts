@@ -19,6 +19,7 @@ import { generateSecureOtp, hashToken } from '../../shared/password.js';
 import { validateLocation } from '../../shared/location.js';
 import { canBeAlerted } from '../eligibility/eligibility.rules.js';
 import { safeCount } from '../communities/communities.service.js';
+import { subscriptionService, CORPORATE_GRACE_DAYS } from '../subscriptions/subscriptions.service.js';
 
 export const ORG_TYPES = ['company', 'college', 'ngo', 'hospital_group', 'other'] as const;
 const CODE_TTL_MIN = 15;
@@ -199,8 +200,13 @@ export class OrganisationService {
     }
     await prisma.orgMember.update({
       where: { id: m.id },
-      data: { status: 'active', workEmailVerifiedAt: new Date(), codeHash: null, codeExpiresAt: null, codeAttempts: 0 },
+      data: { status: 'active', workEmailVerifiedAt: new Date(), codeHash: null, codeExpiresAt: null, codeAttempts: 0, coverageEndsAt: null, exitSource: null },
     });
+    // A company that pays for its people: their own paid plan ends today, unused days refunded
+    const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, verified: true, plan: true } });
+    if (org?.verified && org.plan === 'paid') {
+      await subscriptionService.endPersonalPlansForCompany(userId, org.name).catch(() => undefined);
+    }
     return this.mine(userId);
   }
 
@@ -218,8 +224,78 @@ export class OrganisationService {
       const otherAdmins = await prisma.orgMember.count({ where: { orgId, role: 'admin', status: 'active', userId: { not: userId } } });
       if (!otherAdmins) throw new AppError('Make someone else an admin before you leave.', 400, 'LAST_ADMIN');
     }
-    await prisma.orgMember.update({ where: { id: m.id }, data: { status: 'left', leftAt: new Date(), role: 'member' } });
+    await this.recordExit(m.id, new Date(), 'self');
     return this.mine(userId);
+  }
+
+  /**
+   * The person stopped working here (they left, the admin removed them, or HR sent the exit).
+   * Company-paid Donor Circle stays free for 30 days after the exit date; the person is told and reminded.
+   * Their own family, pledges and Donor Circle are never touched: they belong to the person.
+   */
+  async recordExit(memberId: string, exitDate: Date, source: 'self' | 'org_admin' | 'hr_upload') {
+    const m = await prisma.orgMember.findUnique({ where: { id: memberId }, include: { org: true } });
+    if (!m || m.status === 'left') return m;
+    const companyPaid = m.status === 'active' && m.org.verified && m.org.plan === 'paid';
+    const coverageEndsAt = companyPaid ? new Date(exitDate.getTime() + CORPORATE_GRACE_DAYS * DAY) : null;
+    await prisma.orgMember.update({
+      where: { id: m.id },
+      data: { status: 'left', leftAt: exitDate, role: 'member', exitSource: source, coverageEndsAt },
+    });
+    await prisma.auditLog
+      .create({ data: { action: 'ORG_MEMBER_EXIT', entityType: 'OrgMember', entityId: m.id, details: JSON.stringify({ source, exitDate, coverageEndsAt }) } })
+      .catch(() => undefined);
+    if (coverageEndsAt && coverageEndsAt > new Date()) {
+      const stillCovered = (await subscriptionService.getActive(m.userId)) || (await subscriptionService.companyCoverage(m.userId))?.kind === 'company';
+      if (!stillCovered) {
+        await prisma.notification.create({
+          data: {
+            recipientId: m.userId,
+            notificationType: 'system',
+            title: `${m.org.name} no longer pays for your Donor Circle`,
+            message: `Your Donor Circle stays free for ${CORPORATE_GRACE_DAYS} days, until ${coverageEndsAt.toDateString()}. Renew before then to keep your family's donors unlocked. If you join another company on BloodNation that pays for its people, it continues free.`,
+            relatedEntity: '/app/subscribe',
+          },
+        });
+      }
+    }
+    return m;
+  }
+
+  /**
+   * HR tells us who left (one person or a pasted CSV): work email or employee ID, and the last working day.
+   * Only for the organisation's admins. Returns a result for each row; nothing about other people.
+   */
+  async hrExits(userId: string, orgId: string, rows: { key: string; exitDate: string }[]) {
+    await this.requireOrgAdmin(userId, orgId);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const results: { key: string; result: 'done' | 'not_found' | 'already_left' | 'bad_date' | 'yourself' }[] = [];
+    for (const row of rows.slice(0, 2000)) {
+      const key = (row.key || '').trim();
+      const d = new Date(row.exitDate);
+      if (!key) continue;
+      if (isNaN(d.getTime()) || d > today || d.getFullYear() < 2000) {
+        results.push({ key, result: 'bad_date' });
+        continue;
+      }
+      const m = await prisma.orgMember.findFirst({
+        where: { orgId, OR: [{ workEmail: key.toLowerCase() }, { employeeId: key }] },
+        orderBy: { joinedAt: 'desc' },
+      });
+      if (!m) results.push({ key, result: 'not_found' });
+      else if (m.userId === userId) results.push({ key, result: 'yourself' });
+      else if (m.status === 'left') results.push({ key, result: 'already_left' });
+      else {
+        await this.recordExit(m.id, d, 'hr_upload');
+        results.push({ key, result: 'done' });
+      }
+    }
+    return {
+      results,
+      done: results.filter((r) => r.result === 'done').length,
+      problems: results.filter((r) => r.result !== 'done').length,
+    };
   }
 
   async setCountInImpact(userId: string, orgId: string, value: boolean) {
@@ -337,7 +413,7 @@ export class OrganisationService {
     if (!m || m.orgId !== orgId) throw new AppError('Member not found.', 404, 'NOT_FOUND');
     if (change.remove) {
       if (m.userId === userId) throw new AppError('Use "Leave" to remove yourself.', 400, 'VALIDATION_FAILED');
-      await prisma.orgMember.update({ where: { id: m.id }, data: { status: 'left', leftAt: new Date(), role: 'member' } });
+      await this.recordExit(m.id, new Date(), 'org_admin');
     } else if (change.role) {
       if (m.status !== 'active') throw new AppError('Only people who checked their work email can be admins.', 400, 'VALIDATION_FAILED');
       if (change.role === 'member' && m.role === 'admin') {
@@ -427,6 +503,11 @@ export class OrganisationService {
     await prisma.auditLog
       .create({ data: { actorId: adminId, action: 'ORG_UPDATED', entityType: 'Organization', entityId: orgId, details: JSON.stringify(change) } })
       .catch(() => undefined);
+    // The company now pays for its people: members' own paid plans end today, unused days refunded
+    if (o.verified && o.plan === 'paid' && (change.plan === 'paid' || change.verified === true)) {
+      const members = await prisma.orgMember.findMany({ where: { orgId, status: 'active' }, select: { userId: true } });
+      for (const mm of members) await subscriptionService.endPersonalPlansForCompany(mm.userId, o.name).catch(() => undefined);
+    }
     return publicOrg(o);
   }
 

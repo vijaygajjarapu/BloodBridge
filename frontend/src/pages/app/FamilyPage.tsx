@@ -18,6 +18,7 @@ import { useSubscription } from '../../hooks/useSubscription';
 import { SubscribeToShareNotice } from '../../components/subscription/SubscribeToShareNotice';
 import { PartnerCodeCard } from '../../components/subscription/PartnerCodeCard';
 import { RELATION_LABELS, RELATION_OPTIONS } from '../../components/family/relations';
+import { PlanSections } from '../../components/subscription/PlanSections';
 import { getFieldErrors, errorMessage, errorTitle } from '../../utils/formErrors';
 
 const EMPTY: FamilyMemberInput = {
@@ -227,6 +228,8 @@ export const FamilyPage: React.FC = () => {
           Add the people you may need blood for, then invite anyone willing to donate: relatives, friends, colleagues, neighbours. Everyone who pledges joins your Donor Circle.
         </p>
       </div>
+
+      <PlanSections />
 
       {banner && <ErrorBanner title={banner.title} message={banner.message} />}
 

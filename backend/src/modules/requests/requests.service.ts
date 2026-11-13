@@ -400,10 +400,9 @@ export class RequestService {
       : [];
     // Community donors may also live outside the district (fellow members who asked to be alerted):
     // same checks as nearby donors (compatible group, available, verified, can donate now)
-    // Colleagues are alerted like community members, but only those in the hospital's state (others can donate remotely)
-    const colleagueNear = colleagueAll.length
-      ? (await prisma.donorProfile.findMany({ where: { userId: { in: colleagueAll }, state: r.state }, select: { userId: true } })).map((p) => p.userId)
-      : [];
+    // Corporate: colleagues are alerted wherever they are (no state or distance limit), in addition to donors near
+    // the hospital. Ranking still puts nearer colleagues first; far ones can also donate at a partner blood bank.
+    const colleagueNear = colleagueAll;
     const colleagueSet = new Set(colleagueNear);
     const communityIds = [...new Set([...communityOnlyIds, ...colleagueNear])];
     const communitySet = new Set(communityOnlyIds);

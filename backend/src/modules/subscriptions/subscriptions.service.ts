@@ -5,6 +5,15 @@ import { AppError } from '../../shared/types.js';
 import { logger } from '../../shared/logger.js';
 
 const isDev = () => (process.env.NODE_ENV || 'development') === 'development';
+const DAY = 24 * 60 * 60 * 1000;
+/** After leaving a company that paid for the Donor Circle, it stays free this long */
+export const CORPORATE_GRACE_DAYS = 30;
+/** Reminders during the grace period: days left */
+const GRACE_REMINDER_DAYS = [15, 7, 3, 1];
+
+export type CompanyCoverage =
+  | { kind: 'company'; orgId: string; orgName: string; since: string }
+  | { kind: 'grace'; orgId: string; orgName: string; exitDate: string; until: string };
 
 export class SubscriptionService {
   paymentsConfigured(): boolean {
@@ -39,8 +48,120 @@ export class SubscriptionService {
     });
   }
 
+  /**
+   * Corporate: while the person works at a verified company that pays for its people ("paid" plan),
+   * their personal Donor Circle is free. After the exit date it stays free for 30 days (grace).
+   */
+  async companyCoverage(userId: string, now = new Date()): Promise<CompanyCoverage | null> {
+    const active = await prisma.orgMember.findFirst({
+      where: { userId, status: 'active', org: { verified: true, plan: 'paid' } },
+      include: { org: { select: { id: true, name: true } } },
+      orderBy: { joinedAt: 'asc' },
+    });
+    if (active) {
+      return { kind: 'company', orgId: active.org.id, orgName: active.org.name, since: (active.workEmailVerifiedAt || active.joinedAt).toISOString() };
+    }
+    const grace = await prisma.orgMember.findFirst({
+      where: { userId, status: 'left', coverageEndsAt: { gt: now } },
+      include: { org: { select: { id: true, name: true } } },
+      orderBy: { coverageEndsAt: 'desc' },
+    });
+    if (grace) {
+      return {
+        kind: 'grace',
+        orgId: grace.org.id,
+        orgName: grace.org.name,
+        exitDate: (grace.leftAt || now).toISOString(),
+        until: grace.coverageEndsAt!.toISOString(),
+      };
+    }
+    return null;
+  }
+
+  /** Donor Circle is on: paid by the person (or a partner code), or covered by their company */
   async isActive(userId: string): Promise<boolean> {
-    return Boolean(await this.getActive(userId));
+    if (await this.getActive(userId)) return true;
+    return Boolean(await this.companyCoverage(userId));
+  }
+
+  /**
+   * A paying company now covers this person (joined it, or it started paying).
+   * Any plan they paid for themselves ends today and the unused days are refunded pro rata.
+   * Partner (sponsored) periods are not touched: nobody paid for them.
+   */
+  async endPersonalPlansForCompany(userId: string, orgName: string) {
+    const now = new Date();
+    const subs = await prisma.subscription.findMany({
+      where: { userId, status: 'active', endsAt: { gt: now }, provider: { in: ['razorpay', 'dev_simulated'] } },
+    });
+    const results: { subscriptionId: string; refundPaise: number; refundStatus: string }[] = [];
+    for (const sub of subs) {
+      const start = (sub.startsAt && sub.startsAt < now ? sub.startsAt : now).getTime();
+      const end = sub.endsAt!.getTime();
+      const unusedFrom = Math.max(now.getTime(), start);
+      const total = Math.max(end - start, 1);
+      const refundPaise = Math.max(0, Math.floor((sub.amountPaise * (end - unusedFrom)) / total));
+
+      // Stop automatic renewal with the payment provider, then refund the unused part
+      if (sub.providerSubscriptionId && this.paymentsConfigured()) {
+        await this.razorpay(`/subscriptions/${sub.providerSubscriptionId}/cancel`, { cancel_at_cycle_end: 0 }).catch(() => null);
+      }
+      let refundStatus = 'simulated';
+      let refundId: string | null = null;
+      if (sub.provider === 'razorpay') {
+        if (refundPaise > 0 && sub.providerPaymentId && this.paymentsConfigured()) {
+          const res = await this.razorpay(`/payments/${sub.providerPaymentId}/refund`, { amount: refundPaise, notes: { reason: `Covered by ${orgName}` } }).catch(() => null);
+          refundId = res?.id || null;
+          refundStatus = refundId ? 'processed' : 'failed';
+        } else {
+          refundStatus = refundPaise > 0 ? 'manual' : 'processed';
+        }
+      }
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: { endsAt: now, autoRenew: false, cancelledAt: now, endedReason: 'company_coverage', refundPaise, refundStatus, refundId },
+      });
+      await prisma.auditLog.create({
+        data: { actorId: userId, action: 'SUBSCRIPTION_ENDED_COMPANY_COVERAGE', entityType: 'Subscription', entityId: sub.id, details: JSON.stringify({ orgName, refundPaise, refundStatus }) },
+      });
+      const rupees = (refundPaise / 100).toFixed(2);
+      await prisma.notification.create({
+        data: {
+          recipientId: userId,
+          notificationType: 'system',
+          title: `${orgName} now pays for your Donor Circle`,
+          message:
+            refundPaise > 0
+              ? `Your own plan ended today. ₹${rupees} for the unused days ${refundStatus === 'failed' || refundStatus === 'manual' ? 'will be refunded; our team will process it' : 'is being refunded to your original payment method (usually 5 to 7 working days)'}. Your Donor Circle and everyone in it stay as they are.`
+              : `Your own plan ended today. Your Donor Circle and everyone in it stay as they are.`,
+          relatedEntity: '/app/subscribe',
+        },
+      });
+      results.push({ subscriptionId: sub.id, refundPaise, refundStatus });
+    }
+    return results;
+  }
+
+  private async razorpay(path: string, body: unknown): Promise<any> {
+    const auth = Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64');
+    const res = await fetch(`https://api.razorpay.com/v1${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      logger.error(`Razorpay ${path} failed: ${res.status}`);
+      throw new Error(`Razorpay ${res.status}`);
+    }
+    return res.json();
+  }
+
+  /** You can't buy a personal plan while your company pays for it */
+  private async refuseIfCompanyPays(userId: string) {
+    const cov = await this.companyCoverage(userId);
+    if (cov?.kind === 'company') {
+      throw new AppError(`${cov.orgName} pays for your Donor Circle while you work there. No need to buy a plan.`, 409, 'COMPANY_COVERED');
+    }
   }
 
   /** Automatic renewal is charged by Razorpay only when a Subscriptions plan is configured */
@@ -54,8 +175,19 @@ export class SubscriptionService {
     // automatic: renewed without any action (Razorpay Subscriptions, or simulated locally)
     // reminder: one-time payments; we remind before the end date and they renew in one tap
     const renewalMode = active?.providerSubscriptionId || active?.provider === 'dev_simulated' ? 'automatic' : 'reminder';
+    const company = await this.companyCoverage(userId);
+    const lastRefund = await prisma.subscription.findFirst({
+      where: { userId, endedReason: 'company_coverage' },
+      orderBy: { updatedAt: 'desc' },
+      select: { refundPaise: true, refundStatus: true, updatedAt: true },
+    });
     return {
-      active: Boolean(active),
+      active: Boolean(active) || Boolean(company),
+      // Corporate: paid by the company (or the 30-day grace after leaving it)
+      company,
+      lastRefund: lastRefund
+        ? { amountInr: (lastRefund.refundPaise || 0) / 100, status: lastRefund.refundStatus, at: lastRefund.updatedAt.toISOString() }
+        : null,
       startsAt: active?.startsAt?.toISOString() || null,
       endsAt: active?.endsAt?.toISOString() || null,
       provider: active?.provider || null,
@@ -178,8 +310,49 @@ export class SubscriptionService {
       ]);
       reminded++;
     }
-    if (renewed || reminded) logger.info(`Subscriptions: renewed ${renewed}, reminded ${reminded}`);
-    return { renewed, reminded };
+    const grace = await this.processCorporateGrace(now);
+    if (renewed || reminded || grace) logger.info(`Subscriptions: renewed ${renewed}, reminded ${reminded}, corporate grace notices ${grace}`);
+    return { renewed, reminded, graceNotices: grace };
+  }
+
+  /**
+   * After leaving a paying company: reminders 15, 7, 3 and 1 days before the free period ends,
+   * then one "Donor Circle locked" notice. Nothing is deleted: renewing unlocks everything again.
+   * Skipped for people who are covered again (new company) or paid themselves.
+   */
+  async processCorporateGrace(now = new Date()) {
+    let sent = 0;
+    const rows = await prisma.orgMember.findMany({
+      where: { status: 'left', coverageEndsAt: { not: null, gt: new Date(now.getTime() - 2 * DAY) } },
+      include: { org: { select: { name: true } } },
+    });
+    for (const m of rows) {
+      if (await this.getActive(m.userId)) continue;
+      const cov = await this.companyCoverage(m.userId, now);
+      if (cov?.kind === 'company') continue;
+      const end = m.coverageEndsAt!;
+      const daysLeft = Math.ceil((end.getTime() - now.getTime()) / DAY);
+      let title: string | null = null;
+      let message = '';
+      if (daysLeft <= 0) {
+        title = 'Your Donor Circle is locked';
+        message = `${m.org.name}'s free period ended. Your family, pledged donors and invite link are kept. Renew to unlock them. Finding donors and posting requests stay free.`;
+      } else {
+        const step = GRACE_REMINDER_DAYS.find((d) => daysLeft <= d && daysLeft > (GRACE_REMINDER_DAYS[GRACE_REMINDER_DAYS.indexOf(d) + 1] ?? 0));
+        if (step) {
+          title = `Donor Circle: ${step} day${step === 1 ? '' : 's'} left to renew`;
+          message = `${m.org.name} paid for your Donor Circle until you left. It stays free until ${end.toDateString()}. Renew before then to keep your family's donors.`;
+        }
+      }
+      if (!title) continue;
+      const already = await prisma.notification.count({ where: { recipientId: m.userId, title, relatedEntity: `/app/subscribe#grace-${m.id}` } });
+      if (already) continue;
+      await prisma.notification.create({
+        data: { recipientId: m.userId, notificationType: 'system', title, message, relatedEntity: `/app/subscribe#grace-${m.id}` },
+      });
+      sent++;
+    }
+    return sent;
   }
 
   /** Local testing only: end my current simulated period now and run renewals */
@@ -257,6 +430,7 @@ export class SubscriptionService {
 
   /** Step 1: create a Razorpay order the website opens in Razorpay Checkout */
   async createOrder(userId: string) {
+    await this.refuseIfCompanyPays(userId);
     if (!this.paymentsConfigured()) {
       throw new AppError('Online payment is not set up yet. Please try again later.', 503, 'PAYMENTS_NOT_CONFIGURED');
     }
@@ -417,6 +591,7 @@ export class SubscriptionService {
     if (!this.devSimulationAllowed()) {
       throw new AppError('Not available.', 404, 'NOT_FOUND');
     }
+    await this.refuseIfCompanyPays(userId);
     const { startsAt, endsAt } = await this.periodFor(userId);
     await prisma.subscription.create({
       data: {

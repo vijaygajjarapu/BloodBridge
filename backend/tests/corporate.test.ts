@@ -1,0 +1,176 @@
+/**
+ * Corporate chain: a company that pays ("paid" plan) covers its people's personal Donor Circle.
+ * - while they work there: free, and a personal plan they paid for ends with a pro-rata refund
+ * - HR records the exit (or the admin removes them, or they leave): free for 30 days, reminders, then locked
+ * - joining another paying company continues it; family, pledges and the circle stay the person's own
+ * - colleagues are alerted on requests wherever they are
+ */
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { app } from '../src/app.js';
+import { prisma } from '../src/config/database.js';
+import { hashPassword } from '../src/shared/password.js';
+import { signAccessToken } from '../src/shared/jwt.js';
+import { subscriptionService } from '../src/modules/subscriptions/subscriptions.service.js';
+import { requestService } from '../src/modules/requests/requests.service.js';
+
+const api = '/api/v1';
+const TAG = 'corptest';
+const DAY = 24 * 60 * 60 * 1000;
+const ids: Record<string, string> = {};
+const auth: Record<string, Record<string, string>> = {};
+const org: Record<string, string> = {};
+const VIZAG = { state: 'Andhra Pradesh', district: 'Visakhapatnam', city: 'Visakhapatnam' };
+const DELHI = { state: 'Delhi', district: 'New Delhi', city: 'New Delhi' };
+
+async function makeUser(key: string, phone: string, place = VIZAG, group = 'O+') {
+  const u = await prisma.user.create({
+    data: {
+      email: `${TAG}.${key}@example.org`,
+      phone,
+      fullName: `Corp ${key}`,
+      passwordHash: await hashPassword('CorpTest123!'),
+      isEmailVerified: true,
+      dateOfBirth: new Date('1990-02-02'),
+      createdAt: new Date('2025-01-01'),
+      donorProfile: { create: { bloodGroup: group, country: 'IN', ...place, sex: 'male', weightKg: 70, isAvailable: true } },
+    },
+  });
+  ids[key] = u.id;
+  auth[key] = { Authorization: `Bearer ${signAccessToken({ userId: u.id, email: u.email, role: u.role })}` };
+}
+
+async function makeOrg(key: string, plan: 'paid' | 'pilot') {
+  const o = await prisma.organization.create({
+    data: { name: `Corp ${key} Ltd`, emailDomains: JSON.stringify([`${key}.corptest.in`]), inviteCode: `CORP${key.toUpperCase()}`, ...VIZAG, verified: true, plan },
+  });
+  org[key] = o.id;
+}
+
+const member = (orgKey: string, userKey: string, role = 'member', employeeId?: string) =>
+  prisma.orgMember.create({
+    data: { orgId: org[orgKey], userId: ids[userKey], role, status: 'active', workEmail: `${userKey}@${orgKey}.corptest.in`, workEmailVerifiedAt: new Date(), employeeId },
+  });
+
+beforeAll(async () => {
+  await prisma.$connect();
+  await prisma.user.deleteMany({ where: { email: { startsWith: `${TAG}.` } } });
+  await prisma.organization.deleteMany({ where: { name: { startsWith: 'Corp ' } } });
+  await makeUser('hr', '+919555000001');
+  await makeUser('emp', '+919555000002');
+  await makeUser('far', '+919555000003', DELHI, 'O-');
+  await makeOrg('acme', 'paid');
+  await makeOrg('beta', 'paid');
+  await makeOrg('pilotco', 'pilot');
+  await member('acme', 'hr', 'admin');
+  await member('acme', 'far');
+});
+
+afterAll(async () => {
+  await prisma.user.deleteMany({ where: { email: { startsWith: `${TAG}.` } } });
+  await prisma.organization.deleteMany({ where: { name: { startsWith: 'Corp ' } } });
+  await prisma.$disconnect();
+});
+
+describe('While working at a paying company', () => {
+  it('a personal plan bought earlier ends when the company covers them, with a pro-rata refund', async () => {
+    const startsAt = new Date(Date.now() - 73 * DAY); // ~20% of a year used
+    await prisma.subscription.create({
+      data: { userId: ids.emp, amountPaise: 20000, status: 'active', provider: 'dev_simulated', startsAt, endsAt: new Date(startsAt.getTime() + 365 * DAY) },
+    });
+    // Joins Acme: work email checked
+    await prisma.orgMember.create({
+      data: { orgId: org.acme, userId: ids.emp, status: 'pending_email', workEmail: 'emp@acme.corptest.in', employeeId: 'EMP7', codeHash: 'x', codeExpiresAt: new Date(Date.now() + 600000) },
+    });
+    const { hashToken } = await import('../src/shared/password.js');
+    await prisma.orgMember.updateMany({ where: { userId: ids.emp, orgId: org.acme }, data: { codeHash: hashToken('123456') } });
+    const v = await request(app).post(`${api}/organisations/${org.acme}/verify-email`).set(auth.emp).send({ code: '123456' });
+    expect(v.status).toBe(200);
+
+    const sub = await prisma.subscription.findFirstOrThrow({ where: { userId: ids.emp } });
+    expect(sub.endedReason).toBe('company_coverage');
+    expect(sub.refundStatus).toBe('simulated');
+    expect(sub.refundPaise).toBeGreaterThan(15500); // about 80% of ₹200
+    expect(sub.refundPaise).toBeLessThan(16500);
+
+    const mine = await request(app).get(`${api}/subscriptions/me`).set(auth.emp);
+    expect(mine.body.active).toBe(true);
+    expect(mine.body.company).toMatchObject({ kind: 'company', orgName: 'Corp acme Ltd' });
+    expect(mine.body.lastRefund.amountInr).toBeGreaterThan(155);
+  });
+
+  it('a pilot (unpaid) company does not cover anyone', async () => {
+    await member('pilotco', 'hr');
+    const cov = await subscriptionService.companyCoverage(ids.hr);
+    expect(cov?.orgName).toBe('Corp acme Ltd'); // only the paying one
+  });
+
+  it('colleagues are alerted wherever they are (no state limit)', async () => {
+    const r = await requestService.create(ids.hr, {
+      patientName: 'Corp Patient', bloodGroup: 'O+', unitsNeeded: 1, hospitalName: 'King George Hospital', ...VIZAG,
+      urgency: 'urgent', alertOrgIds: [org.acme],
+    });
+    await prisma.bloodRequest.update({ where: { id: r.id }, data: { onHold: false, verificationStatus: 'verified' } });
+    await requestService.rankCandidates(r.id);
+    const c = await prisma.requestCandidate.findFirst({ where: { requestId: r.id, donorUserId: ids.far } });
+    expect(c?.source).toBe('colleague'); // O- in Delhi, hospital in Andhra Pradesh
+  });
+});
+
+describe('Leaving the company', () => {
+  it('HR records the exit (CSV rows): free for 30 days, the person is told; bad rows are reported', async () => {
+    // The person is also in the circle: their family stays theirs
+    await prisma.familyMember.create({ data: { ownerUserId: ids.emp, name: 'Corp Mother', relation: 'mother', bloodGroup: 'O+' } });
+    const exitDate = new Date(Date.now() - 2 * DAY).toISOString().slice(0, 10);
+    const res = await request(app)
+      .post(`${api}/organisations/${org.acme}/exits`)
+      .set(auth.hr)
+      .send({ rows: [{ key: 'EMP7', exitDate }, { key: 'nobody@acme.corptest.in', exitDate }, { key: 'far@acme.corptest.in', exitDate: '2099-01-01' }] });
+    expect(res.status).toBe(200);
+    expect(res.body.done).toBe(1);
+    expect(res.body.results.map((r: any) => r.result)).toEqual(['done', 'not_found', 'bad_date']);
+
+    const m = await prisma.orgMember.findFirstOrThrow({ where: { userId: ids.emp, orgId: org.acme } });
+    expect(m.status).toBe('left');
+    expect(m.exitSource).toBe('hr_upload');
+    expect(Math.round((m.coverageEndsAt!.getTime() - m.leftAt!.getTime()) / DAY)).toBe(30);
+
+    const cov = await subscriptionService.companyCoverage(ids.emp);
+    expect(cov?.kind).toBe('grace');
+    expect(await subscriptionService.isActive(ids.emp)).toBe(true);
+    expect(await prisma.notification.count({ where: { recipientId: ids.emp, title: { contains: 'no longer pays' } } })).toBe(1);
+    expect(await prisma.familyMember.count({ where: { ownerUserId: ids.emp } })).toBe(1);
+  });
+
+  it('only the organisation admin can record exits', async () => {
+    const res = await request(app).post(`${api}/organisations/${org.acme}/exits`).set(auth.far).send({ rows: [{ key: 'EMP7', exitDate: '2026-01-01' }] });
+    expect(res.status).toBe(403);
+  });
+
+  it('reminders before the end, then "locked" once; the family is kept', async () => {
+    const m = await prisma.orgMember.findFirstOrThrow({ where: { userId: ids.emp, orgId: org.acme } });
+    await prisma.orgMember.update({ where: { id: m.id }, data: { coverageEndsAt: new Date(Date.now() + 6 * DAY) } });
+    await subscriptionService.processCorporateGrace();
+    await subscriptionService.processCorporateGrace();
+    expect(await prisma.notification.count({ where: { recipientId: ids.emp, title: 'Donor Circle: 7 days left to renew' } })).toBe(1);
+
+    await prisma.orgMember.update({ where: { id: m.id }, data: { coverageEndsAt: new Date(Date.now() - 60_000) } });
+    await subscriptionService.processCorporateGrace();
+    await subscriptionService.processCorporateGrace();
+    expect(await prisma.notification.count({ where: { recipientId: ids.emp, title: 'Your Donor Circle is locked' } })).toBe(1);
+    expect(await subscriptionService.isActive(ids.emp)).toBe(false);
+    expect(await prisma.familyMember.count({ where: { ownerUserId: ids.emp } })).toBe(1);
+  });
+
+  it('joining another paying company continues it at once', async () => {
+    await member('beta', 'emp');
+    const cov = await subscriptionService.companyCoverage(ids.emp);
+    expect(cov).toMatchObject({ kind: 'company', orgName: 'Corp beta Ltd' });
+    expect(await subscriptionService.isActive(ids.emp)).toBe(true);
+  });
+
+  it('nobody can buy a personal plan while a company pays', async () => {
+    const res = await request(app).post(`${api}/subscriptions/order`).set(auth.emp);
+    expect([409, 503]).toContain(res.status); // 409 when payments are set up; 503 when they are not
+  });
+});

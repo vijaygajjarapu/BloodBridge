@@ -64,6 +64,14 @@ router.get('/:id/dashboard', requireAuth, wrap((req) => organisationService.dash
 router.get('/:id/members', requireAuth, wrap((req) => organisationService.members(req.user!.userId, req.params.id)));
 router.patch('/:id/members/:memberId', requireAuth, validate(memberSchema), wrap((req) => organisationService.updateMember(req.user!.userId, req.params.id, req.params.memberId, req.body)));
 router.post('/:id/announcements', requireAuth, validate(announceSchema), wrap((req) => organisationService.announce(req.user!.userId, req.params.id, req.body), 201));
+// HR: tell us who left (one person, or a pasted CSV of work email / employee ID and last working day)
+const exitsSchema = z.object({
+  rows: z
+    .array(z.object({ key: z.string().trim().min(1).max(200), exitDate: z.string().trim().min(8).max(30) }))
+    .min(1, 'Add at least one person.')
+    .max(2000, 'Up to 2000 rows at a time.'),
+});
+router.post('/:id/exits', requireAuth, validate(exitsSchema), wrap((req) => organisationService.hrExits(req.user!.userId, req.params.id, req.body.rows)));
 
 // BloodNation staff
 router.get('/admin/all', requireAdmin, wrap(() => organisationService.adminList()));

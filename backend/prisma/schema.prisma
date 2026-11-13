@@ -345,6 +345,11 @@ model Subscription {
   providerPaymentId String?
   providerSubscriptionId String? // Razorpay Subscriptions id when automatic renewal is charged by Razorpay
   autoRenew         Boolean   @default(true) // renews every year until the person turns it off
+  // Ended early because a paying company now covers the person: unused days refunded pro rata
+  endedReason       String?   // company_coverage
+  refundPaise       Int?
+  refundStatus      String?   // simulated, processed, failed, manual
+  refundId          String?
   cancelledAt       DateTime? // when automatic renewal was turned off
   renewalReminderAt DateTime? // when the "renews soon" reminder was sent
   startsAt          DateTime?
@@ -630,7 +635,10 @@ model OrgMember {
   status              String    @default("pending_email") // pending_email, active, left
   countInImpact       Boolean   @default(true) // count my requests in the company's impact report
   joinedAt            DateTime  @default(now())
-  leftAt              DateTime?
+  leftAt              DateTime? // last working day (exit date)
+  exitSource          String?   // self, org_admin, hr_upload
+  // Company-paid Donor Circle: after the exit date it stays free until this date (30-day grace), then the person renews
+  coverageEndsAt      DateTime?
   codeHash            String?   // work-email check code (hashed)
   codeExpiresAt       DateTime?
   codeAttempts        Int       @default(0)

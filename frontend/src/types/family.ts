@@ -140,8 +140,16 @@ export interface SubscriptionPlan {
   recurring?: boolean;
 }
 
+/** Corporate: the company pays for the Donor Circle (or the 30-day free period after leaving it) */
+export type CompanyCoverage =
+  | { kind: 'company'; orgId: string; orgName: string; since: string }
+  | { kind: 'grace'; orgId: string; orgName: string; exitDate: string; until: string };
+
 export interface MySubscription {
   active: boolean;
+  company?: CompanyCoverage | null;
+  /** Last personal plan ended because a company started paying (pro-rata refund) */
+  lastRefund?: { amountInr: number; status: string | null; at: string } | null;
   startsAt: string | null;
   endsAt: string | null;
   provider: string | null;

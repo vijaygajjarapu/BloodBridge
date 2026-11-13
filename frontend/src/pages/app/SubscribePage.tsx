@@ -213,12 +213,55 @@ export const SubscribePage: React.FC = () => {
               Sponsored by <strong>{sponsor.name}</strong> until {formatDate(sponsor.endsAt)}. No payment needed.
             </p>
           )}
+          {/* Corporate: the company pays (or the 30-day free period after leaving it) */}
+          {mine?.company && !success && (
+            <div
+              id="company-coverage"
+              className={`rounded-xl border p-4 text-sm space-y-1 ${
+                mine.company.kind === 'company' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'
+              }`}
+            >
+              {mine.company.kind === 'company' ? (
+                <>
+                  <p className="font-bold">Paid by {mine.company.orgName}</p>
+                  <p>Your Donor Circle is free while you work there. No payment needed.</p>
+                  <p className="text-xs">
+                    If you leave, it stays free for 30 days. If you join another company on BloodNation that pays for its people, it simply
+                    continues. Your family and donors always stay yours.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold">{mine.company.orgName} paid until you left ({formatDate(mine.company.exitDate)})</p>
+                  <p>
+                    Your Donor Circle stays free until <strong>{formatDate(mine.company.until)}</strong>. Renew before then to keep your
+                    family’s donors unlocked. Nothing is deleted if it locks.
+                  </p>
+                  <p className="text-xs">
+                    Joining another company on BloodNation that pays for its people? If you renew now, the unused days are refunded when the
+                    new company starts paying.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+          {mine?.lastRefund && mine.lastRefund.amountInr > 0 && !success && (
+            <p className="text-xs text-ink-secondary" id="last-refund">
+              Refund of ₹{mine.lastRefund.amountInr.toFixed(2)} for unused days of your own plan ({formatDate(mine.lastRefund.at)}):{' '}
+              {mine.lastRefund.status === 'processed'
+                ? 'sent to your original payment method (5 to 7 working days).'
+                : mine.lastRefund.status === 'simulated'
+                  ? 'simulated (local testing).'
+                  : 'our team will process it.'}
+            </p>
+          )}
+
           {/* Also offered to people who already pay: sponsored months start after their paid period */}
-          {!appConfig.isDemo && !loading && !sponsor && !success && (
+          {!appConfig.isDemo && !loading && !sponsor && !success && mine?.company?.kind !== 'company' && (
             <PartnerCodeCard onRedeemed={() => subscriptionApi.mine().then(setMine).catch(() => undefined)} />
           )}
 
-          {mine?.active && !success && (
+          {mine?.active && mine.endsAt && !success && (
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800 space-y-3" id="subscription-status">
               <p>
                 Your subscription is active until <strong>{formatDate(mine.endsAt)}</strong>.{' '}
@@ -270,7 +313,7 @@ export const SubscribePage: React.FC = () => {
               </p>
             </div>
           ) : (
-            plan && (
+            plan && mine?.company?.kind !== 'company' && (
               <div className="space-y-3">
                 {plan.paymentsConfigured ? (
                   <Button variant="primary" size="lg" className="w-full justify-center" isLoading={paying} onClick={pay}>

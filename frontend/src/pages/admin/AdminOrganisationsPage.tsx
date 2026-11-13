@@ -68,7 +68,7 @@ export const AdminOrganisationsPage: React.FC = () => {
                     <td className="py-2 pr-3">{o.members}</td>
                     <td className="py-2 pr-3">
                       <select value={o.plan} className="border rounded px-2 py-1 text-xs" onChange={(e) => run(`p-${o.id}`, () => orgApi.adminUpdate(o.id, { plan: e.target.value }))}>
-                        <option value="pilot">Pilot</option><option value="paid">Paid</option>
+                        <option value="pilot">Pilot</option><option value="paid">Paid (company pays employees' Donor Circle)</option>
                       </select>
                     </td>
                     <td className="py-2 text-right">

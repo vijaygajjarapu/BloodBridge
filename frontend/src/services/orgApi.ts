@@ -21,6 +21,8 @@ export const orgApi = {
   members: (orgId: string) => apiClient.get<OrgMemberRow[]>(`/organisations/${orgId}/members`),
   updateMember: (orgId: string, memberId: string, change: { role?: 'member' | 'admin'; remove?: boolean }) =>
     apiClient.patch<OrgMemberRow[]>(`/organisations/${orgId}/members/${memberId}`, change),
+  exits: (orgId: string, rows: { key: string; exitDate: string }[]) =>
+    apiClient.post<{ results: { key: string; result: string }[]; done: number; problems: number }>(`/organisations/${orgId}/exits`, { rows }),
   announce: (orgId: string, input: { kind: 'announcement' | 'camp'; title: string; body: string; campDate?: string; place?: string }) =>
     apiClient.post<{ id: string; sentTo: number }>(`/organisations/${orgId}/announcements`, input),
   // BloodNation staff

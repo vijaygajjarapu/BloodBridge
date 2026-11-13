@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { errorMessage } from '../../utils/formErrors';
+import { HrExitsCard } from '../../components/org/HrExitsCard';
 
 const Stat: React.FC<{ label: string; value: React.ReactNode; hint?: string }> = ({ label, value, hint }) => (
   <div className="rounded-xl border border-line-border p-4">
@@ -184,6 +185,8 @@ export const OrgAdminPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <HrExitsCard orgId={id} onDone={() => load()} />
 
       <p className="text-[11px] text-ink-muted flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Impact numbers count only members who allow it. Download a report for CSR / HR from this page (coming next).</p>
     </div>
