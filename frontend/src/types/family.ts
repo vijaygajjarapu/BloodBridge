@@ -18,6 +18,15 @@ export interface FamilyMember {
   relation: FamilyRelation;
   bloodGroup: BloodGroup;
   dateOfBirth: string | null;
+  /** Optional: this family member (18+) is willing to donate blood */
+  willingToDonate: boolean;
+  /** Reach them on the account owner's mobile number */
+  useOwnerPhone: boolean;
+  /** Their own mobile ("+919876543210") when not using the owner's */
+  donorPhone: string | null;
+  /** They agreed that their name and number may be shown to someone whose blood request they match */
+  contactConsent: boolean;
+  contactConsentAt: string | null;
   createdAt: string;
 }
 
@@ -26,6 +35,10 @@ export interface FamilyMemberInput {
   relation: FamilyRelation;
   bloodGroup: BloodGroup;
   dateOfBirth?: string | null;
+  willingToDonate?: boolean;
+  useOwnerPhone?: boolean;
+  donorPhone?: string | null;
+  contactConsent?: boolean;
 }
 
 export interface FamilyInviteInfo {

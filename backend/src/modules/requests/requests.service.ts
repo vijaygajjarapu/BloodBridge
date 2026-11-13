@@ -730,9 +730,19 @@ export class RequestService {
     if (!r || r.requesterUserId !== userId) throw new AppError('Request not found.', 404, 'NOT_FOUND');
     r.status = await this.expireIfDue(r);
     const matching = await this.matchingSummary(r);
+    // Family members (without accounts) who are willing to donate, match, and agreed to share their name and number.
+    // Only for a live request that is not on hold or rejected.
+    const showFamilyDonors = LIVE.includes(r.status as RequestStatus) && !r.onHold && r.verificationStatus !== 'rejected';
+    const familyMemberDonors = showFamilyDonors
+      ? await familyService.matchingMemberDonors(r, this.compatibleDonorGroups(r.bloodGroup)).catch((e) => {
+          logger.error(`Family member donors: ${e?.message}`);
+          return [];
+        })
+      : [];
     return this.serialize(r, 'requester', {
       patientName: r.patientName,
       isRequester: true,
+      familyMemberDonors,
       matching,
       shareNumberInAlerts: r.shareNumberInAlerts,
       colleaguesAlerted: parseIdList(r.alertOrgIds).length > 0,

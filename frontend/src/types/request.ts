@@ -82,6 +82,8 @@ export interface BloodRequest {
   acceptedCount?: number;
   matching?: MatchingSummary;
   responses?: RequestResponseItem[];
+  /** Family members (no account) who are willing to donate, match this request and agreed to share their name and number */
+  familyMemberDonors?: FamilyMemberDonorMatch[];
   // donor view
   requesterFirstName?: string;
   myResponse?: { status: string; shareDirectNumber: boolean } | string | null;
@@ -101,6 +103,16 @@ export interface BloodRequest {
   requesterName?: string;
   requesterEmail?: string;
   requesterPhoneAdmin?: string;
+}
+
+export interface FamilyMemberDonorMatch {
+  id: string;
+  name: string;
+  bloodGroup: import('./donor').BloodGroup;
+  phone: string;
+  city: string | null;
+  /** A member of the requester's own family */
+  yourFamily: boolean;
 }
 
 export interface CreateRequestInput {

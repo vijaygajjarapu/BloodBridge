@@ -278,6 +278,39 @@ export const RequestDetailPage: React.FC = () => {
             </CardContent>
           </Card>
 
+          {(r.familyMemberDonors || []).length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-base font-bold text-ink-main flex items-center gap-2">
+                    <Users className="w-5 h-5 text-brand-500" /> Family members who can donate
+                  </h2>
+                  <RevealNumbersButton />
+                </div>
+                <p className="text-xs text-ink-secondary">
+                  Family members added by BloodNation users near the hospital. They match your blood group and agreed to share their name and
+                  number for requests like yours. Please call politely, ask when they last donated, and never offer or ask for money.
+                </p>
+              </CardHeader>
+              <CardContent className="p-5 space-y-3">
+                {(r.familyMemberDonors || []).map((d) => (
+                  <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-border p-3">
+                    <div className="flex items-center gap-3">
+                      <BloodGroupBadge group={d.bloodGroup} size="sm" />
+                      <div>
+                        <p className="text-sm font-bold text-ink-main">{d.name}</p>
+                        <p className="text-xs text-ink-secondary">
+                          {d.yourFamily ? 'Your family' : d.city || 'Near the hospital'}
+                        </p>
+                      </div>
+                    </div>
+                    <MaskedPhone phone={d.phone} asButton />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <h2 className="text-base font-bold text-ink-main">Share this request</h2>

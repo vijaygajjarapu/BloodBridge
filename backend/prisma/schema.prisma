@@ -278,12 +278,21 @@ model FamilyMember {
   relation    String    // "self", "spouse", "son", "daughter", "father", "mother", "brother", "sister", "other"
   bloodGroup  String    // A+, A-, B+, B-, AB+, AB-, O+, O-
   dateOfBirth DateTime?
+  // Optional: this family member (18+) is willing to donate blood. They have no account of their own.
+  willingToDonate    Boolean   @default(false)
+  useOwnerPhone      Boolean   @default(false) // reach them on the account owner's mobile number
+  donorPhone         String?   // their own mobile ("+919876543210") when useOwnerPhone is false
+  // Their explicit consent to show their name and mobile number to someone whose blood request they match
+  contactConsent     Boolean   @default(false)
+  contactConsentAt   DateTime?
+  contactConsentText String?   // the exact wording they agreed to
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   owner User @relation("FamilyOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
 
   @@index([ownerUserId])
+  @@index([willingToDonate, bloodGroup])
 }
 
 /// A shareable link. Opening it shows only the blood groups needed and the inviter's first name.

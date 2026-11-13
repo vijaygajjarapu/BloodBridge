@@ -1,14 +1,34 @@
 import { prisma } from '../../config/database.js';
 import { AppError } from '../../shared/types.js';
 import { generateRandomToken } from '../../shared/password.js';
-import { formatPhone } from '../../shared/location.js';
+import { formatPhone, requirePhone } from '../../shared/location.js';
+import { ageOn } from '../../shared/age.js';
+import { notificationService } from '../notifications/notifications.service.js';
 import { subscriptionService } from '../subscriptions/subscriptions.service.js';
-import { gapDaysFor } from '../eligibility/eligibility.rules.js';
+import { gapDaysFor, RULES } from '../eligibility/eligibility.rules.js';
 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
 export const RELATIONS = ['self', 'spouse', 'son', 'daughter', 'father', 'mother', 'brother', 'sister', 'grandparent', 'other'] as const;
 
 const BLOOD_ORDER = [...BLOOD_GROUPS];
+
+/** The words a family member agrees to before their name and number can be shown to someone who needs blood */
+export function memberConsentText(name: string) {
+  return `${name.trim()} agrees that BloodNation may show their name and mobile number to a person whose blood request they match, so that person can call them about donating blood. They can withdraw this at any time.`;
+}
+
+export interface MemberDonorInput {
+  willingToDonate?: boolean;
+  useOwnerPhone?: boolean;
+  donorPhone?: string | null;
+  contactConsent?: boolean;
+}
+
+type MemberInput = { name?: string; relation?: string; bloodGroup?: string; dateOfBirth?: string | null } & MemberDonorInput;
+
+function fieldError(field: string, message: string): never {
+  throw new AppError(message, 400, 'VALIDATION_FAILED', { [field]: message });
+}
 
 function firstName(name?: string | null): string {
   return (name || '').trim().split(/\s+/)[0] || 'A BloodNation member';
@@ -40,15 +60,21 @@ export class FamilyService {
       relation: m.relation,
       bloodGroup: m.bloodGroup,
       dateOfBirth: m.dateOfBirth ? m.dateOfBirth.toISOString().slice(0, 10) : null,
+      willingToDonate: m.willingToDonate,
+      useOwnerPhone: m.useOwnerPhone,
+      donorPhone: m.donorPhone,
+      contactConsent: m.contactConsent,
+      contactConsentAt: m.contactConsentAt ? m.contactConsentAt.toISOString() : null,
       createdAt: m.createdAt.toISOString(),
     }));
   }
 
-  async addMember(ownerUserId: string, input: { name: string; relation: string; bloodGroup: string; dateOfBirth?: string | null }) {
+  async addMember(ownerUserId: string, input: { name: string; relation: string; bloodGroup: string; dateOfBirth?: string | null } & MemberDonorInput) {
     const count = await prisma.familyMember.count({ where: { ownerUserId } });
     if (count >= 25) {
       throw new AppError('You can add up to 25 family members.', 400, 'LIMIT_REACHED');
     }
+    const donor = await this.memberDonorData(ownerUserId, input, null);
     await prisma.familyMember.create({
       data: {
         ownerUserId,
@@ -56,6 +82,7 @@ export class FamilyService {
         relation: input.relation,
         bloodGroup: input.bloodGroup,
         dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
+        ...donor,
       },
     });
     return this.listMembers(ownerUserId);
@@ -64,15 +91,17 @@ export class FamilyService {
   async updateMember(
     ownerUserId: string,
     memberId: string,
-    input: { name?: string; relation?: string; bloodGroup?: string; dateOfBirth?: string | null },
+    input: MemberInput,
   ) {
     const member = await prisma.familyMember.findUnique({ where: { id: memberId } });
     if (!member || member.ownerUserId !== ownerUserId) {
       throw new AppError('Family member not found.', 404, 'NOT_FOUND');
     }
+    const donor = await this.memberDonorData(ownerUserId, input, member);
     await prisma.familyMember.update({
       where: { id: memberId },
       data: {
+        ...donor,
         ...(input.name && { name: input.name.trim() }),
         ...(input.relation && { relation: input.relation }),
         ...(input.bloodGroup && { bloodGroup: input.bloodGroup }),
@@ -89,6 +118,149 @@ export class FamilyService {
     }
     await prisma.familyMember.delete({ where: { id: memberId } });
     return this.listMembers(ownerUserId);
+  }
+
+  /**
+   * "Eligible to donate blood?" for a family member without an account of their own.
+   * - only for family members aged 18 to 65 (date of birth needed), not for "self" (you donate through your own profile)
+   * - mobile: the account owner's number ("Use same mobile number") or their own valid number
+   * - consent: their name and number are shown to a requester only after they agreed to the exact wording we store.
+   *   Changing the number clears the consent, so it must be given again for the new number.
+   */
+  private async memberDonorData(
+    ownerUserId: string,
+    input: MemberInput,
+    existing: { name: string; relation: string; dateOfBirth: Date | null; willingToDonate: boolean; useOwnerPhone: boolean; donorPhone: string | null; contactConsent: boolean; contactConsentAt: Date | null } | null,
+  ) {
+    const willing = input.willingToDonate ?? existing?.willingToDonate ?? false;
+    if (!willing) {
+      return { willingToDonate: false, useOwnerPhone: false, donorPhone: null, contactConsent: false, contactConsentAt: null, contactConsentText: null };
+    }
+    const relation = input.relation ?? existing?.relation;
+    if (relation === 'self') {
+      fieldError('willingToDonate', 'You donate through your own donor profile. This option is for other family members.');
+    }
+    const name = (input.name ?? existing?.name ?? '').trim();
+    const dobRaw = input.dateOfBirth !== undefined ? input.dateOfBirth : existing?.dateOfBirth?.toISOString() ?? null;
+    if (!dobRaw) fieldError('dateOfBirth', 'Enter their date of birth. Only people aged 18 or older can be donors.');
+    const age = ageOn(new Date(dobRaw));
+    if (age < RULES.minAge) fieldError('dateOfBirth', `Only family members aged ${RULES.minAge} or older can be donors.`);
+    if (age > RULES.maxAge) fieldError('dateOfBirth', `Donors must be ${RULES.maxAge} or younger.`);
+
+    const owner = await prisma.user.findUnique({ where: { id: ownerUserId }, select: { phone: true, country: true } });
+    const useOwnerPhone = input.useOwnerPhone ?? existing?.useOwnerPhone ?? false;
+    let donorPhone: string | null = null;
+    if (useOwnerPhone) {
+      if (!owner?.phone) fieldError('useOwnerPhone', 'Add your mobile number to your profile first, or enter their own number.');
+    } else {
+      const raw = input.donorPhone !== undefined ? input.donorPhone : existing?.donorPhone ?? null;
+      if (!raw || !String(raw).trim()) fieldError('donorPhone', 'Enter their mobile number, or tick “Use same mobile number”.');
+      donorPhone = requirePhone(owner?.country, String(raw), 'donorPhone');
+    }
+
+    // A different number (or switching to/from the shared number) needs fresh consent
+    const sameNumber = !!existing && existing.willingToDonate && existing.useOwnerPhone === useOwnerPhone && existing.donorPhone === donorPhone;
+    const consent = input.contactConsent ?? (sameNumber ? existing!.contactConsent : false);
+    if (!consent) {
+      return { willingToDonate: true, useOwnerPhone, donorPhone, contactConsent: false, contactConsentAt: null, contactConsentText: null };
+    }
+    const keepDate = sameNumber && existing!.contactConsent && existing!.contactConsentAt;
+    return {
+      willingToDonate: true,
+      useOwnerPhone,
+      donorPhone,
+      contactConsent: true,
+      contactConsentAt: keepDate ? existing!.contactConsentAt : new Date(),
+      contactConsentText: memberConsentText(name),
+    };
+  }
+
+  /**
+   * Family members who are willing to donate, agreed to share their name and number, and match this request:
+   * compatible blood group, aged 18 to 65, and their family lives in the hospital's district (or PIN code).
+   * Shown only to the requester of a live request. Every first showing is logged and the family is told.
+   */
+  async matchingMemberDonors(
+    r: { id: string; requesterUserId: string; bloodGroup: string; country: string; state: string; district: string; hospitalName: string; city?: string | null; hospitalPinCode?: string | null },
+    compatibleGroups: string[],
+  ) {
+    const members = await prisma.familyMember.findMany({
+      where: {
+        willingToDonate: true,
+        contactConsent: true,
+        bloodGroup: { in: compatibleGroups },
+        dateOfBirth: { not: null },
+        owner: {
+          status: 'active',
+          donorProfile: {
+            country: r.country,
+            OR: [{ state: r.state, district: r.district }, ...(r.hospitalPinCode ? [{ postalCode: r.hospitalPinCode }] : [])],
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        bloodGroup: true,
+        dateOfBirth: true,
+        useOwnerPhone: true,
+        donorPhone: true,
+        ownerUserId: true,
+        owner: { select: { phone: true, country: true, donorProfile: { select: { city: true, postalCode: true } } } },
+      },
+      take: 300,
+    });
+    const now = new Date();
+    const rows = members
+      .filter((m) => {
+        const age = ageOn(m.dateOfBirth!, now);
+        return age >= RULES.minAge && age <= RULES.maxAge;
+      })
+      .map((m) => ({ m, phone: m.useOwnerPhone ? m.owner.phone : m.donorPhone }))
+      .filter((x) => !!x.phone)
+      .sort((a, b) => {
+        // The requester's own family first, then donors in the hospital's PIN code
+        const own = Number(b.m.ownerUserId === r.requesterUserId) - Number(a.m.ownerUserId === r.requesterUserId);
+        if (own) return own;
+        const pin = (x: typeof a) => Number(!!r.hospitalPinCode && x.m.owner.donorProfile?.postalCode === r.hospitalPinCode);
+        return pin(b) - pin(a);
+      })
+      .slice(0, 10);
+
+    // Record (once per request) whose contact details were shown, and tell their family
+    if (rows.length) {
+      const shown = await prisma.auditLog.findMany({
+        where: { action: 'FAMILY_DONOR_CONTACT_SHOWN', entityType: 'BloodRequest', entityId: r.id },
+        select: { details: true },
+      });
+      const already = new Set(shown.map((x) => x.details));
+      for (const { m } of rows) {
+        if (already.has(m.id)) continue;
+        await prisma.auditLog.create({
+          data: { actorId: r.requesterUserId, action: 'FAMILY_DONOR_CONTACT_SHOWN', entityType: 'BloodRequest', entityId: r.id, details: m.id },
+        });
+        if (m.ownerUserId !== r.requesterUserId) {
+          await notificationService
+            .createNotification(
+              m.ownerUserId,
+              'family_donor_shared',
+              `${firstName(m.name)}'s number was shared for a blood request`,
+              `Someone needs ${r.bloodGroup} blood at ${r.hospitalName}${r.city ? ', ' + r.city : ''}. ${m.name} matches, so their name and number were shown to the person who asked, as they agreed. To stop this, open My Family and untick "Eligible to donate blood?" or the consent.`,
+              `/app/family`,
+            )
+            .catch(() => undefined);
+        }
+      }
+    }
+
+    return rows.map(({ m, phone }) => ({
+      id: m.id,
+      name: m.name,
+      bloodGroup: m.bloodGroup,
+      phone: formatPhone(phone, m.owner.country),
+      city: m.owner.donorProfile?.city || null,
+      yourFamily: m.ownerUserId === r.requesterUserId,
+    }));
   }
 
   /** The blood groups this family may need (unique, nothing else) */

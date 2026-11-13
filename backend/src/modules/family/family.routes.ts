@@ -17,6 +17,11 @@ const memberSchema = z.object({
     .optional()
     .nullable()
     .refine((v) => !v || (!isNaN(Date.parse(v)) && new Date(v) < new Date()), 'Enter a date of birth in the past.'),
+  // Optional: this family member (18+) is willing to donate blood
+  willingToDonate: z.boolean().optional(),
+  useOwnerPhone: z.boolean().optional(),
+  donorPhone: z.string().trim().max(20).optional().nullable(),
+  contactConsent: z.boolean().optional(),
 });
 
 const pledgeSchema = z.object({

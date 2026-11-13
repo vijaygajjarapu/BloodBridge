@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Users, UserPlus, Trash2, Share2, Copy, Check, MessageCircle, Smartphone, HeartHandshake, Pencil, X } from 'lucide-react';
+import { Users, UserPlus, Trash2, Share2, Copy, Check, MessageCircle, Smartphone, HeartHandshake, Pencil, X, Droplet, Lock } from 'lucide-react';
 import { familyApi } from '../../services/familyApi';
 import type { FamilyMember, FamilyMemberInput, FamilyInviteInfo, MyPledge, FamilyRelation } from '../../types/family';
 import type { BloodGroup } from '../../types/donor';
@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { Checkbox } from '../../components/ui/Checkbox';
+import { useAuth } from '../../hooks/useAuth';
 import { BloodGroupBadge } from '../../components/ui/Badge';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { FamilyCircleCard } from '../../components/family/FamilyCircleCard';
@@ -18,9 +20,36 @@ import { PartnerCodeCard } from '../../components/subscription/PartnerCodeCard';
 import { RELATION_LABELS, RELATION_OPTIONS } from '../../components/family/relations';
 import { getFieldErrors, errorMessage, errorTitle } from '../../utils/formErrors';
 
-const EMPTY: FamilyMemberInput = { name: '', relation: 'spouse', bloodGroup: 'O+', dateOfBirth: '' };
+const EMPTY: FamilyMemberInput = {
+  name: '',
+  relation: 'spouse',
+  bloodGroup: 'O+',
+  dateOfBirth: '',
+  willingToDonate: false,
+  useOwnerPhone: false,
+  donorPhone: '',
+  contactConsent: false,
+};
+
+const MIN_DONOR_AGE = 18;
+const MAX_DONOR_AGE = 65;
+
+function ageFrom(dob: string): number | null {
+  const d = new Date(dob);
+  if (!dob || isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age;
+}
+
+/** Shown next to the consent checkbox and stored on the server with the date it was given */
+const consentWording = (name: string) =>
+  `${name.trim() || 'This family member'} agrees that BloodNation may show their name and mobile number to a person whose blood request they match, so that person can call them about donating blood. They can withdraw this at any time.`;
 
 export const FamilyPage: React.FC = () => {
+  const { user } = useAuth();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FamilyMemberInput>(EMPTY);
@@ -62,6 +91,18 @@ export const FamilyPage: React.FC = () => {
     if (!form.relation) errs.relation = 'Choose how this person is related to you.';
     if (!form.bloodGroup) errs.bloodGroup = 'Choose a blood group.';
     if (form.dateOfBirth && new Date(form.dateOfBirth) >= new Date()) errs.dateOfBirth = 'Enter a date of birth in the past.';
+    if (form.willingToDonate) {
+      const age = ageFrom(form.dateOfBirth || '');
+      if (form.relation === 'self') errs.willingToDonate = 'You donate through your own donor profile. This option is for other family members.';
+      if (age === null) errs.dateOfBirth = 'Enter their date of birth. Only people aged 18 or older can be donors.';
+      else if (age < MIN_DONOR_AGE) errs.dateOfBirth = `Only family members aged ${MIN_DONOR_AGE} or older can be donors.`;
+      else if (age > MAX_DONOR_AGE) errs.dateOfBirth = `Donors must be ${MAX_DONOR_AGE} or younger.`;
+      if (form.useOwnerPhone) {
+        if (!user?.phone) errs.useOwnerPhone = 'Add your mobile number to your profile first, or enter their own number.';
+      } else if (!(form.donorPhone || '').trim()) {
+        errs.donorPhone = 'Enter their mobile number, or tick “Use same mobile number”.';
+      }
+    }
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -72,7 +113,14 @@ export const FamilyPage: React.FC = () => {
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { ...form, name: form.name.trim(), dateOfBirth: form.dateOfBirth || null };
+      const payload: FamilyMemberInput = form.willingToDonate
+        ? {
+            ...form,
+            name: form.name.trim(),
+            dateOfBirth: form.dateOfBirth || null,
+            donorPhone: form.useOwnerPhone ? null : (form.donorPhone || '').trim(),
+          }
+        : { name: form.name.trim(), relation: form.relation, bloodGroup: form.bloodGroup, dateOfBirth: form.dateOfBirth || null, willingToDonate: false };
       const next = editingId ? await familyApi.updateMember(editingId, payload) : await familyApi.addMember(payload);
       setMembers(next);
       setForm(EMPTY);
@@ -91,7 +139,16 @@ export const FamilyPage: React.FC = () => {
   const startEdit = (m: FamilyMember) => {
     setEditingId(m.id);
     setFieldErrors({});
-    setForm({ name: m.name, relation: m.relation, bloodGroup: m.bloodGroup, dateOfBirth: m.dateOfBirth || '' });
+    setForm({
+      name: m.name,
+      relation: m.relation,
+      bloodGroup: m.bloodGroup,
+      dateOfBirth: m.dateOfBirth || '',
+      willingToDonate: m.willingToDonate,
+      useOwnerPhone: m.useOwnerPhone,
+      donorPhone: m.donorPhone || '',
+      contactConsent: m.contactConsent,
+    });
   };
 
   const remove = async (m: FamilyMember) => {
@@ -192,6 +249,20 @@ export const FamilyPage: React.FC = () => {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink-main truncate">{m.name}</p>
                       <p className="text-xs text-ink-secondary">{RELATION_LABELS[m.relation]}</p>
+                      {m.willingToDonate && (
+                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                          <span className="inline-flex items-center gap-1 font-semibold text-brand-700 bg-brand-50 rounded px-1.5 py-0.5">
+                            <Droplet className="w-3 h-3" /> Willing to donate
+                          </span>
+                          {m.contactConsent ? (
+                            <span className="text-emerald-700">Name and number shown to matching requests</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-ink-secondary">
+                              <Lock className="w-3 h-3" /> Not shared (no consent)
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -258,6 +329,60 @@ export const FamilyPage: React.FC = () => {
                 onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
                 error={fieldErrors.dateOfBirth}
               />
+            </div>
+
+            {/* Optional: this family member can donate blood */}
+            <div className="rounded-lg border border-line-border bg-white p-3 space-y-2">
+              <Checkbox
+                id="family-willing"
+                label="Eligible to donate blood?"
+                description="Optional. Tick if this family member is 18 or older and willing to donate when someone nearby needs their blood group."
+                checked={!!form.willingToDonate}
+                onChange={(e) => setForm({ ...form, willingToDonate: e.target.checked })}
+                error={fieldErrors.willingToDonate}
+              />
+              {form.willingToDonate && (
+                <div className="pl-7 space-y-2">
+                  <p className="text-xs text-ink-secondary">
+                    Name: <strong className="text-ink-main">{form.name.trim() || '—'}</strong>. A date of birth is needed (18 to 65).
+                  </p>
+                  <Checkbox
+                    id="family-same-phone"
+                    label="Use same mobile number"
+                    description={user?.phone ? `Reach them on your number (${user.phone}).` : 'Your profile has no mobile number yet.'}
+                    checked={!!form.useOwnerPhone}
+                    onChange={(e) => setForm({ ...form, useOwnerPhone: e.target.checked, contactConsent: false })}
+                    error={fieldErrors.useOwnerPhone}
+                  />
+                  {!form.useOwnerPhone && (
+                    <Input
+                      id="family-donor-phone"
+                      label="Their mobile number"
+                      type="tel"
+                      inputMode="tel"
+                      required
+                      placeholder="e.g. 98765 43210"
+                      value={form.donorPhone || ''}
+                      onChange={(e) => setForm({ ...form, donorPhone: e.target.value, contactConsent: false })}
+                      error={fieldErrors.donorPhone}
+                    />
+                  )}
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+                    <Checkbox
+                      id="family-consent"
+                      label={`${form.name.trim() || 'This family member'} has agreed to share their name and mobile number`}
+                      description={
+                        <>
+                          {consentWording(form.name)} Ask them first. Without this, they are saved as willing but their details are never shown to
+                          anyone. Changing the number needs their consent again.
+                        </>
+                      }
+                      checked={!!form.contactConsent}
+                      onChange={(e) => setForm({ ...form, contactConsent: e.target.checked })}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-2 justify-end">
               {editingId && (
