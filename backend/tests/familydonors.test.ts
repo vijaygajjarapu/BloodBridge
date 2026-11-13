@@ -151,3 +151,36 @@ describe('Showing family-member donors on a blood request', () => {
     expect(sita.phone.replace(/\D/g, '')).toContain('9444000001');
   });
 });
+
+describe('Family members who can donate are part of your own Donor Circle', () => {
+  it('lists them (with or without consent) and who they can give to, including you, without a subscription', async () => {
+    const res = await request(app).get(`${api}/family/circle`).set(auth.owner);
+    expect(res.status).toBe(200);
+    const names = res.body.familyDonors.map((d: any) => d.name);
+    expect(names).toEqual(expect.arrayContaining(['Ravi Own', 'Sita Shared', 'Gopi Private']));
+    expect(names).not.toContain('Plain Member');
+    const ravi = res.body.familyDonors.find((d: any) => d.name === 'Ravi Own');
+    expect(ravi.canGiveTo).toContain('You'); // O- can give to the owner's A+
+    expect(res.body.familyDonors.find((d: any) => d.name === 'Gopi Private').sharedOutsideFamily).toBe(false);
+    const you = res.body.members.find((m: any) => m.memberId === 'you');
+    expect(you.donors.some((d: any) => d.source === 'family' && d.name === 'Ravi Own')).toBe(true);
+    expect(res.body.totalDonors).toBeGreaterThanOrEqual(3);
+  });
+
+  it("on your own request your willing family members are shown wherever the hospital is, even without the outside-sharing consent", async () => {
+    const r = await requestService.create(ids.owner, {
+      patientName: 'FamDonor Own Patient',
+      bloodGroup: 'O-',
+      unitsNeeded: 1,
+      hospitalName: 'Apollo Hospital',
+      state: 'Telangana',
+      district: 'Hyderabad',
+      city: 'Hyderabad',
+      urgency: 'urgent',
+    });
+    await prisma.bloodRequest.update({ where: { id: r.id }, data: { onHold: false, verificationStatus: 'verified' } });
+    const view = await request(app).get(`${api}/requests/${r.id}`).set(auth.owner);
+    const mine = (view.body.familyMemberDonors || []).filter((d: any) => d.yourFamily).map((d: any) => d.name);
+    expect(mine).toEqual(expect.arrayContaining(['Ravi Own', 'Gopi Private']));
+  });
+});

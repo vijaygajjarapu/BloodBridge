@@ -58,7 +58,12 @@ export interface FamilyInvitePublic {
 
 export interface CircleDonor {
   pledgeId: string;
-  donorUserId: string;
+  /** null for a family member (no account) */
+  donorUserId: string | null;
+  /** "pledge": pledged through your invite; "family": a family member who ticked "Eligible to donate blood?" */
+  source?: 'pledge' | 'family';
+  familyMemberId?: string;
+  donorBloodGroup?: BloodGroup;
   name: string;
   /** Only when the donor allows calls (and only the inviter sees it) */
   phone: string | null;
@@ -84,14 +89,29 @@ export interface CircleMember {
   relation: FamilyRelation;
   bloodGroup: BloodGroup;
   donorCount: number;
-  /** Empty unless the family has an active subscription */
+  /** How many of donorCount are your own family members */
+  familyDonorCount?: number;
+  /** Pledged donors only with an active subscription; your own family members always */
   donors: CircleDonor[];
+}
+
+/** A family member who can donate, and who in the family they can give to */
+export interface FamilyDonorSummary {
+  memberId: string;
+  name: string;
+  relation: FamilyRelation;
+  bloodGroup: BloodGroup;
+  phone: string | null;
+  /** They agreed their name and number may be shown to people near you whose blood request they match */
+  sharedOutsideFamily: boolean;
+  canGiveTo: string[];
 }
 
 export interface FamilyCircle {
   locked: boolean;
   totalDonors: number;
   members: CircleMember[];
+  familyDonors?: FamilyDonorSummary[];
 }
 
 export interface MyPledge {

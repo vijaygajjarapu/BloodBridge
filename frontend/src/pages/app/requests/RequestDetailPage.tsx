@@ -288,8 +288,9 @@ export const RequestDetailPage: React.FC = () => {
                   <RevealNumbersButton />
                 </div>
                 <p className="text-xs text-ink-secondary">
-                  Family members added by BloodNation users near the hospital. They match your blood group and agreed to share their name and
-                  number for requests like yours. Please call politely, ask when they last donated, and never offer or ask for money.
+                  Your own family members who can donate (wherever the hospital is), and family members of BloodNation users near the
+                  hospital who agreed to share their name and number. All match the blood group needed. Please call politely, ask when they
+                  last donated, and never offer or ask for money.
                 </p>
               </CardHeader>
               <CardContent className="p-5 space-y-3">

@@ -12,6 +12,27 @@ export const RELATIONS = ['self', 'spouse', 'son', 'daughter', 'father', 'mother
 
 const BLOOD_ORDER = [...BLOOD_GROUPS];
 
+/** Red-cell compatibility: which donor groups can give to each patient group */
+export const COMPATIBLE_DONORS: Record<string, string[]> = {
+  'O-': ['O-'],
+  'O+': ['O+', 'O-'],
+  'A-': ['A-', 'O-'],
+  'A+': ['A+', 'A-', 'O+', 'O-'],
+  'B-': ['B-', 'O-'],
+  'B+': ['B+', 'B-', 'O+', 'O-'],
+  'AB-': ['AB-', 'A-', 'B-', 'O-'],
+  'AB+': ['AB+', 'AB-', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-'],
+};
+
+const canGive = (donorGroup: string, patientGroup: string) => (COMPATIBLE_DONORS[patientGroup] || [patientGroup]).includes(donorGroup);
+
+/** A family member who ticked "Eligible to donate blood?" and is 18 to 65 today */
+function isFamilyDonorNow(m: { willingToDonate: boolean; dateOfBirth: Date | null }, now = new Date()) {
+  if (!m.willingToDonate || !m.dateOfBirth) return false;
+  const age = ageOn(m.dateOfBirth, now);
+  return age >= RULES.minAge && age <= RULES.maxAge;
+}
+
 /** The words a family member agrees to before their name and number can be shown to someone who needs blood */
 export function memberConsentText(name: string) {
   return `${name.trim()} agrees that BloodNation may show their name and mobile number to a person whose blood request they match, so that person can call them about donating blood. They can withdraw this at any time.`;
@@ -184,8 +205,28 @@ export class FamilyService {
     r: { id: string; requesterUserId: string; bloodGroup: string; country: string; state: string; district: string; hospitalName: string; city?: string | null; hospitalPinCode?: string | null },
     compatibleGroups: string[],
   ) {
+    // 1. The requester's own family: they added these people themselves, so wherever the hospital is
+    const own = await prisma.familyMember.findMany({
+      where: { ownerUserId: r.requesterUserId, willingToDonate: true, bloodGroup: { in: compatibleGroups }, dateOfBirth: { not: null } },
+      select: { id: true, name: true, bloodGroup: true, dateOfBirth: true, useOwnerPhone: true, donorPhone: true, owner: { select: { phone: true, country: true, donorProfile: { select: { city: true } } } } },
+    });
+    const ownRows = own
+      .filter((m) => isFamilyDonorNow({ willingToDonate: true, dateOfBirth: m.dateOfBirth }))
+      .map((m) => ({ m, phone: m.useOwnerPhone ? m.owner.phone : m.donorPhone }))
+      .filter((x) => !!x.phone)
+      .map(({ m, phone }) => ({
+        id: m.id,
+        name: m.name,
+        bloodGroup: m.bloodGroup,
+        phone: formatPhone(phone, m.owner.country),
+        city: m.owner.donorProfile?.city || null,
+        yourFamily: true,
+      }));
+
+    // 2. Other families near the hospital, only with their consent
     const members = await prisma.familyMember.findMany({
       where: {
+        ownerUserId: { not: r.requesterUserId },
         willingToDonate: true,
         contactConsent: true,
         bloodGroup: { in: compatibleGroups },
@@ -219,13 +260,11 @@ export class FamilyService {
       .map((m) => ({ m, phone: m.useOwnerPhone ? m.owner.phone : m.donorPhone }))
       .filter((x) => !!x.phone)
       .sort((a, b) => {
-        // The requester's own family first, then donors in the hospital's PIN code
-        const own = Number(b.m.ownerUserId === r.requesterUserId) - Number(a.m.ownerUserId === r.requesterUserId);
-        if (own) return own;
+        // Donors in the hospital's PIN code first
         const pin = (x: typeof a) => Number(!!r.hospitalPinCode && x.m.owner.donorProfile?.postalCode === r.hospitalPinCode);
         return pin(b) - pin(a);
       })
-      .slice(0, 10);
+      .slice(0, Math.max(0, 10 - ownRows.length));
 
     // Record (once per request) whose contact details were shown, and tell their family
     if (rows.length) {
@@ -239,7 +278,7 @@ export class FamilyService {
         await prisma.auditLog.create({
           data: { actorId: r.requesterUserId, action: 'FAMILY_DONOR_CONTACT_SHOWN', entityType: 'BloodRequest', entityId: r.id, details: m.id },
         });
-        if (m.ownerUserId !== r.requesterUserId) {
+        {
           await notificationService
             .createNotification(
               m.ownerUserId,
@@ -253,14 +292,17 @@ export class FamilyService {
       }
     }
 
-    return rows.map(({ m, phone }) => ({
-      id: m.id,
-      name: m.name,
-      bloodGroup: m.bloodGroup,
-      phone: formatPhone(phone, m.owner.country),
-      city: m.owner.donorProfile?.city || null,
-      yourFamily: m.ownerUserId === r.requesterUserId,
-    }));
+    return [
+      ...ownRows,
+      ...rows.map(({ m, phone }) => ({
+        id: m.id,
+        name: m.name,
+        bloodGroup: m.bloodGroup,
+        phone: formatPhone(phone, m.owner.country),
+        city: m.owner.donorProfile?.city || null,
+        yourFamily: false,
+      })),
+    ];
   }
 
   /** The blood groups this family may need (unique, nothing else) */
@@ -513,7 +555,7 @@ export class FamilyService {
 
   async circle(ownerUserId: string) {
     await this.syncReferredDonors(ownerUserId);
-    const [members, pledges, subscribed] = await Promise.all([
+    const [members, pledges, subscribed, owner] = await Promise.all([
       prisma.familyMember.findMany({ where: { ownerUserId }, orderBy: { createdAt: 'asc' } }),
       prisma.bloodPledge.findMany({
         where: { ownerUserId, status: 'active' },
@@ -528,20 +570,58 @@ export class FamilyService {
         orderBy: { createdAt: 'asc' },
       }),
       subscriptionService.isActive(ownerUserId),
+      prisma.user.findUnique({ where: { id: ownerUserId }, select: { phone: true, country: true, donorProfile: { select: { bloodGroup: true } } } }),
     ]);
 
     const activePledges = pledges.filter((p) => p.donor.status === 'active');
 
-    const result = members.map((m) => {
+    // Family members who ticked "Eligible to donate blood?" are part of your own Donor Circle (free: it's your family)
+    const now = new Date();
+    const familyDonors = members
+      .filter((m) => isFamilyDonorNow(m, now))
+      .map((m) => ({
+        m,
+        phone: formatPhone(m.useOwnerPhone ? owner?.phone ?? null : m.donorPhone, owner?.country) || null,
+      }));
+
+    // The people who may need blood: your family members, plus you (from your donor profile) unless you added yourself
+    const needing: { memberId: string; name: string; relation: string; bloodGroup: string }[] = members.map((m) => ({
+      memberId: m.id,
+      name: m.name,
+      relation: m.relation,
+      bloodGroup: m.bloodGroup,
+    }));
+    if (owner?.donorProfile?.bloodGroup && !members.some((m) => m.relation === 'self')) {
+      needing.unshift({ memberId: 'you', name: 'You', relation: 'self', bloodGroup: owner.donorProfile.bloodGroup });
+    }
+
+    const result = needing.map((m) => {
       const matched = activePledges.filter((p) => p.bloodGroup === m.bloodGroup);
+      const fromFamily = familyDonors.filter((f) => f.m.id !== m.memberId && canGive(f.m.bloodGroup, m.bloodGroup));
       return {
-        memberId: m.id,
+        memberId: m.memberId,
         name: m.name,
         relation: m.relation,
         bloodGroup: m.bloodGroup,
-        donorCount: matched.length,
-        donors: subscribed
+        donorCount: matched.length + fromFamily.length,
+        familyDonorCount: fromFamily.length,
+        donors: [
+          ...fromFamily.map((f) => ({
+            pledgeId: `family-${f.m.id}`,
+            donorUserId: null,
+            familyMemberId: f.m.id,
+            source: 'family' as const,
+            name: f.m.name,
+            donorBloodGroup: f.m.bloodGroup,
+            phone: f.phone,
+            canCall: !!f.phone,
+            availability: null,
+            getsRequestAlerts: false,
+            pledgedAt: (f.m.contactConsentAt || f.m.updatedAt).toISOString(),
+          })),
+          ...(subscribed
           ? matched.map((p) => ({
+              source: 'pledge' as const,
               pledgeId: p.id,
               donorUserId: p.donorUserId,
               name: p.donor.fullName || p.donor.username || 'Donor',
@@ -553,14 +633,25 @@ export class FamilyService {
               getsRequestAlerts: p.allowRequestAlerts,
               pledgedAt: p.createdAt.toISOString(),
             }))
-          : [],
+          : []),
+        ],
       };
     });
 
     return {
       locked: !subscribed,
-      totalDonors: new Set(activePledges.map((p) => p.donorUserId)).size,
+      totalDonors: new Set(activePledges.map((p) => p.donorUserId)).size + familyDonors.length,
       members: result,
+      // Everyone in your family who can donate, and who they can give to
+      familyDonors: familyDonors.map((f) => ({
+        memberId: f.m.id,
+        name: f.m.name,
+        relation: f.m.relation,
+        bloodGroup: f.m.bloodGroup,
+        phone: f.phone,
+        sharedOutsideFamily: f.m.contactConsent,
+        canGiveTo: needing.filter((n) => n.memberId !== f.m.id && canGive(f.m.bloodGroup, n.bloodGroup)).map((n) => n.name),
+      })),
     };
   }
 }

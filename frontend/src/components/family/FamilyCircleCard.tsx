@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Lock, ShieldCheck, Phone, Users, HeartHandshake, Loader2 } from 'lucide-react';
+import { Lock, ShieldCheck, Phone, Users, HeartHandshake, Loader2, Droplet } from 'lucide-react';
 import { familyApi } from '../../services/familyApi';
 import type { FamilyCircle } from '../../types/family';
 import { Card, CardContent } from '../ui/Card';
@@ -121,6 +121,37 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
           </div>
         )}
 
+        {/* Your own family members who can donate: always shown (no subscription needed, it's your family) */}
+        {circle && (circle.familyDonors || []).length > 0 && (
+          <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-3 space-y-2">
+            <p className="text-xs font-bold text-ink-main flex items-center gap-1.5">
+              <Droplet className="w-3.5 h-3.5 text-brand-500" /> From your family ({(circle.familyDonors || []).length})
+            </p>
+            <ul className="divide-y divide-line-border">
+              {(circle.familyDonors || []).slice(0, compact ? 3 : undefined).map((f) => (
+                <li key={f.memberId} className="py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <BloodGroupBadge group={f.bloodGroup} size="sm" />
+                    <span className="min-w-0">
+                      <span className="font-semibold text-ink-main">{f.name}</span>{' '}
+                      <span className="text-ink-secondary">{RELATION_LABELS[f.relation] || f.relation}</span>
+                      <span className="block text-ink-secondary">
+                        {f.canGiveTo.length ? `Can give to: ${f.canGiveTo.join(', ')}` : 'No one in your list has a blood group they can give to'}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <span className={f.sharedOutsideFamily ? 'text-emerald-700' : 'text-ink-muted'}>
+                      {f.sharedOutsideFamily ? 'Also offered to people nearby' : 'Family only'}
+                    </span>
+                    {f.phone && <MaskedPhone phone={f.phone} />}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {circle && circle.members.length > 0 && (
           <div className="relative">
             {!circle.locked && circle.members.some((m) => m.donors.some((d) => d.phone)) && (
@@ -135,7 +166,7 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
                     <div className="flex items-center gap-2 min-w-0">
                       <BloodGroupBadge group={m.bloodGroup} size="sm" />
                       <span className="text-sm font-semibold text-ink-main truncate">{m.name}</span>
-                      <span className="text-xs text-ink-secondary">{RELATION_LABELS[m.relation] || m.relation}</span>
+                      {m.memberId !== 'you' && <span className="text-xs text-ink-secondary">{RELATION_LABELS[m.relation] || m.relation}</span>}
                     </div>
                     <span className="text-xs text-ink-secondary whitespace-nowrap">
                       {m.donorCount} ready
@@ -144,9 +175,9 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
 
                   {circle.locked ? (
                     // Placeholder rows only: real names and numbers are never sent before subscribing
-                    m.donorCount > 0 && (
+                    m.donorCount - (m.familyDonorCount || 0) > 0 && (
                       <ul className="mt-2 space-y-1 blur-[5px]">
-                        {Array.from({ length: Math.min(m.donorCount, 3) }).map((_, i) => (
+                        {Array.from({ length: Math.min(m.donorCount - (m.familyDonorCount || 0), 3) }).map((_, i) => (
                           <li key={i} className="flex justify-between text-xs text-ink-secondary">
                             <span>Donor name hidden</span>
                             <span>+91 ••••• •••••</span>
@@ -160,6 +191,11 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
                         <li key={d.pledgeId} className="py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                           <span className="flex items-center gap-2">
                             <span className="font-medium text-ink-main">{d.name}</span>
+                            {d.source === 'family' && (
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700">
+                                Family{d.donorBloodGroup ? ` · ${d.donorBloodGroup}` : ''}
+                              </span>
+                            )}
                             {d.availability && (
                               <span
                                 className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
@@ -183,10 +219,10 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
                                 Number private
                               </span>
                             )}
-                            {!compact && (
+                            {!compact && d.source !== 'family' && d.donorUserId && (
                               <button
                                 type="button"
-                                onClick={() => endRelationship(d.donorUserId, d.name)}
+                                onClick={() => endRelationship(d.donorUserId!, d.name)}
                                 className="text-ink-muted hover:text-status-error font-semibold"
                                 aria-label={`Remove ${d.name} from your circle`}
                               >
