@@ -61,7 +61,9 @@ export interface CircleDonor {
   /** null for a family member (no account) */
   donorUserId: string | null;
   /** "pledge": pledged through your invite; "family": a family member who ticked "Eligible to donate blood?" */
-  source?: 'pledge' | 'family';
+  source?: 'pledge' | 'family' | 'pledger_family';
+  /** For "pledger_family": the first name of the person who pledged to you (it's their family member) */
+  via?: string;
   familyMemberId?: string;
   donorBloodGroup?: BloodGroup;
   name: string;

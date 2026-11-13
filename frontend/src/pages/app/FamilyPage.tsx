@@ -46,7 +46,7 @@ function ageFrom(dob: string): number | null {
 
 /** Shown next to the consent checkbox and stored on the server with the date it was given */
 const consentWording = (name: string) =>
-  `${name.trim() || 'This family member'} agrees that BloodNation may show their name and mobile number to a person whose blood request they match, so that person can call them about donating blood. They can withdraw this at any time.`;
+  `${name.trim() || 'This family member'} agrees that BloodNation may show their name and mobile number to a person whose blood request they match, and to families you have pledged to help (their Donor Circle), so they can call them about donating blood. They can withdraw this at any time.`;
 
 export const FamilyPage: React.FC = () => {
   const { user } = useAuth();

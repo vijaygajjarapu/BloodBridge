@@ -35,7 +35,7 @@ function isFamilyDonorNow(m: { willingToDonate: boolean; dateOfBirth: Date | nul
 
 /** The words a family member agrees to before their name and number can be shown to someone who needs blood */
 export function memberConsentText(name: string) {
-  return `${name.trim()} agrees that BloodNation may show their name and mobile number to a person whose blood request they match, so that person can call them about donating blood. They can withdraw this at any time.`;
+  return `${name.trim()} agrees that BloodNation may show their name and mobile number to a person whose blood request they match, and to families this account holder has pledged to help (their Donor Circle), so they can call them about donating blood. They can withdraw this at any time.`;
 }
 
 export interface MemberDonorInput {
@@ -197,6 +197,35 @@ export class FamilyService {
   }
 
   /**
+   * Donor Circle reach through pledges: when someone pledged to your family (and lets you see their number),
+   * their own family members who are willing to donate and gave consent join your circle too.
+   * Example: Manjusha pledged to VijayKumar's family; her brother Naveen (B-) can donate, so he appears for Ashwath (B-).
+   */
+  async pledgerFamilyDonors(ownerUserId: string) {
+    const pledges = await prisma.bloodPledge.findMany({
+      where: { ownerUserId, status: 'active', shareContact: true, donorUserId: { not: ownerUserId }, donor: { status: 'active' } },
+      select: { donorUserId: true, donor: { select: { fullName: true, username: true } } },
+    });
+    if (!pledges.length) return [];
+    const via = new Map(pledges.map((p) => [p.donorUserId, firstName(p.donor.fullName || p.donor.username)]));
+    const members = await prisma.familyMember.findMany({
+      where: { ownerUserId: { in: [...via.keys()] }, willingToDonate: true, contactConsent: true, dateOfBirth: { not: null } },
+      select: {
+        id: true, name: true, relation: true, bloodGroup: true, dateOfBirth: true, useOwnerPhone: true, donorPhone: true, ownerUserId: true,
+        contactConsentAt: true, updatedAt: true,
+        owner: { select: { phone: true, country: true, donorProfile: { select: { city: true } } } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const now = new Date();
+    return members
+      .filter((m) => isFamilyDonorNow({ willingToDonate: true, dateOfBirth: m.dateOfBirth }, now))
+      .map((m) => ({ m, phone: m.useOwnerPhone ? m.owner.phone : m.donorPhone, via: via.get(m.ownerUserId) || 'a donor' }))
+      .filter((x) => !!x.phone)
+      .map((x) => ({ ...x, phone: formatPhone(x.phone, x.m.owner.country) }));
+  }
+
+  /**
    * Family members who are willing to donate, agreed to share their name and number, and match this request:
    * compatible blood group, aged 18 to 65, and their family lives in the hospital's district (or PIN code).
    * Shown only to the requester of a live request. Every first showing is logged and the family is told.
@@ -223,10 +252,18 @@ export class FamilyService {
         yourFamily: true,
       }));
 
+    // 1b. Family members of people who pledged to the requester (their Donor Circle), wherever the hospital is.
+    //     Like the rest of the saved donor list, this needs the requester's subscription.
+    const circle = (await subscriptionService.isActive(r.requesterUserId))
+      ? (await this.pledgerFamilyDonors(r.requesterUserId)).filter((x) => compatibleGroups.includes(x.m.bloodGroup)).slice(0, 10)
+      : [];
+    const circleRows = circle.slice(0, Math.max(0, 10 - ownRows.length));
+
     // 2. Other families near the hospital, only with their consent
     const members = await prisma.familyMember.findMany({
       where: {
         ownerUserId: { not: r.requesterUserId },
+        id: { notIn: circleRows.map((x) => x.m.id) },
         willingToDonate: true,
         contactConsent: true,
         bloodGroup: { in: compatibleGroups },
@@ -264,16 +301,17 @@ export class FamilyService {
         const pin = (x: typeof a) => Number(!!r.hospitalPinCode && x.m.owner.donorProfile?.postalCode === r.hospitalPinCode);
         return pin(b) - pin(a);
       })
-      .slice(0, Math.max(0, 10 - ownRows.length));
+      .slice(0, Math.max(0, 10 - ownRows.length - circleRows.length));
 
     // Record (once per request) whose contact details were shown, and tell their family
-    if (rows.length) {
+    const sharedOut = [...circleRows.map((x) => x.m), ...rows.map((x) => x.m)];
+    if (sharedOut.length) {
       const shown = await prisma.auditLog.findMany({
         where: { action: 'FAMILY_DONOR_CONTACT_SHOWN', entityType: 'BloodRequest', entityId: r.id },
         select: { details: true },
       });
       const already = new Set(shown.map((x) => x.details));
-      for (const { m } of rows) {
+      for (const m of sharedOut) {
         if (already.has(m.id)) continue;
         await prisma.auditLog.create({
           data: { actorId: r.requesterUserId, action: 'FAMILY_DONOR_CONTACT_SHOWN', entityType: 'BloodRequest', entityId: r.id, details: m.id },
@@ -294,6 +332,15 @@ export class FamilyService {
 
     return [
       ...ownRows,
+      ...circleRows.map((x) => ({
+        id: x.m.id,
+        name: x.m.name,
+        bloodGroup: x.m.bloodGroup,
+        phone: x.phone,
+        city: x.m.owner.donorProfile?.city || null,
+        yourFamily: false,
+        via: x.via,
+      })),
       ...rows.map(({ m, phone }) => ({
         id: m.id,
         name: m.name,
@@ -595,15 +642,19 @@ export class FamilyService {
       needing.unshift({ memberId: 'you', name: 'You', relation: 'self', bloodGroup: owner.donorProfile.bloodGroup });
     }
 
+    // Family members of people who pledged to you (with their consent): part of your circle with the subscription
+    const viaPledgers = await this.pledgerFamilyDonors(ownerUserId);
+
     const result = needing.map((m) => {
       const matched = activePledges.filter((p) => p.bloodGroup === m.bloodGroup);
       const fromFamily = familyDonors.filter((f) => f.m.id !== m.memberId && canGive(f.m.bloodGroup, m.bloodGroup));
+      const fromPledgers = viaPledgers.filter((x) => canGive(x.m.bloodGroup, m.bloodGroup));
       return {
         memberId: m.memberId,
         name: m.name,
         relation: m.relation,
         bloodGroup: m.bloodGroup,
-        donorCount: matched.length + fromFamily.length,
+        donorCount: matched.length + fromFamily.length + fromPledgers.length,
         familyDonorCount: fromFamily.length,
         donors: [
           ...fromFamily.map((f) => ({
@@ -619,6 +670,22 @@ export class FamilyService {
             getsRequestAlerts: false,
             pledgedAt: (f.m.contactConsentAt || f.m.updatedAt).toISOString(),
           })),
+          ...(subscribed
+            ? fromPledgers.map((x) => ({
+                pledgeId: `via-${x.m.id}`,
+                donorUserId: null,
+                familyMemberId: x.m.id,
+                source: 'pledger_family' as const,
+                via: x.via,
+                name: x.m.name,
+                donorBloodGroup: x.m.bloodGroup,
+                phone: x.phone,
+                canCall: true,
+                availability: null,
+                getsRequestAlerts: false,
+                pledgedAt: (x.m.contactConsentAt || x.m.updatedAt).toISOString(),
+              }))
+            : []),
           ...(subscribed
           ? matched.map((p) => ({
               source: 'pledge' as const,
@@ -640,7 +707,7 @@ export class FamilyService {
 
     return {
       locked: !subscribed,
-      totalDonors: new Set(activePledges.map((p) => p.donorUserId)).size + familyDonors.length,
+      totalDonors: new Set(activePledges.map((p) => p.donorUserId)).size + familyDonors.length + viaPledgers.length,
       members: result,
       // Everyone in your family who can donate, and who they can give to
       familyDonors: familyDonors.map((f) => ({

@@ -301,7 +301,7 @@ export const RequestDetailPage: React.FC = () => {
                       <div>
                         <p className="text-sm font-bold text-ink-main">{d.name}</p>
                         <p className="text-xs text-ink-secondary">
-                          {d.yourFamily ? 'Your family' : d.city || 'Near the hospital'}
+                          {d.yourFamily ? 'Your family' : d.via ? `${d.via}'s family (pledged to you)` : d.city || 'Near the hospital'}
                         </p>
                       </div>
                     </div>

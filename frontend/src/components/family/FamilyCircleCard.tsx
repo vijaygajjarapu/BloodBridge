@@ -196,6 +196,14 @@ export const FamilyCircleCard: React.FC<{ compact?: boolean }> = ({ compact = fa
                                 Family{d.donorBloodGroup ? ` · ${d.donorBloodGroup}` : ''}
                               </span>
                             )}
+                            {d.source === 'pledger_family' && (
+                              <span
+                                className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700"
+                                title={`${d.via}'s family member, who agreed to help families ${d.via} pledged to`}
+                              >
+                                via {d.via}{d.donorBloodGroup ? ` · ${d.donorBloodGroup}` : ''}
+                              </span>
+                            )}
                             {d.availability && (
                               <span
                                 className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${

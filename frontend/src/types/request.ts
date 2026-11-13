@@ -113,6 +113,8 @@ export interface FamilyMemberDonorMatch {
   city: string | null;
   /** A member of the requester's own family */
   yourFamily: boolean;
+  /** Family member of someone who pledged to the requester (first name of that person) */
+  via?: string;
 }
 
 export interface CreateRequestInput {

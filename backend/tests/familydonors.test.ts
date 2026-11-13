@@ -184,3 +184,41 @@ describe('Family members who can donate are part of your own Donor Circle', () =
     expect(mine).toEqual(expect.arrayContaining(['Ravi Own', 'Gopi Private']));
   });
 });
+
+describe('Through a pledge: the pledger\'s willing family members join your circle', () => {
+  it('a family the owner pledged to sees the owner\'s consented family donors (with a subscription)', async () => {
+    // "owner" pledges to "requester"'s family and lets them see the number
+    await prisma.bloodPledge.create({ data: { ownerUserId: ids.requester, donorUserId: ids.owner, bloodGroup: 'A+', shareContact: true } });
+    await prisma.familyMember.create({ data: { ownerUserId: ids.requester, name: 'Ash Son', relation: 'son', bloodGroup: 'O-' } });
+    await prisma.subscription.create({
+      data: { userId: ids.requester, amountPaise: 20000, status: 'active', provider: 'dev_simulated', startsAt: new Date(), endsAt: new Date(Date.now() + 30 * 24 * 3600 * 1000) },
+    });
+
+    const res = await request(app).get(`${api}/family/circle`).set(auth.requester);
+    const ash = res.body.members.find((m: any) => m.name === 'Ash Son');
+    const via = ash.donors.filter((d: any) => d.source === 'pledger_family');
+    expect(via.map((d: any) => d.name)).toContain('Ravi Own'); // O- for O-, consented
+    expect(via.map((d: any) => d.name)).not.toContain('Gopi Private'); // no consent
+    expect(via[0].via).toBe('FamDonor');
+    expect(via.find((d: any) => d.name === 'Ravi Own').phone.replace(/\D/g, '')).toContain('9444000109');
+  });
+
+  it('they also appear on that family\'s own request, wherever the hospital is', async () => {
+    await prisma.bloodRequest.updateMany({ where: { requesterUserId: ids.requester }, data: { status: 'cancelled' } });
+    const r = await requestService.create(ids.requester, {
+      patientName: 'FamDonor Via Patient',
+      bloodGroup: 'O-',
+      unitsNeeded: 1,
+      hospitalName: 'Apollo Hospital',
+      state: 'Telangana',
+      district: 'Hyderabad',
+      city: 'Hyderabad',
+      urgency: 'urgent',
+    });
+    await prisma.bloodRequest.update({ where: { id: r.id }, data: { onHold: false, verificationStatus: 'verified' } });
+    const view = await request(app).get(`${api}/requests/${r.id}`).set(auth.requester);
+    const ravi = (view.body.familyMemberDonors || []).find((d: any) => d.name === 'Ravi Own');
+    expect(ravi).toMatchObject({ yourFamily: false, via: 'FamDonor' });
+  });
+});
+
