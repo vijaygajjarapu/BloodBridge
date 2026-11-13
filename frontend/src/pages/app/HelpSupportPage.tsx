@@ -56,7 +56,7 @@ export const HelpSupportPage: React.FC = () => {
     resolver: zodResolver(supportInquirySchema),
     defaultValues: {
       name: user?.name || '',
-      email: user?.email || 'marcus.vance@example.org',
+      email: user?.email || '',
       category: 'Donation Coordination',
       subject: '',
       message: '',

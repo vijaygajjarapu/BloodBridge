@@ -22,7 +22,7 @@ export const ForgotPasswordPage: React.FC = () => {
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
-      identifier: 'marcus.vance@example.org',
+      identifier: '',
     },
   });
 
