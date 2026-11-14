@@ -45,7 +45,7 @@ export const ForgotPasswordPage: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-ink-main tracking-tight">Forgot Password</h1>
           <p className="text-xs sm:text-sm text-ink-secondary">
-            Enter your registered email address to receive secure password recovery instructions.
+            Enter the mobile number or email address on your account to receive password recovery instructions.
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export const ForgotPasswordPage: React.FC = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               label="Registered Mobile or Email"
-              placeholder="e.g. marcus.vance@example.org"
+              placeholder="e.g. 98765 43210 or name@email.com"
               required
               error={errors.identifier?.message}
               {...register('identifier')}

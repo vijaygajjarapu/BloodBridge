@@ -281,7 +281,7 @@ export const RequestDetailPage: React.FC = () => {
 
           {(r.familyMemberDonors || []).length > 0 && (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex-col items-stretch gap-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-base font-bold text-ink-main flex items-center gap-2">
                     <Users className="w-5 h-5 text-brand-500" /> Family members who can donate

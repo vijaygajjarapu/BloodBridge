@@ -266,7 +266,9 @@ export class OrganisationService {
     const m = await prisma.orgMember.findUnique({ where: { id: memberId }, include: { org: true } });
     if (!m || m.status === 'left') return m;
     const companyPaid = m.status === 'active' && m.org.verified && m.org.plan === 'paid';
-    const coverageEndsAt = companyPaid ? new Date(exitDate.getTime() + CORPORATE_GRACE_DAYS * DAY) : null;
+    // HR may report late: the 30 free days never start before the person linked to the company on BloodNation
+    const graceStart = Math.max(exitDate.getTime(), new Date(m.workEmailVerifiedAt || m.joinedAt).getTime());
+    const coverageEndsAt = companyPaid ? new Date(graceStart + CORPORATE_GRACE_DAYS * DAY) : null;
     await prisma.orgMember.update({
       where: { id: m.id },
       data: { status: 'left', leftAt: exitDate, role: 'member', exitSource: source, coverageEndsAt },

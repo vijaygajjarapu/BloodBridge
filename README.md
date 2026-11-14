@@ -2,6 +2,11 @@
 
 > **Brand:** BloodNation (formerly BloodBridge). App store name: **BloodNation: Your Donor Circle**. The core idea is your own circle of people who pledged to donate blood for you (relatives, friends, colleagues, group members, anyone willing), alerted first in an emergency. Folder and repository names still say BloodBridge.
 >
+> **Documentation (kept up to date with every change):**
+> - Functional BRD, screen by screen, with **section 12: Business rules and decisions** (every decision with its date and reason, plus open points): https://claude.ai/artifact/HobFgF8nugC6AHAqqhbJYj
+> - Manual test cases (129 cases, results table, bugs found): https://claude.ai/artifact/3oJDXoPFE3ce6ffAJpygqA
+> - Investor deck: `docs/BloodNation_Investor_Pitch_BRD.pptx`
+>
 > **Legal entity:** BloodNation is a platform owned and operated by **Manjusha Health Tech Pvt Ltd**. Every screen shows this line at the bottom. Once the company is registered, fill `VITE_COMPANY_CIN`, `VITE_COMPANY_REGISTERED_OFFICE`, `VITE_COMPANY_PHONE`, `VITE_COMPANY_EMAIL` and `VITE_COMPANY_GRIEVANCE_OFFICER` in `frontend/.env` (Rule 26, Companies (Incorporation) Rules 2014 asks for these on the home page).
 
 [![Full-Stack Production Ready](https://img.shields.io/badge/status-production--ready-brightgreen.svg)](#)

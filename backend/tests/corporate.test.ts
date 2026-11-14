@@ -147,13 +147,22 @@ describe('Leaving the company', () => {
     const m = await prisma.orgMember.findFirstOrThrow({ where: { userId: ids.emp, orgId: org.acme } });
     expect(m.status).toBe('left');
     expect(m.exitSource).toBe('hr_upload');
-    expect(Math.round((m.coverageEndsAt!.getTime() - m.leftAt!.getTime()) / DAY)).toBe(30);
+    // Linked today, exit reported 2 days back: the 30 days count from the link date
+    expect(Math.round((m.coverageEndsAt!.getTime() - Date.now()) / DAY)).toBe(30);
 
     const cov = await subscriptionService.companyCoverage(ids.emp);
     expect(cov?.kind).toBe('grace');
     expect(await subscriptionService.isActive(ids.emp)).toBe(true);
     expect(await prisma.notification.count({ where: { recipientId: ids.emp, title: { contains: 'no longer pays' } } })).toBe(1);
     expect(await prisma.familyMember.count({ where: { ownerUserId: ids.emp } })).toBe(1);
+  });
+
+  it('reported late (exit date before they linked on BloodNation): the 30 free days start from the link date', async () => {
+    const res = await request(app).post(`${api}/organisations/${org.acme}/exits`).set(auth.hr).send({ rows: [{ key: 'far@acme.corptest.in', exitDate: '2020-01-01' }] });
+    expect(res.body.results[0].result).toBe('done');
+    const m = await prisma.orgMember.findFirstOrThrow({ where: { userId: ids.far, orgId: org.acme } });
+    expect(Math.round((m.coverageEndsAt!.getTime() - Date.now()) / DAY)).toBe(30);
+    expect((await subscriptionService.companyCoverage(ids.far))?.kind).toBe('grace');
   });
 
   it('only the organisation admin can record exits', async () => {
