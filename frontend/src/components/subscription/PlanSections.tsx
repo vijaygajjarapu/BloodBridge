@@ -84,7 +84,7 @@ export const PlanSections: React.FC = () => {
             Just you. Your requests also alert your colleagues, wherever they are. Family members are added under Personal.
           </p>
           <Link to="/app/organisations" className="text-xs font-semibold text-brand-600">
-            {orgs.length ? 'Manage' : 'Join with your work email'} →
+            {orgs.length ? 'Manage' : 'Link my company'} →
           </Link>
         </CardContent>
       </Card>

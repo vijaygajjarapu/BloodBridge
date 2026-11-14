@@ -3,8 +3,12 @@
  *
  * Rules
  * - ONE account per person. Joining a company adds a link (OrgMember) to the person's own account; leaving the
- *   job ends the link, never the account or its donation history.
- * - Proof of working there: a code sent to a work email on one of the company's domains.
+ *   job ends the link, never the account or its donation history. People sign in with their personal mobile.
+ * - The company decides who is eligible, not the employee (like Headspace / Cult.fit for work):
+ *   BloodNation staff add the company after the contract and name its HR admin; HR uploads the employee list
+ *   (employee ID + date of birth, optional work email). An employee links by matching a row (ID + date of birth),
+ *   or with a code sent to the work email on their row. Employees cannot create a company on their own.
+ * - Being removed from the list counts as leaving the company.
  * - The company sees counts only. It never sees a named employee's blood group, eligibility, pauses or reasons.
  *   Small counts (below 3) are hidden.
  * - Requests are always personal. Membership only means colleagues who allow it are alerted too, and the request
@@ -25,6 +29,9 @@ export const ORG_TYPES = ['company', 'college', 'ngo', 'hospital_group', 'other'
 const CODE_TTL_MIN = 15;
 const MAX_CODE_ATTEMPTS = 5;
 const MAX_ORGS_PER_PERSON = 3;
+/** Wrong employee ID / date of birth / work email tries allowed per person per day (stops guessing) */
+const MAX_LINK_FAILS_PER_DAY = 5;
+const MAX_LIST_ROWS = 5000;
 const DAY = 24 * 60 * 60 * 1000;
 
 /** Domains anyone can sign up for: never proof of working somewhere */
@@ -47,6 +54,24 @@ const parseDomains = (raw: string): string[] => {
 };
 const cleanDomain = (d: string) => d.trim().toLowerCase().replace(/^@/, '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
 const isValidDomain = (d: string) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d) && !FREE_MAIL.has(d);
+const normId = (v: string) => v.trim().toUpperCase().replace(/\s+/g, '');
+const ymd = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Date of birth as HR files usually have it: 1990-02-28, 28-02-1990, 28/02/1990 or 28.02.1990 (day first) */
+export function parseDob(raw: string): Date | null {
+  const v = (raw || '').trim();
+  let y: number, m: number, d: number;
+  let r = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(v);
+  if (r) [y, m, d] = [+r[1], +r[2], +r[3]];
+  else if ((r = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(v))) [d, m, y] = [+r[1], +r[2], +r[3]];
+  else return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  const age = (Date.now() - dt.getTime()) / (365.25 * DAY);
+  if (age < 14 || age > 100) return null;
+  return dt;
+}
+
 const newInviteCode = () => crypto.randomBytes(5).toString('base64url').replace(/[-_]/g, 'X').toUpperCase().slice(0, 8);
 
 const ELIGIBILITY_SELECT = {
@@ -79,16 +104,27 @@ const publicOrg = (o: Org) => ({
   emailDomains: parseDomains(o.emailDomains),
 });
 
-export interface RegisterOrgInput {
+export interface CompanyRequestInput {
   name: string;
   type: (typeof ORG_TYPES)[number];
-  workEmail: string;
-  emailDomains?: string[];
+  contactName: string;
+  contactEmail: string;
+  contactPhone?: string;
   country?: string;
   state: string;
   district: string;
   city: string;
 }
+
+export interface EligibilityRowInput {
+  employeeId: string;
+  dateOfBirth: string;
+  workEmail?: string;
+}
+
+type LinkInput =
+  | { inviteCode: string; method: 'employee_id'; employeeId: string; dateOfBirth: string }
+  | { inviteCode: string; method: 'work_email'; workEmail: string };
 
 export class OrganisationService {
   // ---------- For everyone ----------
@@ -102,7 +138,7 @@ export class OrganisationService {
     });
     return rows.map((m) => ({
       ...publicOrg(m.org),
-      membership: { role: m.role, status: m.status, workEmail: m.workEmail, countInImpact: m.countInImpact, joinedAt: m.joinedAt },
+      membership: { role: m.role, status: m.status, workEmail: m.workEmail, employeeId: m.employeeId, countInImpact: m.countInImpact, joinedAt: m.joinedAt },
       ...(m.role === 'admin' ? { inviteCode: m.org.inviteCode } : {}),
     }));
   }
@@ -115,75 +151,97 @@ export class OrganisationService {
   }
 
   /**
-   * Register a new organisation. The person becomes its first admin once their work email is checked.
-   * BloodNation staff verify the organisation before others can join.
+   * "Bring BloodNation to my company": anyone can ask, but it only records the request and who to contact.
+   * Nobody becomes an admin and nobody can link until the company signs the contract and staff verify it.
    */
-  async register(userId: string, input: RegisterOrgInput) {
-    const workEmail = input.workEmail.trim().toLowerCase();
-    const mainDomain = domainOf(workEmail);
-    if (!isValidDomain(mainDomain)) {
-      throw new AppError('Use your work email (not Gmail, Yahoo, Outlook...).', 400, 'VALIDATION_FAILED', { workEmail: 'Use your work email address.' });
-    }
-    const extra = (input.emailDomains || []).map(cleanDomain).filter(Boolean);
-    const bad = extra.find((d) => !isValidDomain(d));
-    if (bad) throw new AppError(`"${bad}" can't be used as a work email domain.`, 400, 'VALIDATION_FAILED');
-    const domains = [...new Set([mainDomain, ...extra])].slice(0, 5);
+  async requestCompany(userId: string, input: CompanyRequestInput) {
+    const contactEmail = input.contactEmail.trim().toLowerCase();
     const loc = validateLocation({ country: input.country || 'IN', state: input.state, district: input.district, city: input.city }, { requireCity: true });
-
-    // One organisation per domain, so a company can't be registered twice
-    const all = await prisma.organization.findMany({ select: { emailDomains: true, name: true } });
-    const clash = all.find((o) => parseDomains(o.emailDomains).some((d) => domains.includes(d)));
-    if (clash) {
-      throw new AppError(`${clash.name} is already on BloodNation. Ask your HR team for its invite code.`, 409, 'ALREADY_EXISTS');
+    const recent = await prisma.organization.count({ where: { createdById: userId, createdAt: { gte: new Date(Date.now() - DAY) } } });
+    if (recent >= 3) throw new AppError('You can send up to 3 company requests a day.', 429, 'TOO_MANY_REQUESTS');
+    // A company already on BloodNation (same work email domain): ask HR for the code instead
+    const domain = domainOf(contactEmail);
+    if (domain && !FREE_MAIL.has(domain)) {
+      const all = await prisma.organization.findMany({ select: { emailDomains: true, name: true } });
+      const clash = all.find((o) => parseDomains(o.emailDomains).includes(domain));
+      if (clash) throw new AppError(`${clash.name} is already on BloodNation. Ask your HR team for its company code.`, 409, 'ALREADY_EXISTS');
     }
-    await this.checkMembershipLimit(userId);
-
     let inviteCode = newInviteCode();
     while (await prisma.organization.findUnique({ where: { inviteCode } })) inviteCode = newInviteCode();
     const org = await prisma.organization.create({
       data: {
         name: input.name.trim().replace(/\s+/g, ' '),
         type: input.type,
-        emailDomains: JSON.stringify(domains),
+        emailDomains: JSON.stringify(domain && isValidDomain(domain) ? [domain] : []),
         inviteCode,
         country: loc.country,
         state: loc.state,
         district: loc.district,
         city: loc.city,
         createdById: userId,
+        contactName: input.contactName.trim(),
+        contactEmail,
+        contactPhone: input.contactPhone?.trim() || null,
       },
     });
-    const member = await prisma.orgMember.create({ data: { orgId: org.id, userId, role: 'admin', workEmail } });
-    await this.sendCode(member.id, workEmail, org.name);
-    return { org: publicOrg(org), inviteCode, membership: { status: 'pending_email', workEmail } };
+    await prisma.auditLog
+      .create({ data: { actorId: userId, action: 'ORG_REQUESTED', entityType: 'Organization', entityId: org.id, details: JSON.stringify({ name: org.name }) } })
+      .catch(() => undefined);
+    return { requested: true, org: publicOrg(org) };
   }
 
-  /** Join with an invite code and a work email; a code is sent to the work email */
-  async join(userId: string, inviteCode: string, workEmailRaw: string, employeeId?: string) {
-    const o = await prisma.organization.findUnique({ where: { inviteCode: inviteCode.trim().toUpperCase() } });
-    if (!o) throw new AppError('No organisation with this code. Check the code with your HR team.', 404, 'NOT_FOUND');
-    if (!o.verified) throw new AppError(`${o.name} is waiting for BloodNation to verify it. Please try again in a day or two.`, 400, 'ORG_NOT_VERIFIED');
-    const workEmail = workEmailRaw.trim().toLowerCase();
-    if (!parseDomains(o.emailDomains).includes(domainOf(workEmail))) {
-      throw new AppError(`Use your ${o.name} work email (${parseDomains(o.emailDomains).map((d) => '@' + d).join(', ')}).`, 400, 'VALIDATION_FAILED', {
-        workEmail: 'This is not a work email of this organisation.',
-      });
+  /**
+   * Link my company to my personal account, using what HR put on the employee list:
+   * - employee ID + date of birth: linked at once when they match an eligible row
+   * - work email: a code goes to the work email on the row; linked once the code is entered
+   * Wrong details give the same message whichever part was wrong, and only 5 wrong tries a day are allowed.
+   */
+  async link(userId: string, input: LinkInput) {
+    const o = await prisma.organization.findUnique({ where: { inviteCode: input.inviteCode.trim().toUpperCase() } });
+    if (!o) throw new AppError('No company with this code. Check the code with your HR team.', 404, 'NOT_FOUND');
+    if (!o.verified) throw new AppError(`${o.name} hasn't finished joining BloodNation yet. Please try again later.`, 400, 'ORG_NOT_VERIFIED');
+    const fails = await prisma.auditLog.count({ where: { actorId: userId, action: 'ORG_LINK_FAILED', createdAt: { gte: new Date(Date.now() - DAY) } } });
+    if (fails >= MAX_LINK_FAILS_PER_DAY) {
+      throw new AppError('Too many tries today. Please check your details with your HR team and try again tomorrow.', 429, 'TOO_MANY_ATTEMPTS');
     }
-    // The same work email can belong to only one person
-    const taken = await prisma.orgMember.findFirst({ where: { workEmail, status: 'active', userId: { not: userId } } });
-    if (taken) throw new AppError('This work email is already linked to another BloodNation account.', 409, 'ALREADY_EXISTS');
+    const noMatch = async () => {
+      await prisma.auditLog
+        .create({ data: { actorId: userId, action: 'ORG_LINK_FAILED', entityType: 'Organization', entityId: o.id, details: JSON.stringify({ method: input.method }) } })
+        .catch(() => undefined);
+      return new AppError(`We couldn't find these details on ${o.name}'s employee list. Check them with your HR team.`, 400, 'NOT_ON_LIST');
+    };
+
+    const row =
+      input.method === 'employee_id'
+        ? await prisma.orgEligibility.findUnique({ where: { orgId_employeeId: { orgId: o.id, employeeId: normId(input.employeeId) } } })
+        : await prisma.orgEligibility.findFirst({ where: { orgId: o.id, workEmail: input.workEmail.trim().toLowerCase() } });
+    if (!row || row.status !== 'eligible') throw await noMatch();
+    if (input.method === 'employee_id') {
+      const dob = parseDob(input.dateOfBirth);
+      if (!dob || ymd(dob) !== ymd(row.dateOfBirth)) throw await noMatch();
+    }
+    await this.refuseIfRowTaken(row, userId, o.name);
 
     const existing = await prisma.orgMember.findUnique({ where: { orgId_userId: { orgId: o.id, userId } } });
     if (existing?.status === 'active') return this.mine(userId);
-    if (!existing) await this.checkMembershipLimit(userId);
-    const member = existing
-      ? await prisma.orgMember.update({
-          where: { id: existing.id },
-          data: { workEmail, employeeId: employeeId?.trim() || null, status: 'pending_email', leftAt: null },
-        })
-      : await prisma.orgMember.create({ data: { orgId: o.id, userId, workEmail, employeeId: employeeId?.trim() || null } });
-    await this.sendCode(member.id, workEmail, o.name);
-    return { pending: true, workEmail, org: publicOrg(o) };
+    if (!existing || existing.status === 'left') await this.checkMembershipLimit(userId);
+
+    if (input.method === 'work_email') {
+      const workEmail = row.workEmail!;
+      const data = { workEmail, employeeId: row.employeeId, status: 'pending_email', leftAt: null };
+      const member = existing
+        ? await prisma.orgMember.update({ where: { id: existing.id }, data })
+        : await prisma.orgMember.create({ data: { orgId: o.id, userId, ...data } });
+      await this.sendCode(member.id, workEmail, o.name);
+      return { pending: true, workEmail, org: publicOrg(o) };
+    }
+    await this.activate(o, userId, row);
+    return this.mine(userId);
+  }
+
+  /** Old route: join with a work email. Now it only works when that work email is on the company's employee list. */
+  async join(userId: string, inviteCode: string, workEmail: string) {
+    return this.link(userId, { inviteCode, method: 'work_email', workEmail });
   }
 
   /** Enter the code from the work email */
@@ -198,16 +256,43 @@ export class OrganisationService {
       await prisma.orgMember.update({ where: { id: m.id }, data: { codeAttempts: { increment: 1 } } });
       throw new AppError('Wrong code. Please check the email and try again.', 400, 'INVALID_OTP');
     }
-    await prisma.orgMember.update({
-      where: { id: m.id },
-      data: { status: 'active', workEmailVerifiedAt: new Date(), codeHash: null, codeExpiresAt: null, codeAttempts: 0, coverageEndsAt: null, exitSource: null },
-    });
-    // A company that pays for its people: "Welcome to Corporate Donor Circle" (nothing refunded)
-    const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, verified: true, plan: true } });
-    if (org?.verified && org.plan === 'paid') {
-      await subscriptionService.welcomeCorporate(userId, orgId, org.name).catch(() => undefined);
-    }
+    // Still on the employee list (HR may have removed them since the code was sent)
+    const row = await prisma.orgEligibility.findFirst({ where: { orgId, workEmail: m.workEmail, status: 'eligible' } });
+    const org = await prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
+    if (!row) throw new AppError(`This work email is no longer on ${org.name}'s employee list. Check with your HR team.`, 400, 'NOT_ON_LIST');
+    await this.refuseIfRowTaken(row, userId, org.name);
+    await this.activate(org, userId, row);
     return this.mine(userId);
+  }
+
+  /** One row of the employee list belongs to one BloodNation account */
+  private async refuseIfRowTaken(row: { orgId: string; linkedUserId: string | null }, userId: string, orgName: string) {
+    if (!row.linkedUserId || row.linkedUserId === userId) return;
+    const other = await prisma.orgMember.findFirst({ where: { orgId: row.orgId, userId: row.linkedUserId, status: { in: ['active', 'pending_email'] } } });
+    if (other) {
+      throw new AppError(`These details are already linked to another BloodNation account. Ask ${orgName}'s HR team.`, 409, 'ALREADY_EXISTS');
+    }
+  }
+
+  /** Linked: active member from now; a company that pays shows "Welcome to Corporate Donor Circle" (nothing refunded) */
+  private async activate(o: { id: string; name: string; verified: boolean; plan: string }, userId: string, row: { id: string; employeeId: string; workEmail: string | null }) {
+    const data = {
+      status: 'active',
+      employeeId: row.employeeId,
+      workEmail: row.workEmail || '',
+      workEmailVerifiedAt: new Date(), // the date they linked the company
+      leftAt: null,
+      coverageEndsAt: null,
+      exitSource: null,
+      codeHash: null,
+      codeExpiresAt: null,
+      codeAttempts: 0,
+    };
+    const existing = await prisma.orgMember.findUnique({ where: { orgId_userId: { orgId: o.id, userId } } });
+    if (existing) await prisma.orgMember.update({ where: { id: existing.id }, data });
+    else await prisma.orgMember.create({ data: { orgId: o.id, userId, ...data } });
+    await prisma.orgEligibility.update({ where: { id: row.id }, data: { linkedUserId: userId, linkedAt: new Date() } });
+    if (o.verified && o.plan === 'paid') await subscriptionService.welcomeCorporate(userId, o.id, o.name).catch(() => undefined);
   }
 
   async resendCode(userId: string, orgId: string) {
@@ -229,35 +314,6 @@ export class OrganisationService {
   }
 
   /**
-   * Signed up with an official email: once that email is verified, they belong to the company whose domain it is
-   * (verified organisations only). Same as joining with the invite code and checking the work email.
-   */
-  async autoLinkByEmail(userId: string, email: string) {
-    const domain = domainOf(email);
-    if (!domain || FREE_MAIL.has(domain)) return [];
-    const orgs = await prisma.organization.findMany({ where: { verified: true, emailDomains: { contains: `"${domain}"` } } });
-    const linked: string[] = [];
-    for (const o of orgs) {
-      if (!parseDomains(o.emailDomains).includes(domain)) continue;
-      const existing = await prisma.orgMember.findUnique({ where: { orgId_userId: { orgId: o.id, userId } } });
-      if (existing?.status === 'active') continue;
-      // The same work email can belong to only one person
-      const taken = await prisma.orgMember.findFirst({ where: { workEmail: email.toLowerCase(), status: 'active', userId: { not: userId } } });
-      if (taken) continue;
-      if (!existing) {
-        const n = await prisma.orgMember.count({ where: { userId, status: { in: ['active', 'pending_email'] } } });
-        if (n >= MAX_ORGS_PER_PERSON) break;
-      }
-      const data = { workEmail: email.toLowerCase(), status: 'active', workEmailVerifiedAt: new Date(), leftAt: null, coverageEndsAt: null, exitSource: null };
-      if (existing) await prisma.orgMember.update({ where: { id: existing.id }, data });
-      else await prisma.orgMember.create({ data: { orgId: o.id, userId, ...data } });
-      if (o.plan === 'paid') await subscriptionService.welcomeCorporate(userId, o.id, o.name).catch(() => undefined);
-      linked.push(o.id);
-    }
-    return linked;
-  }
-
-  /**
    * The person stopped working here (they left, the admin removed them, or HR sent the exit).
    * Company-paid Donor Circle stays free for 30 days after the exit date; the person is told and reminded.
    * Their own family, pledges and Donor Circle are never touched: they belong to the person.
@@ -273,6 +329,14 @@ export class OrganisationService {
       where: { id: m.id },
       data: { status: 'left', leftAt: exitDate, role: 'member', exitSource: source, coverageEndsAt },
     });
+    // Left the company (HR or the admin said so): off the employee list too, so the details can't be used again.
+    // Leaving by themselves keeps the row: they can link again while HR still lists them.
+    if (source !== 'self') {
+      await prisma.orgEligibility.updateMany({
+        where: { orgId: m.orgId, status: 'eligible', OR: [{ linkedUserId: m.userId }, ...(m.employeeId ? [{ employeeId: m.employeeId }] : [])] },
+        data: { status: 'removed', removedAt: new Date() },
+      });
+    }
     await prisma.auditLog
       .create({ data: { action: 'ORG_MEMBER_EXIT', entityType: 'OrgMember', entityId: m.id, details: JSON.stringify({ source, exitDate, coverageEndsAt }) } })
       .catch(() => undefined);
@@ -311,10 +375,17 @@ export class OrganisationService {
         continue;
       }
       const m = await prisma.orgMember.findFirst({
-        where: { orgId, OR: [{ workEmail: key.toLowerCase() }, { employeeId: key }] },
+        where: { orgId, OR: [{ workEmail: key.toLowerCase() }, { employeeId: key }, { employeeId: normId(key) }] },
         orderBy: { joinedAt: 'desc' },
       });
-      if (!m) results.push({ key, result: 'not_found' });
+      if (!m) {
+        // On the list but never linked on BloodNation: just take them off the list
+        const r = await prisma.orgEligibility.updateMany({
+          where: { orgId, status: 'eligible', OR: [{ employeeId: normId(key) }, { workEmail: key.toLowerCase() }] },
+          data: { status: 'removed', removedAt: new Date() },
+        });
+        results.push({ key, result: r.count ? 'done' : 'not_found' });
+      }
       else if (m.userId === userId) results.push({ key, result: 'yourself' });
       else if (m.status === 'left') results.push({ key, result: 'already_left' });
       else {
@@ -399,6 +470,10 @@ export class OrganisationService {
     const since = new Date(Date.now() - 90 * DAY);
     const impactIds = members.filter((m) => m.countInImpact).map((m) => m.userId);
     const memberIds = members.map((m) => m.userId);
+    const [onList, linkedFromList] = await Promise.all([
+      prisma.orgEligibility.count({ where: { orgId, status: 'eligible' } }),
+      prisma.orgEligibility.count({ where: { orgId, status: 'eligible', linkedUserId: { not: null } } }),
+    ]);
     const [requests, fulfilled, colleagueHelps, pending, remote] = await Promise.all([
       prisma.bloodRequest.count({ where: { requesterUserId: { in: impactIds }, createdAt: { gte: since } } }),
       prisma.bloodRequest.count({ where: { requesterUserId: { in: impactIds }, createdAt: { gte: since }, status: 'fulfilled' } }),
@@ -410,7 +485,7 @@ export class OrganisationService {
     ]);
     return {
       org: { ...publicOrg(org), inviteCode: org.inviteCode, plan: org.plan },
-      people: { members: members.length, donors: donors.length, waitingForEmailCheck: pending },
+      people: { members: members.length, donors: donors.length, waitingForEmailCheck: pending, onList, linkedFromList },
       readyToDonateNow: safeCount(readyNow),
       bloodGroups: Object.fromEntries(Object.entries(byGroup).map(([g, n]) => [g, safeCount(n)])),
       last90Days: { requests, fulfilled, colleagueHelps, remoteDonations: remote },
@@ -454,6 +529,78 @@ export class OrganisationService {
       await prisma.orgMember.update({ where: { id: m.id }, data: { role: change.role } });
     }
     return this.members(userId, orgId);
+  }
+
+  /**
+   * HR: the employee list (who the company covers). Rows: employee ID, date of birth, optional work email.
+   * fullList = true means "this is everyone": people on the old list but not in this one have left the company
+   * (their company-paid Donor Circle then stays free for 30 days, as with any exit).
+   */
+  async uploadEligibility(userId: string, orgId: string, rows: EligibilityRowInput[], fullList: boolean) {
+    await this.requireOrgAdmin(userId, orgId);
+    if (rows.length > MAX_LIST_ROWS) throw new AppError(`Up to ${MAX_LIST_ROWS} rows at a time.`, 400, 'VALIDATION_FAILED');
+    const problems: { line: number; employeeId: string; reason: 'missing_id' | 'bad_date' | 'bad_email' | 'duplicate' }[] = [];
+    const clean = new Map<string, { employeeId: string; dateOfBirth: Date; workEmail: string | null }>();
+    const emails = new Set<string>();
+    rows.forEach((r, i) => {
+      const employeeId = normId(r.employeeId || '');
+      const line = i + 1;
+      if (!employeeId || employeeId.length > 40) return problems.push({ line, employeeId, reason: 'missing_id' });
+      const dateOfBirth = parseDob(r.dateOfBirth);
+      if (!dateOfBirth) return problems.push({ line, employeeId, reason: 'bad_date' });
+      const workEmail = r.workEmail?.trim().toLowerCase() || null;
+      if (workEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(workEmail)) return problems.push({ line, employeeId, reason: 'bad_email' });
+      if (clean.has(employeeId) || (workEmail && emails.has(workEmail))) return problems.push({ line, employeeId, reason: 'duplicate' });
+      if (workEmail) emails.add(workEmail);
+      clean.set(employeeId, { employeeId, dateOfBirth, workEmail });
+    });
+    // A full list with mistakes would wrongly mark people as left: nothing is changed until it is clean
+    if (fullList && problems.length) {
+      return { added: 0, updated: 0, unchanged: 0, removed: 0, exits: 0, problems, applied: false };
+    }
+
+    const existing = await prisma.orgEligibility.findMany({ where: { orgId } });
+    const byId = new Map(existing.map((e) => [e.employeeId, e]));
+    let added = 0, updated = 0, unchanged = 0, removed = 0, exits = 0;
+    for (const r of clean.values()) {
+      const e = byId.get(r.employeeId);
+      if (!e) {
+        await prisma.orgEligibility.create({ data: { orgId, ...r } });
+        added++;
+      } else if (e.status !== 'eligible' || ymd(e.dateOfBirth) !== ymd(r.dateOfBirth) || (e.workEmail || null) !== r.workEmail) {
+        await prisma.orgEligibility.update({ where: { id: e.id }, data: { ...r, status: 'eligible', removedAt: null } });
+        updated++;
+      } else unchanged++;
+    }
+    if (fullList) {
+      const today = new Date();
+      for (const e of existing.filter((x) => x.status === 'eligible' && !clean.has(x.employeeId))) {
+        await prisma.orgEligibility.update({ where: { id: e.id }, data: { status: 'removed', removedAt: today } });
+        removed++;
+        if (!e.linkedUserId || e.linkedUserId === userId) continue;
+        const m = await prisma.orgMember.findUnique({ where: { orgId_userId: { orgId, userId: e.linkedUserId } } });
+        if (m && m.status !== 'left') {
+          await this.recordExit(m.id, today, 'hr_upload');
+          exits++;
+        }
+      }
+    }
+    await prisma.auditLog
+      .create({ data: { actorId: userId, action: 'ORG_LIST_UPLOADED', entityType: 'Organization', entityId: orgId, details: JSON.stringify({ fullList, added, updated, removed, exits, problems: problems.length }) } })
+      .catch(() => undefined);
+    return { added, updated, unchanged, removed, exits, problems, applied: true };
+  }
+
+  /** HR: the list they uploaded and who has linked (no health information, no dates of birth back) */
+  async eligibility(userId: string, orgId: string) {
+    await this.requireOrgAdmin(userId, orgId);
+    const rows = await prisma.orgEligibility.findMany({ where: { orgId }, orderBy: [{ status: 'asc' }, { employeeId: 'asc' }], take: MAX_LIST_ROWS });
+    return {
+      onList: rows.filter((r) => r.status === 'eligible').length,
+      linked: rows.filter((r) => r.status === 'eligible' && r.linkedUserId).length,
+      removed: rows.filter((r) => r.status === 'removed').length,
+      rows: rows.map((r) => ({ employeeId: r.employeeId, workEmail: r.workEmail, status: r.status, linked: !!r.linkedUserId, linkedAt: r.linkedAt, removedAt: r.removedAt })),
+    };
   }
 
   /** Announcement or donation camp, sent to members who allow corporate alerts */
@@ -517,7 +664,40 @@ export class OrganisationService {
       include: { _count: { select: { members: { where: { status: 'active' } } } } },
       take: 500,
     });
-    return orgs.map((o) => ({ ...publicOrg(o), plan: o.plan, inviteCode: o.inviteCode, members: o._count.members, createdAt: o.createdAt }));
+    return orgs.map((o) => ({
+      ...publicOrg(o),
+      plan: o.plan,
+      inviteCode: o.inviteCode,
+      members: o._count.members,
+      createdAt: o.createdAt,
+      contact: { name: o.contactName, email: o.contactEmail, phone: o.contactPhone },
+    }));
+  }
+
+  /**
+   * After the contract: staff make the company's HR person its admin, using their BloodNation account
+   * (email or mobile). Only an admin can upload the employee list.
+   */
+  async adminAddOrgAdmin(staffId: string, orgId: string, identifier: string) {
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    if (!org) throw new AppError('Organisation not found.', 404, 'NOT_FOUND');
+    const id = identifier.trim();
+    const digits = id.replace(/\D/g, '');
+    const user = id.includes('@')
+      ? await prisma.user.findUnique({ where: { email: id.toLowerCase() } })
+      : await prisma.user.findFirst({ where: { phone: { endsWith: digits.slice(-10) } } });
+    if (!user || (!id.includes('@') && digits.length < 10)) {
+      throw new AppError('No BloodNation account with this email or mobile. Ask the HR person to sign up first.', 404, 'NOT_FOUND');
+    }
+    const existing = await prisma.orgMember.findUnique({ where: { orgId_userId: { orgId, userId: user.id } } });
+    const data = { role: 'admin', status: 'active', leftAt: null, coverageEndsAt: null, exitSource: null };
+    if (existing) await prisma.orgMember.update({ where: { id: existing.id }, data: { ...data, workEmailVerifiedAt: existing.workEmailVerifiedAt || new Date() } });
+    else await prisma.orgMember.create({ data: { orgId, userId: user.id, workEmail: org.contactEmail || '', workEmailVerifiedAt: new Date(), ...data } });
+    await prisma.auditLog
+      .create({ data: { actorId: staffId, action: 'ORG_ADMIN_ADDED', entityType: 'Organization', entityId: orgId, details: JSON.stringify({ userId: user.id }) } })
+      .catch(() => undefined);
+    if (org.verified && org.plan === 'paid') await subscriptionService.welcomeCorporate(user.id, orgId, org.name).catch(() => undefined);
+    return { added: true, name: user.fullName || user.username || user.email };
   }
 
   async adminUpdate(adminId: string, orgId: string, change: { verified?: boolean; plan?: string; emailDomains?: string[] }) {

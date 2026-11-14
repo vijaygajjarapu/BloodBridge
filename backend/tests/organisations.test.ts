@@ -42,11 +42,11 @@ async function makeUser(key: string, phone: string, donor?: { bloodGroup: string
   auth[key] = { Authorization: `Bearer ${signAccessToken({ userId: u.id, email: u.email, role: u.role })}` };
 }
 
-async function joinAs(key: string, email: string) {
-  const j = await request(app).post(`${api}/organisations/join`).set(auth[key]).send({ inviteCode, workEmail: email });
+const DOB = '1992-02-02';
+/** Link the company with employee ID + date of birth, as on HR's employee list */
+async function joinAs(key: string, employeeId: string) {
+  const j = await request(app).post(`${api}/organisations/link`).set(auth[key]).send({ inviteCode, method: 'employee_id', employeeId, dateOfBirth: DOB });
   expect(j.status).toBe(200);
-  const v = await request(app).post(`${api}/organisations/${orgId}/verify-email`).set(auth[key]).send({ code: testHooks.lastCode });
-  expect(v.status).toBe(200);
 }
 
 beforeAll(async () => {
@@ -72,49 +72,79 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-describe('Registering and joining an organisation', () => {
-  it('needs a real work email (not Gmail) to register', async () => {
-    const res = await request(app).post(`${api}/organisations/register`).set(auth.hr)
-      .send({ name: 'Orgtest Gmail Co', type: 'company', workEmail: 'hr@gmail.com', ...VIZAG });
-    expect(res.status).toBe(400);
-  });
-
-  it('HR registers; BloodNation staff verify; the same domain cannot be registered twice', async () => {
-    const res = await request(app).post(`${api}/organisations/register`).set(auth.hr)
-      .send({ name: 'Orgtest Infra Ltd', type: 'company', workEmail: 'hr@orgtest-infra.in', ...VIZAG });
+describe('Bringing a company on and linking it', () => {
+  it('anyone can ask BloodNation to bring their company; it only records the request, nobody becomes an admin', async () => {
+    const res = await request(app).post(`${api}/organisations/request`).set(auth.family)
+      .send({ name: 'Orgtest Infra Ltd', type: 'company', contactName: 'Asha HR', contactEmail: 'hr@orgtest-infra.in', ...VIZAG });
     expect(res.status).toBe(201);
     orgId = res.body.org.id;
-    inviteCode = res.body.inviteCode;
-    const ok = await request(app).post(`${api}/organisations/${orgId}/verify-email`).set(auth.hr).send({ code: testHooks.lastCode });
-    expect(ok.body[0].membership).toMatchObject({ role: 'admin', status: 'active' });
-
-    const dup = await request(app).post(`${api}/organisations/register`).set(auth.family)
-      .send({ name: 'Orgtest Infra Again', type: 'company', workEmail: 'me@orgtest-infra.in', ...VIZAG });
+    inviteCode = (await prisma.organization.findUniqueOrThrow({ where: { id: orgId } })).inviteCode;
+    expect((await request(app).get(`${api}/organisations/mine`).set(auth.family)).body).toEqual([]);
+    // The same company (work email domain) can't be asked for twice
+    const dup = await request(app).post(`${api}/organisations/request`).set(auth.hr)
+      .send({ name: 'Orgtest Infra Again', type: 'company', contactName: 'Someone', contactEmail: 'me@orgtest-infra.in', ...VIZAG });
     expect(dup.status).toBe(409);
-
-    // Not verified yet: nobody can join
-    const early = await request(app).post(`${api}/organisations/join`).set(auth.family).send({ inviteCode, workEmail: 'f@orgtest-infra.in' });
-    expect(early.status).toBe(400);
-    const v = await request(app).patch(`${api}/organisations/admin/${orgId}`).set(adminAuth).send({ verified: true });
-    expect(v.status).toBe(200);
+    // The old self-registration is gone
+    const old = await request(app).post(`${api}/organisations/register`).set(auth.hr)
+      .send({ name: 'Orgtest Old Way', type: 'company', workEmail: 'hr@orgtest-old.in', ...VIZAG });
+    expect(old.status).toBe(404);
   });
 
-  it('employees join with a work email on the company domain, using their own personal account', async () => {
-    const wrong = await request(app).post(`${api}/organisations/join`).set(auth.family).send({ inviteCode, workEmail: 'family@gmail.com' });
+  it('before the contract (not verified) nobody can link', async () => {
+    const early = await request(app).post(`${api}/organisations/link`).set(auth.family)
+      .send({ inviteCode, method: 'employee_id', employeeId: 'E1', dateOfBirth: DOB });
+    expect(early.status).toBe(400);
+  });
+
+  it('staff verify the company and make its HR person the admin (by their account email or mobile)', async () => {
+    const v = await request(app).patch(`${api}/organisations/admin/${orgId}`).set(adminAuth).send({ verified: true });
+    expect(v.status).toBe(200);
+    const none = await request(app).post(`${api}/organisations/admin/${orgId}/admins`).set(adminAuth).send({ identifier: 'nobody@example.org' });
+    expect(none.status).toBe(404);
+    const notStaff = await request(app).post(`${api}/organisations/admin/${orgId}/admins`).set(auth.hr).send({ identifier: `${TAG}.hr@example.org` });
+    expect(notStaff.status).toBe(403);
+    const ok = await request(app).post(`${api}/organisations/admin/${orgId}/admins`).set(adminAuth).send({ identifier: '+91 94440 00001' });
+    expect(ok.status).toBe(200);
+    const mine = await request(app).get(`${api}/organisations/mine`).set(auth.hr);
+    expect(mine.body[0].membership).toMatchObject({ role: 'admin', status: 'active' });
+  });
+
+  it('HR uploads the employee list; employees link with employee ID + date of birth on their own personal account', async () => {
+    const up = await request(app).post(`${api}/organisations/${orgId}/eligibility`).set(auth.hr).send({
+      rows: [
+        { employeeId: 'E1', dateOfBirth: '02-02-1992', workEmail: 'family@orgtest-infra.in' },
+        { employeeId: 'E2', dateOfBirth: DOB, workEmail: 'near@orgtest-infra.in' },
+        { employeeId: 'E3', dateOfBirth: DOB, workEmail: 'far@orgtest-infra.in' },
+        { employeeId: 'E4', dateOfBirth: DOB, workEmail: 'out@orgtest-infra.in' },
+        { employeeId: 'E5', dateOfBirth: DOB, workEmail: 'outsider@orgtest-infra.in' },
+      ],
+    });
+    expect(up.status).toBe(200);
+    expect(up.body).toMatchObject({ added: 5, problems: [] });
+    // Wrong date of birth: refused, with the same message whatever was wrong
+    const wrong = await request(app).post(`${api}/organisations/link`).set(auth.family)
+      .send({ inviteCode, method: 'employee_id', employeeId: 'E1', dateOfBirth: '1992-03-02' });
     expect(wrong.status).toBe(400);
-    await joinAs('family', 'family@orgtest-infra.in');
-    await joinAs('nearColleague', 'near@orgtest-infra.in');
-    await joinAs('farColleague', 'far@orgtest-infra.in');
-    await joinAs('optedOut', 'out@orgtest-infra.in');
-    // One work email belongs to one person
-    const taken = await request(app).post(`${api}/organisations/join`).set(auth.outsider).send({ inviteCode, workEmail: 'near@orgtest-infra.in' });
+    expect(wrong.body.code).toBe('NOT_ON_LIST');
+    await joinAs('family', 'e1');
+    await joinAs('nearColleague', 'E2');
+    await joinAs('farColleague', 'E3');
+    await joinAs('optedOut', 'E4');
+    // One row belongs to one person
+    const taken = await request(app).post(`${api}/organisations/link`).set(auth.outsider)
+      .send({ inviteCode, method: 'employee_id', employeeId: 'E2', dateOfBirth: DOB });
     expect(taken.status).toBe(409);
     const accounts = await prisma.user.count({ where: { email: `${TAG}.family@example.org` } });
     expect(accounts).toBe(1);
   });
 
-  it('a wrong code is refused', async () => {
-    await request(app).post(`${api}/organisations/join`).set(auth.outsider).send({ inviteCode, workEmail: 'outsider@orgtest-infra.in' });
+  it('or with a code sent to the work email on the list; a wrong code is refused', async () => {
+    const notListed = await request(app).post(`${api}/organisations/link`).set(auth.outsider)
+      .send({ inviteCode, method: 'work_email', workEmail: 'someone@orgtest-infra.in' });
+    expect(notListed.status).toBe(400);
+    const sent = await request(app).post(`${api}/organisations/link`).set(auth.outsider)
+      .send({ inviteCode, method: 'work_email', workEmail: 'outsider@orgtest-infra.in' });
+    expect(sent.body).toMatchObject({ pending: true });
     const bad = await request(app).post(`${api}/organisations/${orgId}/verify-email`).set(auth.outsider).send({ code: '000000' });
     expect(bad.status).toBe(400);
     await request(app).post(`${api}/organisations/${orgId}/leave`).set(auth.outsider);

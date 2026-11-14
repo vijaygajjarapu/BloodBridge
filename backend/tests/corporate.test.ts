@@ -1,6 +1,7 @@
 /**
  * Corporate chain: a company that pays ("paid" plan) covers its people's personal Donor Circle.
- * - while they work there: free, and a personal plan they paid for ends with a pro-rata refund
+ * - who is covered comes from the company's employee list, never from signing up with a work email
+ * - while they work there: free; a personal plan they already paid for is kept, nothing refunded
  * - HR records the exit (or the admin removes them, or they leave): free for 30 days, reminders, then locked
  * - joining another paying company continues it; family, pledges and the circle stay the person's own
  * - colleagues are alerted on requests wherever they are
@@ -78,8 +79,9 @@ describe('While working at a paying company', () => {
     await prisma.subscription.create({
       data: { userId: ids.emp, amountPaise: 20000, status: 'active', provider: 'dev_simulated', startsAt, endsAt: new Date(startsAt.getTime() + 365 * DAY), autoRenew: true },
     });
-    // Joins Acme: work email checked
+    // Joins Acme: on HR's employee list, work email checked
     const { hashToken } = await import('../src/shared/password.js');
+    await prisma.orgEligibility.create({ data: { orgId: org.acme, employeeId: 'EMP7', dateOfBirth: new Date('1990-02-02'), workEmail: 'emp@acme.corptest.in' } });
     await prisma.orgMember.create({
       data: { orgId: org.acme, userId: ids.emp, status: 'pending_email', workEmail: 'emp@acme.corptest.in', employeeId: 'EMP7', codeHash: hashToken('123456'), codeExpiresAt: new Date(Date.now() + 600000) },
     });
@@ -100,15 +102,20 @@ describe('While working at a paying company', () => {
     await prisma.subscription.update({ where: { id: sub.id }, data: { endsAt: new Date(Date.now() - DAY) } });
   });
 
-  it('signing up with an official email links them to that company once the email is verified', async () => {
-    const { organisationService } = await import('../src/modules/organisations/organisations.service.js');
-    // A free email is never proof of working somewhere
-    expect(await organisationService.autoLinkByEmail(ids.emp, 'someone@gmail.com')).toEqual([]);
+  it('signing up with an official email links nothing; the employee list does (employee ID + date of birth)', async () => {
     const u2 = await prisma.user.create({
       data: { email: `${TAG}.newjoiner@acme.corptest.in`, phone: '+919555000010', fullName: 'Corp newjoiner', isEmailVerified: true, dateOfBirth: new Date('1991-01-01') },
     });
-    const linked2 = await organisationService.autoLinkByEmail(u2.id, u2.email);
-    expect(linked2).toEqual([org.acme]);
+    const a2 = { Authorization: `Bearer ${signAccessToken({ userId: u2.id, email: u2.email, role: u2.role })}` };
+    expect(await prisma.orgMember.count({ where: { userId: u2.id } })).toBe(0);
+    expect(await subscriptionService.companyCoverage(u2.id)).toBeNull();
+
+    const up = await request(app).post(`${api}/organisations/${org.acme}/eligibility`).set(auth.hr)
+      .send({ rows: [{ employeeId: 'NJ-01', dateOfBirth: '01/01/1991' }] });
+    expect(up.body.added).toBe(1);
+    const linked = await request(app).post(`${api}/organisations/link`).set(a2)
+      .send({ inviteCode: 'CORPACME', method: 'employee_id', employeeId: 'nj-01', dateOfBirth: '1991-01-01' });
+    expect(linked.status).toBe(200);
     expect((await subscriptionService.companyCoverage(u2.id))?.kind).toBe('company');
     expect(await prisma.notification.count({ where: { recipientId: u2.id, title: 'Welcome to Corporate Donor Circle' } })).toBe(1);
   });

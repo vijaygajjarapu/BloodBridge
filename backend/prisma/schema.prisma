@@ -611,14 +611,19 @@ model Organization {
   state        String
   district     String
   country      String   @default("IN")
-  verified     Boolean  @default(false) // checked by BloodBridge staff
+  verified     Boolean  @default(false) // contract signed and checked by BloodNation staff; nobody can link before this
   plan         String   @default("pilot") // pilot, paid
-  createdById  String?
+  createdById  String?  // the person who asked BloodNation to bring this company on (never made an admin by this)
+  // Who to talk to at the company about the contract (from the "Bring BloodNation to your company" request)
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   members       OrgMember[]
   announcements OrgAnnouncement[]
+  eligibility   OrgEligibility[]
 
   @@index([verified])
 }
@@ -650,6 +655,30 @@ model OrgMember {
   @@index([userId, status])
   @@index([orgId, status])
   @@index([workEmail])
+}
+
+/// The company's employee list (eligibility file), uploaded by its HR admin. Only this list lets someone link the
+/// company to their personal account: employee ID + date of birth must match a row, or a code is sent to the row's
+/// work email. Being removed from the list counts as leaving the company.
+model OrgEligibility {
+  id           String    @id @default(uuid())
+  orgId        String
+  employeeId   String    // trimmed and upper-cased, as matched
+  dateOfBirth  DateTime  // date only (UTC midnight)
+  workEmail    String?   // optional: lets the employee check with a code sent to this work email instead
+  status       String    @default("eligible") // eligible, removed
+  linkedUserId String?   // the BloodNation account that linked with this row
+  linkedAt     DateTime?
+  removedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, employeeId])
+  @@index([orgId, status])
+  @@index([orgId, workEmail])
+  @@index([linkedUserId])
 }
 
 /// Announcements and donation camps an organisation admin sends to members

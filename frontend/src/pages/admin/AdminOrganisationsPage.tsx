@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Briefcase, Building2, CheckCircle2, XCircle, Plus } from 'lucide-react';
 import { orgApi, remoteApi } from '../../services/orgApi';
-import type { Organisation, PartnerBloodBank } from '../../types/organisation';
+import type { PartnerBloodBank } from '../../types/organisation';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { errorMessage } from '../../utils/formErrors';
 
-type OrgRow = Organisation & { plan: string; inviteCode: string; members: number; createdAt: string };
+type OrgRow = Awaited<ReturnType<typeof orgApi.adminAll>>[number];
 type Queue = Awaited<ReturnType<typeof remoteApi.adminQueue>>;
 
-/** BloodNation staff: verify organisations, manage partner blood banks, confirm replacement donations */
+/** BloodNation staff: company requests and contracts, HR admins, partner blood banks, replacement donations */
 export const AdminOrganisationsPage: React.FC = () => {
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [banks, setBanks] = useState<PartnerBloodBank[]>([]);
   const [queue, setQueue] = useState<Queue>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [hrAdmin, setHrAdmin] = useState<Record<string, string>>({});
+  const [notice, setNotice] = useState<string | null>(null);
   const [bank, setBank] = useState({ name: '', licenceNo: '', address: '', city: '', district: '', state: '', phone: '' });
 
   const load = async () => {
@@ -37,6 +39,7 @@ export const AdminOrganisationsPage: React.FC = () => {
   const run = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
     setError(null);
+    setNotice(null);
     try {
       await fn();
       await load();
@@ -51,19 +54,27 @@ export const AdminOrganisationsPage: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-extrabold text-ink-main">Organisations, partner blood banks and replacement donations</h1>
       {error && <ErrorBanner message={error} />}
+      {notice && <p className="text-sm text-status-success font-semibold" role="status">{notice}</p>}
 
       <Card>
         <CardContent className="p-5 space-y-3">
           <h2 className="text-base font-bold flex items-center gap-2"><Briefcase className="w-4 h-4" /> Organisations ({orgs.length})</h2>
-          <p className="text-xs text-ink-secondary">Verify an organisation after checking it is real (website, the registering person's work email, a call with HR). Employees can only join verified organisations.</p>
+          <p className="text-xs text-ink-secondary">
+            Requests come from employees ("Bring BloodNation to your company"); nobody becomes an admin by asking. Talk to the HR contact, sign the
+            contract, then <strong>Verify</strong> and add their HR person as admin (by the email or mobile of their BloodNation account). HR then
+            uploads the employee list; only people on it can link the company.
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-ink-secondary border-b"><th className="py-2 pr-3">Name</th><th className="py-2 pr-3">Domains</th><th className="py-2 pr-3">Place</th><th className="py-2 pr-3">Members</th><th className="py-2 pr-3">Plan</th><th className="py-2" /></tr></thead>
+              <thead><tr className="text-left text-xs text-ink-secondary border-b"><th className="py-2 pr-3">Name</th><th className="py-2 pr-3">HR contact</th><th className="py-2 pr-3">Place</th><th className="py-2 pr-3">Members</th><th className="py-2 pr-3">Plan</th><th className="py-2" /></tr></thead>
               <tbody>
                 {orgs.map((o) => (
                   <tr key={o.id} className="border-b last:border-0">
                     <td className="py-2 pr-3 font-semibold">{o.name} <span className="text-[11px] text-ink-muted">({o.inviteCode})</span></td>
-                    <td className="py-2 pr-3 text-xs">{o.emailDomains.join(', ')}</td>
+                    <td className="py-2 pr-3 text-xs">
+                      {[o.contact?.name, o.contact?.email, o.contact?.phone].filter(Boolean).join(' · ') || '—'}
+                      {o.emailDomains.length > 0 && <span className="block text-ink-muted">{o.emailDomains.map((x) => '@' + x).join(', ')}</span>}
+                    </td>
                     <td className="py-2 pr-3 text-xs">{o.city}, {o.state}</td>
                     <td className="py-2 pr-3">{o.members}</td>
                     <td className="py-2 pr-3">
@@ -71,11 +82,23 @@ export const AdminOrganisationsPage: React.FC = () => {
                         <option value="pilot">Pilot</option><option value="paid">Paid (company pays employees' Donor Circle)</option>
                       </select>
                     </td>
-                    <td className="py-2 text-right">
+                    <td className="py-2 text-right space-y-1">
                       <Button size="sm" variant={o.verified ? 'outline' : 'primary'} isLoading={busy === `v-${o.id}`}
                         onClick={() => run(`v-${o.id}`, () => orgApi.adminUpdate(o.id, { verified: !o.verified }))}>
-                        {o.verified ? 'Unverify' : 'Verify'}
+                        {o.verified ? 'Unverify' : 'Verify (contract signed)'}
                       </Button>
+                      <span className="flex items-center justify-end gap-1">
+                        <input aria-label={`HR admin for ${o.name}`} placeholder="HR admin email or mobile" className="border rounded px-2 py-1 text-xs w-44"
+                          value={hrAdmin[o.id] || ''} onChange={(e) => setHrAdmin({ ...hrAdmin, [o.id]: e.target.value })} />
+                        <Button size="sm" variant="ghost" isLoading={busy === `a-${o.id}`} disabled={!(hrAdmin[o.id] || '').trim()}
+                          onClick={() => run(`a-${o.id}`, async () => {
+                            const r = await orgApi.adminAddOrgAdmin(o.id, hrAdmin[o.id]);
+                            setNotice(`${r.name} is now an admin of ${o.name}.`);
+                            setHrAdmin({ ...hrAdmin, [o.id]: '' });
+                          })}>
+                          Add admin
+                        </Button>
+                      </span>
                     </td>
                   </tr>
                 ))}

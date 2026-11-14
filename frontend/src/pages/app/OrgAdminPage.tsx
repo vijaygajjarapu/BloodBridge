@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { errorMessage } from '../../utils/formErrors';
 import { HrExitsCard } from '../../components/org/HrExitsCard';
+import { EligibilityCard } from '../../components/org/EligibilityCard';
 
 const Stat: React.FC<{ label: string; value: React.ReactNode; hint?: string }> = ({ label, value, hint }) => (
   <div className="rounded-xl border border-line-border p-4">
@@ -20,7 +21,7 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; hint?: string }> =
 );
 
 /**
- * Organisation admin (HR / CSR): counts only, member list (names and work emails), announcements and camps.
+ * Organisation admin (HR / CSR): employee list (who the company covers), counts only, member list, announcements and camps.
  * Never shows a named employee's blood group, eligibility or reasons to wait.
  */
 export const OrgAdminPage: React.FC = () => {
@@ -76,13 +77,13 @@ export const OrgAdminPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-ink-main">{d.org.name}</h1>
           <p className="text-xs text-ink-secondary">
-            {d.org.city}, {d.org.state} · work emails: {d.org.emailDomains.map((x) => '@' + x).join(', ')} · {d.org.verified ? 'Verified' : 'Waiting for BloodNation to verify'} · {d.org.plan === 'paid' ? 'Paid plan' : 'Pilot'}
+            {d.org.city}, {d.org.state} · {d.org.verified ? 'Contract signed' : 'Waiting for BloodNation to verify'} · {d.org.plan === 'paid' ? 'Paid plan (you cover employees’ Donor Circle)' : 'Pilot'}
           </p>
         </div>
         <div className="rounded-xl border border-line-border p-3 text-xs">
-          <p className="font-semibold text-ink-main">Invite code: <span className="font-mono text-brand-700">{d.org.inviteCode}</span></p>
+          <p className="font-semibold text-ink-main">Company code: <span className="font-mono text-brand-700">{d.org.inviteCode}</span></p>
           <button type="button" className="mt-1 inline-flex items-center gap-1 text-brand-600 font-semibold" onClick={() => { navigator.clipboard.writeText(inviteLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-            <Copy className="w-3.5 h-3.5" /> {copied ? 'Copied' : 'Copy invite link for staff'}
+            <Copy className="w-3.5 h-3.5" /> {copied ? 'Copied' : 'Copy link for employees'}
           </button>
         </div>
       </div>
@@ -96,6 +97,7 @@ export const OrgAdminPage: React.FC = () => {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Members" value={d.people.members} hint={d.people.waitingForEmailCheck ? `${d.people.waitingForEmailCheck} waiting to check their work email` : undefined} />
+        <Stat label="On the employee list" value={`${d.people.linkedFromList}/${d.people.onList}`} hint="linked / on the list" />
         <Stat label="Registered donors" value={d.people.donors} />
         <Stat label="Could donate now" value={d.readyToDonateNow.label} hint="Available, eligible and reachable by colleagues" />
         <Stat label="Requests (90 days)" value={`${d.last90Days.fulfilled}/${d.last90Days.requests}`} hint="fulfilled / posted by members who allow it" />
@@ -165,7 +167,7 @@ export const OrgAdminPage: React.FC = () => {
                     <td className="py-2 pr-3">{m.name}{m.role === 'admin' && <span className="ml-1 text-[10px] font-bold text-brand-700">ADMIN</span>}</td>
                     <td className="py-2 pr-3 text-ink-secondary">{m.workEmail}</td>
                     <td className="py-2 pr-3 text-ink-secondary">{m.employeeId || '—'}</td>
-                    <td className="py-2 pr-3 text-xs">{m.status === 'active' ? 'Active' : 'Checking email'}</td>
+                    <td className="py-2 pr-3 text-xs">{m.status === 'active' ? 'Linked' : 'Checking work email'}</td>
                     <td className="py-2 text-right whitespace-nowrap">
                       {m.status === 'active' && (
                         <Button size="sm" variant="ghost" leftIcon={<UserCog className="w-4 h-4" />} isLoading={busy === `role-${m.id}`}
@@ -185,6 +187,8 @@ export const OrgAdminPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <EligibilityCard orgId={id} onDone={() => load()} />
 
       <HrExitsCard orgId={id} onDone={() => load()} />
 

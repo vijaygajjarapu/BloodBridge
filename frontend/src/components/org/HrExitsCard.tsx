@@ -7,7 +7,7 @@ import { errorMessage } from '../../utils/formErrors';
 
 const RESULT_TEXT: Record<string, string> = {
   done: 'Done',
-  not_found: 'Not found (check the work email or employee ID)',
+  not_found: 'Not found on the employee list or among members (check the work email or employee ID)',
   already_left: 'Already marked as left',
   bad_date: 'Date missing, wrong, or in the future (send it on or after the last working day)',
   yourself: 'That is you: use "Leave" instead',
@@ -67,7 +67,7 @@ export const HrExitsCard: React.FC<{ orgId: string; onDone?: () => void }> = ({ 
         <p className="text-xs text-ink-secondary">
           One line per person: <strong>work email or employee ID, last working day</strong> (e.g. <code>ravi@acme.com, 2026-11-10</code>). Paste
           from a spreadsheet or choose a CSV file. Their company-paid Donor Circle stays free for 30 days, then they are reminded to renew.
-          Their personal account, family and donors are never touched, and colleague alerts stop.
+          They are also taken off the employee list. Their personal account, family and donors are never touched, and colleague alerts stop.
         </p>
         <textarea
           className="w-full min-h-[110px] rounded-lg border border-line-border p-2 text-xs font-mono"

@@ -22,7 +22,11 @@ const TYPES: { value: OrgType; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
-/** Employee side: join your organisation with a work email, or register one (HR / CSR) */
+/**
+ * Employee side: link my company to my personal account. The company decides who is eligible: we match the
+ * employee list HR shared (employee ID + date of birth), or send a code to the work email on that list.
+ * Anyone can ask BloodNation to bring their company on; that is only a request, it makes nobody an admin.
+ */
 export const OrganisationsPage: React.FC = () => {
   const t = useT();
   const { user } = useAuth();
@@ -34,13 +38,16 @@ export const OrganisationsPage: React.FC = () => {
   // Join (the invite link from HR fills in the code)
   const [params] = useSearchParams();
   const [code, setCode] = useState((params.get('code') || '').toUpperCase());
+  const [method, setMethod] = useState<'employee_id' | 'work_email'>('employee_id');
   const [workEmail, setWorkEmail] = useState('');
   const [employeeId, setEmployeeId] = useState('');
+  const [dob, setDob] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
   // Code from the work email, per organisation
   const [otp, setOtp] = useState<Record<string, string>>({});
-  // Register
-  const [showRegister, setShowRegister] = useState(false);
-  const [reg, setReg] = useState({ name: '', type: 'company' as OrgType, workEmail: '', domains: '' });
+  // Ask BloodNation to bring my company on
+  const [showRequest, setShowRequest] = useState(false);
+  const [reg, setReg] = useState({ name: '', type: 'company' as OrgType, contactName: '', contactEmail: '', contactPhone: '' });
   const [loc, setLoc] = useState<LocationValue>({ country: countryOrDefault(user?.country || getPreferredCountryCode()).code, state: '', district: '', city: '', postalCode: '' });
 
   const load = () =>
@@ -62,6 +69,7 @@ export const OrganisationsPage: React.FC = () => {
   const run = async (key: string, fn: () => Promise<unknown>, after?: () => void) => {
     setBusy(key);
     setError(null);
+    setNotice(null);
     try {
       await fn();
       after?.();
@@ -85,6 +93,7 @@ export const OrganisationsPage: React.FC = () => {
         <ShieldCheck className="w-4 h-4 text-status-success shrink-0" /> {t('org.privacy')}
       </div>
       {error && <ErrorBanner message={error} />}
+      {notice && <p className="text-sm text-status-success font-semibold" role="status">{notice}</p>}
 
       {mine?.map((o) => (
         <Card key={o.id}>
@@ -95,7 +104,7 @@ export const OrganisationsPage: React.FC = () => {
                   <Building className="w-4 h-4" /> {o.name}
                 </p>
                 <p className="text-[11px] text-ink-muted">
-                  {o.city}, {o.state} · {o.membership.workEmail}
+                  {[`${o.city}, ${o.state}`, o.membership.employeeId, o.membership.workEmail].filter(Boolean).join(' · ')}
                 </p>
               </div>
               {o.membership.status === 'active' ? (
@@ -163,52 +172,88 @@ export const OrganisationsPage: React.FC = () => {
       ))}
 
       <Card>
-        <CardContent className="p-5 space-y-3">
-          <h2 className="text-base font-bold text-ink-main flex items-center gap-2"><KeyRound className="w-4 h-4" /> {t('org.joinTitle')}</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Input id="org-code" label={t('org.inviteCode')} value={code} maxLength={20} onChange={(e) => setCode(e.target.value.toUpperCase())} />
-            <Input id="org-email" type="email" label={t('org.workEmail')} value={workEmail} onChange={(e) => setWorkEmail(e.target.value)} />
-            <Input id="org-empid" label={t('org.employeeId')} value={employeeId} maxLength={40} onChange={(e) => setEmployeeId(e.target.value)} />
+        <CardContent className="p-5 space-y-3" id="link-company">
+          <h2 className="text-base font-bold text-ink-main flex items-center gap-2"><KeyRound className="w-4 h-4" /> {t('org.linkTitle')}</h2>
+          <p className="text-xs text-ink-secondary">{t('org.linkHint')}</p>
+          <Input id="org-code" label={t('org.inviteCode')} value={code} maxLength={20} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+          <div className="flex flex-wrap gap-4 text-sm" role="radiogroup" aria-label={t('org.linkTitle')}>
+            {(['employee_id', 'work_email'] as const).map((m) => (
+              <label key={m} className="flex items-center gap-2 cursor-pointer min-h-[44px]">
+                <input type="radio" name="link-method" className="w-4 h-4 accent-brand-600" checked={method === m} onChange={() => setMethod(m)} />
+                {m === 'employee_id' ? t('org.methodId') : t('org.methodEmail')}
+              </label>
+            ))}
           </div>
-          <Button variant="primary" isLoading={busy === 'join'} disabled={!code.trim() || !workEmail.trim()}
-            onClick={() => run('join', () => orgApi.join(code, workEmail, employeeId || undefined), () => { setCode(''); setEmployeeId(''); })}>
-            {t('org.sendCode')}
+          {method === 'employee_id' ? (
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Input id="org-empid" label={t('org.employeeIdReq')} value={employeeId} maxLength={40} onChange={(e) => setEmployeeId(e.target.value)} />
+              <Input id="org-dob" type="date" label={t('org.dob')} value={dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setDob(e.target.value)} />
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Input id="org-email" type="email" label={t('org.workEmail')} value={workEmail} onChange={(e) => setWorkEmail(e.target.value)} />
+              <p className="text-[11px] text-ink-muted">{t('org.workEmailOnlyCheck')}</p>
+            </div>
+          )}
+          <Button variant="primary" isLoading={busy === 'link'}
+            disabled={!code.trim() || (method === 'employee_id' ? !employeeId.trim() || !dob : !workEmail.trim())}
+            onClick={() =>
+              run(
+                'link',
+                () =>
+                  orgApi.link(
+                    method === 'employee_id'
+                      ? { inviteCode: code, method, employeeId, dateOfBirth: dob }
+                      : { inviteCode: code, method, workEmail },
+                  ),
+                () => { setCode(''); setEmployeeId(''); setDob(''); setWorkEmail(''); },
+              )
+            }>
+            {method === 'employee_id' ? t('org.linkTitle') : t('org.sendCode')}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="p-5 space-y-3">
-          <button type="button" className="text-base font-bold text-ink-main flex items-center gap-2" onClick={() => setShowRegister((v) => !v)}>
-            <Building className="w-4 h-4" /> {t('org.registerTitle')}
+        <CardContent className="p-5 space-y-3" id="request-company">
+          <button type="button" className="text-base font-bold text-ink-main flex items-center gap-2" onClick={() => setShowRequest((v) => !v)} aria-expanded={showRequest}>
+            <Building className="w-4 h-4" /> {t('org.requestTitle')}
           </button>
-          <p className="text-xs text-ink-secondary">{t('org.registerHint')}</p>
-          {showRegister && (
+          <p className="text-xs text-ink-secondary">{t('org.requestHint')}</p>
+          {showRequest && (
             <div className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input id="reg-name" label={t('org.name')} value={reg.name} maxLength={100} onChange={(e) => setReg({ ...reg, name: e.target.value })} />
                 <Select id="reg-type" label={t('org.type')} value={reg.type} onChange={(e) => setReg({ ...reg, type: e.target.value as OrgType })} options={TYPES} />
-                <Input id="reg-email" type="email" label={t('org.workEmail')} value={reg.workEmail} onChange={(e) => setReg({ ...reg, workEmail: e.target.value })} />
-                <Input id="reg-domains" label={t('org.extraDomains')} value={reg.domains} onChange={(e) => setReg({ ...reg, domains: e.target.value })} />
+                <Input id="reg-contact" label={t('org.contactName')} value={reg.contactName} maxLength={80} onChange={(e) => setReg({ ...reg, contactName: e.target.value })} />
+                <Input id="reg-email" type="email" label={t('org.contactEmail')} value={reg.contactEmail} onChange={(e) => setReg({ ...reg, contactEmail: e.target.value })} />
+                <Input id="reg-phone" type="tel" label={t('org.contactPhone')} value={reg.contactPhone} maxLength={20} onChange={(e) => setReg({ ...reg, contactPhone: e.target.value })} />
               </div>
               <LocationFields idPrefix="reg" value={loc} onChange={(c) => setLoc((l) => ({ ...l, ...c }))} showCountry={false} showPostalCode={false} />
-              <Button variant="primary" isLoading={busy === 'register'} disabled={!reg.name.trim() || !reg.workEmail.trim()}
+              <Button variant="primary" isLoading={busy === 'request'} disabled={!reg.name.trim() || !reg.contactName.trim() || !reg.contactEmail.trim()}
                 onClick={() =>
-                  run('register', () =>
-                    orgApi.register({
-                      name: reg.name,
-                      type: reg.type,
-                      workEmail: reg.workEmail,
-                      emailDomains: reg.domains.split(',').map((d) => d.trim()).filter(Boolean),
-                      country: loc.country,
-                      state: loc.state,
-                      district: loc.district,
-                      city: loc.city || '',
-                    }),
-                    () => setShowRegister(false),
+                  run(
+                    'request',
+                    () =>
+                      orgApi.requestCompany({
+                        name: reg.name,
+                        type: reg.type,
+                        contactName: reg.contactName,
+                        contactEmail: reg.contactEmail,
+                        contactPhone: reg.contactPhone || undefined,
+                        country: loc.country,
+                        state: loc.state,
+                        district: loc.district,
+                        city: loc.city || '',
+                      }),
+                    () => {
+                      setNotice(t('org.requestSent', { name: reg.name.trim() }));
+                      setShowRequest(false);
+                      setReg({ name: '', type: 'company', contactName: '', contactEmail: '', contactPhone: '' });
+                    },
                   )
                 }>
-                {t('org.register')}
+                {t('org.sendRequest')}
               </Button>
             </div>
           )}

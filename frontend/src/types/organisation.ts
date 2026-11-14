@@ -14,18 +14,40 @@ export interface Organisation {
 }
 
 export interface MyOrganisation extends Organisation {
-  membership: { role: 'member' | 'admin'; status: 'pending_email' | 'active'; workEmail: string; countInImpact: boolean; joinedAt: string };
+  membership: { role: 'member' | 'admin'; status: 'pending_email' | 'active'; workEmail: string; employeeId: string | null; countInImpact: boolean; joinedAt: string };
   /** Only for admins */
   inviteCode?: string;
 }
 
 export interface OrgDashboard {
   org: Organisation & { inviteCode: string; plan: string };
-  people: { members: number; donors: number; waitingForEmailCheck: number };
+  people: { members: number; donors: number; waitingForEmailCheck: number; onList: number; linkedFromList: number };
   readyToDonateNow: SafeCount;
   bloodGroups: Record<string, SafeCount>;
   last90Days: { requests: number; fulfilled: number; colleagueHelps: number; remoteDonations: number };
 }
+
+/** The company's employee list as HR sees it (never dates of birth) */
+export interface EligibilityList {
+  onList: number;
+  linked: number;
+  removed: number;
+  rows: { employeeId: string; workEmail: string | null; status: 'eligible' | 'removed'; linked: boolean; linkedAt: string | null; removedAt: string | null }[];
+}
+
+export interface EligibilityUploadResult {
+  added: number;
+  updated: number;
+  unchanged: number;
+  removed: number;
+  exits: number;
+  applied: boolean;
+  problems: { line: number; employeeId: string; reason: 'missing_id' | 'bad_date' | 'bad_email' | 'duplicate' }[];
+}
+
+export type LinkCompanyInput =
+  | { inviteCode: string; method: 'employee_id'; employeeId: string; dateOfBirth: string }
+  | { inviteCode: string; method: 'work_email'; workEmail: string };
 
 export interface OrgMemberRow {
   id: string;
